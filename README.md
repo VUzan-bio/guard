@@ -28,40 +28,7 @@ GUARD is an end-to-end computational pipeline that takes WHO-catalogued drug-res
 
 ## Pipeline
 
-```
-WHO Mutation Catalogue
-        │
-   ┌────▼────┐
-   │   M1    │  Target Resolution — mutations → genomic coordinates (H37Rv)
-   └────┬────┘
-   ┌────▼────┐
-   │   M2    │  PAM Scanner — multi-PAM, multi-length spacer extraction
-   └────┬────┘
-   ┌────▼────┐
-   │   M3    │  Candidate Filter — GC, homopolymer, Tm, secondary structure
-   └────┬────┘
-   ┌────▼────┐
-   │   M4    │  Off-Target Screen — Bowtie2 against H37Rv (4.41 Mb)
-   └────┬────┘
-   ┌────▼────┐
-   │   M5    │  Scoring — heuristic + SeqCNN ensemble
-   └────┬────┘
-   ┌────▼────┐
-   │ M5.5-M6 │  Mismatch Pairs + Synthetic Mismatch Enhancement
-   └────┬────┘
-   ┌────▼────┐
-   │  M6.5   │  Discrimination — MUT/WT activity ratio prediction
-   └────┬────┘
-   ┌────▼────┐
-   │   M7    │  Multiplex Optimisation — simulated annealing
-   └────┬────┘
-   ┌────▼────┐
-   │  M8-M9  │  RPA Primer Design + Panel Assembly (+ IS6110 control)
-   └────┬────┘
-   ┌────▼────┐
-   │  M10    │  Export — JSON, TSV, FASTA
-   └─────────┘
-```
+<img width="2784" height="1358" alt="555309559-a7a695f4-2f14-48da-a9dd-1c7d16aee951" src="https://github.com/user-attachments/assets/a7956fda-835c-45d0-aa42-9f31ebadbb73" />
 
 ## Quick Start
 
