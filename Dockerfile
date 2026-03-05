@@ -9,32 +9,42 @@ RUN npm ci
 COPY guard-ui/ ./
 RUN npm run build
 
-# Stage 2: Runtime
+# Stage 2: Build Python packages that need compilers
+FROM python:3.11-slim AS builder
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libffi-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md ./
+COPY guard/ ./guard/
+RUN pip install --no-cache-dir -e ".[primers,api]"
+
+# Stage 3: Lean runtime (no compilers)
 FROM python:3.11-slim
 WORKDIR /app
 
-# Bowtie2 for off-target screening + minimal build deps
+# Only bowtie2 at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libffi-dev bowtie2 && \
+    bowtie2 && \
     rm -rf /var/lib/apt/lists/*
 
-# Install only the deps needed for deployment (no torch — heuristic fallback)
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Application code
 COPY pyproject.toml README.md ./
 COPY guard/ ./guard/
-RUN pip install --no-cache-dir -e ".[primers,api]" && \
-    pip cache purge 2>/dev/null; true
-
-# Remove build deps to save space
-RUN apt-get purge -y gcc libffi-dev && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
-
-# API + configs + data
 COPY api/ ./api/
 COPY configs/ ./configs/
 COPY data/ ./data/
 
-# Build Bowtie2 index from reference FASTA
+# Editable install (egg-link only, no downloads)
+RUN pip install --no-cache-dir --no-deps -e .
+
+# Build Bowtie2 index
 RUN bowtie2-build data/references/H37Rv.fasta data/references/H37Rv
 
 # Frontend
@@ -42,9 +52,6 @@ COPY --from=frontend /build/dist ./guard-ui/dist
 
 RUN mkdir -p results/api results/panels results/validation
 
+# Railway sets $PORT dynamically; no HEALTHCHECK here — Railway handles it via railway.json
 EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"
-
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
