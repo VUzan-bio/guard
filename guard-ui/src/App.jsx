@@ -1009,35 +1009,27 @@ const HomePage = ({ goTo, connected }) => {
         </div>
       </div>
 
-      {/* ── Methodology & Transparency ── */}
-      <div style={{ margin: mobile ? "32px 0 28px" : "56px 0 48px", display: "flex", alignItems: "center", gap: "16px" }}>
-        <div style={{ flex: 1, height: 1, background: T.border }} />
-        <span style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.15em" }}>Methodology & Transparency</span>
-        <div style={{ flex: 1, height: 1, background: T.border }} />
-      </div>
-
-      {/* ── Pipeline Architecture ── */}
-      <CollapsibleSection title="Pipeline Architecture">
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+      {/* ── Pipeline Architecture — 2×3 grid ── */}
+      <div style={{ marginBottom: mobile ? "28px" : "48px", marginTop: mobile ? "32px" : "56px" }}>
+        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "16px", fontFamily: HEADING }}>Pipeline Architecture</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
           {[
             { icon: Target, title: "Target Resolution", desc: "WHO catalogue mutations mapped to genomic coordinates on the H37Rv reference genome." },
             { icon: Search, title: "PAM Scanning & Filtering", desc: "Multi-PAM, multi-length spacer search with biophysical filtering (GC, homopolymer, Tm)." },
             { icon: BarChart3, title: "Heuristic Scoring & Off-Target", desc: "Biophysical composite score (seed, GC, structure, homopolymer) plus Bowtie2 genome-wide off-target screening against H37Rv." },
-            { icon: Brain, title: "Learned Scoring", desc: "Convolutional neural network (110K params) trained on 15,000 Cas12a activity measurements." },
+            { icon: Brain, title: "Learned Scoring", desc: "Convolutional neural network (110K params) trained on 15,000 Cas12a activity measurements. Captures position-dependent nucleotide interactions invisible to hand-crafted features." },
             { icon: GitBranch, title: "Discrimination & SM", desc: "MUT/WT activity ratio prediction with optional synthetic mismatch enhancement (10–100×)." },
             { icon: Grid3x3, title: "Multiplex Optimization", desc: "Simulated annealing panel selection with cross-reactivity and primer dimer checks." },
             { icon: FlaskConical, title: "Primer Design & Assembly", desc: "RPA + allele-specific primers, crRNA–primer co-selection, and IS6110 species control." },
           ].map(c => (
-            <div key={c.title} style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "12px", borderRadius: "8px", background: T.bgSub }}>
-              <c.icon size={18} color={T.primary} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "2px" }}>{c.title}</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.5 }}>{c.desc}</div>
-              </div>
+            <div key={c.title} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "24px" }}>
+              <c.icon size={22} color={T.primary} strokeWidth={1.8} style={{ marginBottom: "14px" }} />
+              <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "6px" }}>{c.title}</div>
+              <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.6 }}>{c.desc}</div>
             </div>
           ))}
         </div>
-      </CollapsibleSection>
+      </div>
 
       {/* ── Scoring Models ── */}
       <div style={{ marginBottom: "16px" }}>
