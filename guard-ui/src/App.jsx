@@ -2024,28 +2024,33 @@ const CandidatesTab = ({ results, jobId, connected }) => {
   const [topKData, setTopKData] = useState({});
   const [topKLoading, setTopKLoading] = useState({});
 
+  const buildLocalTopK = useCallback((targetLabel) => {
+    // Build alternatives from other candidates targeting the same gene
+    const target = results.find(r => r.label === targetLabel);
+    if (!target) return { target_label: targetLabel, alternatives: [] };
+    const sameGene = results.filter(r => r.gene === target.gene && r.label !== targetLabel);
+    const alts = sameGene.slice(0, 5).map((r, i) => ({
+      rank: i + 2, spacer_seq: r.spacer, score: +(r.ensembleScore || r.score).toFixed(3),
+      discrimination: +(r.disc || 0).toFixed(1), has_primers: r.hasPrimers,
+      tradeoff: r.score > target.score ? "Higher score" : r.disc > target.disc ? "Higher discrimination" : "Alternative spacer",
+    }));
+    return { target_label: targetLabel, selected: { rank: 1, spacer_seq: target.spacer, score: +(target.ensembleScore || target.score).toFixed(3), discrimination: +(target.disc || 0).toFixed(1) }, alternatives: alts };
+  }, [results]);
+
   const loadTopK = useCallback((targetLabel) => {
     if (topKData[targetLabel] || topKLoading[targetLabel]) return;
     setTopKLoading(prev => ({ ...prev, [targetLabel]: true }));
     if (connected && jobId) {
       getTopK(jobId, targetLabel, 5).then(({ data }) => {
         if (data) setTopKData(prev => ({ ...prev, [targetLabel]: data }));
+        else setTopKData(prev => ({ ...prev, [targetLabel]: buildLocalTopK(targetLabel) }));
         setTopKLoading(prev => ({ ...prev, [targetLabel]: false }));
       });
     } else {
-      // Mock top-K data
-      const mockAlts = Array.from({ length: 3 }, (_, i) => ({
-        rank: i + 2,
-        spacer_seq: "GCTAGCTAGCTAGCTAGCTA".slice(0, 20 - i) + "A".repeat(i),
-        score: +(0.8 - i * 0.1).toFixed(3),
-        discrimination: +(3.5 - i * 0.5).toFixed(1),
-        has_primers: i < 2,
-        tradeoff: i === 0 ? "Similar efficiency, lower discrimination" : i === 1 ? "Higher discrimination, lower efficiency" : "No primers available",
-      }));
-      setTopKData(prev => ({ ...prev, [targetLabel]: { target_label: targetLabel, alternatives: mockAlts } }));
+      setTopKData(prev => ({ ...prev, [targetLabel]: buildLocalTopK(targetLabel) }));
       setTopKLoading(prev => ({ ...prev, [targetLabel]: false }));
     }
-  }, [topKData, topKLoading, connected, jobId]);
+  }, [topKData, topKLoading, connected, jobId, buildLocalTopK]);
 
   const drugs = ["ALL", ...new Set(results.map((r) => r.drug))];
 
@@ -2700,117 +2705,160 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
   const [sweepLoading, setSweepLoading] = useState(false);
   const [paretoLoading, setParetoLoading] = useState(false);
 
-  // Load presets on mount
-  useEffect(() => {
-    if (!connected) {
-      setPresets([
-        { name: "stringent", display_name: "Stringent", description: "High thresholds for clinical deployment", efficiency_threshold: 0.7, discrimination_threshold: 3.0 },
-        { name: "balanced", display_name: "Balanced (WHO TPP)", description: "WHO Target Product Profile defaults", efficiency_threshold: 0.5, discrimination_threshold: 2.0 },
-        { name: "permissive", display_name: "Permissive", description: "Low thresholds for maximum coverage", efficiency_threshold: 0.3, discrimination_threshold: 1.5 },
-      ]);
-      return;
+  // Compute diagnostics client-side from results prop + preset thresholds
+  const computeLocalDiagnostics = useCallback((preset, res) => {
+    if (!res || !res.length) return;
+    const p = presets.find(x => x.name === preset) || { efficiency_threshold: 0.4, discrimination_threshold: 3.0 };
+    const effT = p.efficiency_threshold;
+    const discT = p.discrimination_threshold;
+
+    const perTarget = res.map(r => {
+      const eff = r.ensembleScore || r.score;
+      const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
+      const ready = r.hasPrimers && eff >= effT && (r.strategy === "Proximity" || disc >= discT);
+      return { target_label: r.label, drug: r.drug, efficiency: eff, discrimination: disc, is_assay_ready: ready, has_primers: r.hasPrimers, strategy: r.strategy };
+    });
+
+    const assayReady = perTarget.filter(t => t.is_assay_ready).length;
+    const directTargets = perTarget.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+    const meanDisc = directTargets.length ? directTargets.reduce((a, t) => a + t.discrimination, 0) / directTargets.length : 0;
+    const specificity = directTargets.length ? directTargets.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directTargets.length : 0;
+    const sensitivity = res.length ? assayReady / res.length : 0;
+
+    setDiagnostics({
+      sensitivity, specificity, coverage: assayReady, total_targets: res.length,
+      assay_ready: assayReady, mean_efficiency: +(res.reduce((a, r) => a + (r.ensembleScore || r.score), 0) / res.length).toFixed(3),
+      mean_discrimination: +meanDisc.toFixed(1), per_target: perTarget,
+    });
+
+    // WHO compliance by drug class
+    const drugs = [...new Set(res.map(r => r.drug))];
+    const whoComp = {};
+    for (const drug of drugs) {
+      const drugTargets = perTarget.filter(t => t.drug === drug);
+      const covered = drugTargets.filter(t => t.is_assay_ready).length;
+      const drugDirect = drugTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+      const drugSens = drugTargets.length ? covered / drugTargets.length : 0;
+      const drugSpec = drugDirect.length ? drugDirect.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / drugDirect.length : 0;
+      const tppSens = drug === "RIF" ? 0.95 : ["INH", "FQ"].includes(drug) ? 0.90 : 0.80;
+      whoComp[drug] = { sensitivity: +drugSens.toFixed(3), specificity: +drugSpec.toFixed(3), meets_tpp: drugSens >= tppSens && drugSpec >= 0.98, targets_covered: covered, targets_total: drugTargets.length };
     }
-    getPresets().then(({ data }) => { if (data) setPresets(data); });
+    setWhoCompliance({ preset, panel_sensitivity: +sensitivity.toFixed(3), panel_specificity: +specificity.toFixed(3), who_compliance: whoComp });
+  }, [presets]);
+
+  // Load presets on mount — try API first, fall back to hardcoded
+  useEffect(() => {
+    const fallbackPresets = [
+      { name: "high_sensitivity", description: "Field screening: maximise mutation coverage, tolerate lower discrimination.", efficiency_threshold: 0.3, discrimination_threshold: 2.0 },
+      { name: "balanced", description: "WHO TPP: sensitivity >= 95% (RIF), >= 90% (INH, FQ), >= 80% (EMB, PZA, AG); specificity >= 98%.", efficiency_threshold: 0.4, discrimination_threshold: 3.0 },
+      { name: "high_specificity", description: "Confirmatory testing: minimise false resistance calls, accept fewer covered targets.", efficiency_threshold: 0.6, discrimination_threshold: 5.0 },
+    ];
+    if (!connected) { setPresets(fallbackPresets); return; }
+    getPresets().then(({ data }) => { setPresets(data && data.length ? data : fallbackPresets); });
   }, [connected]);
 
-  // Load diagnostics + WHO compliance when preset or job changes
+  // Load diagnostics + WHO compliance — try API, fall back to client-side computation
   useEffect(() => {
-    if (!jobId) return;
+    if (!results || !results.length) return;
     setLoadingDiag(true);
-    if (connected) {
+    if (connected && jobId) {
       Promise.all([
         getDiagnostics(jobId, activePreset),
         getWHOCompliance(jobId, activePreset),
       ]).then(([diagRes, whoRes]) => {
-        if (diagRes.data) setDiagnostics(diagRes.data);
-        if (whoRes.data) setWhoCompliance(whoRes.data);
+        if (diagRes.data && whoRes.data) {
+          setDiagnostics(diagRes.data);
+          setWhoCompliance(whoRes.data);
+        } else {
+          // API failed (job not cached) — compute locally from results
+          computeLocalDiagnostics(activePreset, results);
+        }
         setLoadingDiag(false);
       });
     } else {
-      // Mock data for offline mode
-      const mockDiag = {
-        sensitivity: 0.857, specificity: 0.782, coverage: 12, total_targets: 14,
-        assay_ready: 12, mean_efficiency: 0.724, mean_discrimination: 3.2,
-        per_target: results ? results.map(r => ({
-          target_label: r.label, efficiency: r.ensembleScore || r.score,
-          discrimination: r.disc, is_assay_ready: r.hasPrimers && r.score >= 0.5 && r.disc >= 2,
-          has_primers: r.hasPrimers,
-        })) : [],
-      };
-      setDiagnostics(mockDiag);
-      setWhoCompliance({
-        preset: activePreset,
-        panel_sensitivity: mockDiag.sensitivity,
-        panel_specificity: mockDiag.specificity,
-        who_compliance: {
-          RIF: { sensitivity: 0.96, specificity: 0.80, meets_tpp: true, targets_covered: 4, targets_total: 4 },
-          INH: { sensitivity: 0.85, specificity: 0.75, meets_tpp: true, targets_covered: 2, targets_total: 3 },
-          FQ: { sensitivity: 0.80, specificity: 0.70, meets_tpp: false, targets_covered: 1, targets_total: 2 },
-          AG: { sensitivity: 0.90, specificity: 0.85, meets_tpp: true, targets_covered: 1, targets_total: 1 },
-          EMB: { sensitivity: 0.75, specificity: 0.65, meets_tpp: false, targets_covered: 1, targets_total: 2 },
-          PZA: { sensitivity: 0.0, specificity: 0.0, meets_tpp: false, targets_covered: 0, targets_total: 0 },
-        },
-      });
+      computeLocalDiagnostics(activePreset, results);
       setLoadingDiag(false);
     }
-  }, [jobId, activePreset, connected, results]);
+  }, [jobId, activePreset, connected, results, computeLocalDiagnostics]);
 
-  // Run sweep
+  // Run sweep — try API, fall back to client-side
   const handleSweep = (paramName) => {
-    if (!jobId) return;
     setSweepLoading(true);
     const values = paramName === "efficiency_threshold"
       ? [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
       : [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
 
-    if (connected) {
+    const computeLocalSweep = () => {
+      if (!results?.length) { setSweepLoading(false); return; }
+      const baseP = presets.find(x => x.name === activePreset) || { efficiency_threshold: 0.4, discrimination_threshold: 3.0 };
+      const points = values.map(v => {
+        const effT = paramName === "efficiency_threshold" ? v : baseP.efficiency_threshold;
+        const discT = paramName === "discrimination_threshold" ? v : baseP.discrimination_threshold;
+        const ready = results.filter(r => {
+          const eff = r.ensembleScore || r.score;
+          const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
+          return r.hasPrimers && eff >= effT && (r.strategy === "Proximity" || disc >= discT);
+        }).length;
+        const directOk = results.filter(r => r.strategy === "Direct" && r.disc < 900 && r.disc >= discT);
+        const spec = directOk.length ? directOk.reduce((a, r) => a + Math.max(0, 1 - 1 / r.disc), 0) / directOk.length : 0;
+        return { value: v, sensitivity: +(ready / results.length).toFixed(3), specificity: +spec.toFixed(3), coverage: ready, assay_ready: ready };
+      });
+      setSweepData({ parameter_name: paramName, points });
+      setSweepLoading(false);
+    };
+
+    if (connected && jobId) {
       runSweep(jobId, paramName, values, activePreset).then(({ data }) => {
-        if (data) setSweepData(data);
-        setSweepLoading(false);
+        if (data) { setSweepData(data); setSweepLoading(false); }
+        else computeLocalSweep();
       });
     } else {
-      // Mock sweep
-      setSweepData({
-        parameter_name: paramName,
-        points: values.map(v => ({
-          value: v,
-          sensitivity: Math.max(0, 1 - v * 0.6 + Math.random() * 0.1),
-          specificity: Math.min(1, v * 0.5 + 0.3 + Math.random() * 0.1),
-          coverage: Math.max(0, Math.round(14 * (1 - v * 0.5))),
-          assay_ready: Math.max(0, Math.round(12 * (1 - v * 0.4))),
-        })),
-      });
-      setSweepLoading(false);
+      computeLocalSweep();
     }
   };
 
-  // Run Pareto
+  // Run Pareto — try API, fall back to client-side
   const handlePareto = () => {
-    if (!jobId) return;
     setParetoLoading(true);
-    if (connected) {
+
+    const computeLocalPareto = () => {
+      if (!results?.length) { setParetoLoading(false); return; }
+      const frontier = [];
+      const discGrid = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10.0];
+      const effGrid = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+      for (const dT of discGrid) {
+        for (const eT of effGrid) {
+          const ready = results.filter(r => {
+            const eff = r.ensembleScore || r.score;
+            const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
+            return r.hasPrimers && eff >= eT && (r.strategy === "Proximity" || disc >= dT);
+          }).length;
+          const directOk = results.filter(r => r.strategy === "Direct" && r.disc < 900 && r.disc >= dT);
+          const spec = directOk.length ? directOk.reduce((a, r) => a + Math.max(0, 1 - 1 / r.disc), 0) / directOk.length : 0;
+          const sens = ready / results.length;
+          frontier.push({ sensitivity: +sens.toFixed(3), specificity: +spec.toFixed(3), efficiency_threshold: eT, discrimination_threshold: dT, coverage: ready });
+        }
+      }
+      // Keep only Pareto-optimal points
+      const pareto = frontier.filter((p, _, arr) => !arr.some(q => q.sensitivity > p.sensitivity && q.specificity > p.specificity));
+      const unique = [...new Map(pareto.map(p => [`${p.sensitivity}-${p.specificity}`, p])).values()];
+      unique.sort((a, b) => a.specificity - b.specificity);
+      setParetoData({ n_points: unique.length, frontier: unique });
+      setParetoLoading(false);
+    };
+
+    if (connected && jobId) {
       runPareto(jobId).then(({ data }) => {
-        if (data) setParetoData(data);
-        setParetoLoading(false);
+        if (data) { setParetoData(data); setParetoLoading(false); }
+        else computeLocalPareto();
       });
     } else {
-      // Mock Pareto frontier
-      const frontier = [];
-      for (let s = 0.3; s <= 1.0; s += 0.05) {
-        frontier.push({
-          sensitivity: +(1.05 - s + Math.random() * 0.05).toFixed(3),
-          specificity: +s.toFixed(3),
-          efficiency_threshold: +(s * 0.8).toFixed(2),
-          discrimination_threshold: +(1 + s * 3).toFixed(1),
-          coverage: Math.round(14 * (1.05 - s)),
-        });
-      }
-      setParetoData({ n_points: frontier.length, frontier });
-      setParetoLoading(false);
+      computeLocalPareto();
     }
   };
 
   const presetObj = presets.find(p => p.name === activePreset);
+  const PRESET_LABELS = { high_sensitivity: "High Sensitivity", balanced: "Balanced (WHO TPP)", high_specificity: "High Specificity" };
 
   return (
     <div>
@@ -2824,8 +2872,8 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
               transition: "all 0.15s", border: activePreset === p.name ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
               background: activePreset === p.name ? T.primaryLight : T.bg, color: activePreset === p.name ? T.primaryDark : T.text,
             }}>
-              <div>{p.display_name || p.name}</div>
-              <div style={{ fontSize: "10px", fontWeight: 400, color: T.textTer, marginTop: "2px" }}>{p.description}</div>
+              <div>{PRESET_LABELS[p.name] || p.name}</div>
+              <div style={{ fontSize: "10px", fontWeight: 400, color: T.textTer, marginTop: "2px", maxWidth: 280 }}>{p.description}</div>
             </button>
           ))}
         </div>
