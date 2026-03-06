@@ -1401,7 +1401,7 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   /* Empty state — no job launched */
   if (!jobId) {
     return (
-      <div style={{ padding: mobile ? "24px 16px" : "48px 40px", maxWidth: 1100, width: "100%" }}>
+      <div style={{ padding: mobile ? "24px 16px" : "48px 40px", maxWidth: 1100, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 120px)" }}>
         <div style={{ textAlign: "center", padding: mobile ? "48px 24px" : "80px 24px" }}>
           <div style={{ width: 64, height: 64, borderRadius: "16px", background: T.bgSub, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
             <Cpu size={28} color={T.textTer} strokeWidth={1.5} />
