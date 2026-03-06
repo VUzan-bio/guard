@@ -50,6 +50,12 @@ class ScoringConfig(BaseModel):
     use_discrimination: bool = True
     ml_model_path: Optional[Path] = None
     ml_model_name: str = "heuristic"
+    # GUARD-Net integration (replaces SeqCNN when weights available)
+    scorer: str = "seq_cnn"  # "seq_cnn" or "guard_net"
+    guard_net_weights: Optional[Path] = None
+    rnafm_cache_dir: Optional[Path] = None
+    guard_net_use_rlpa: bool = True
+    guard_net_use_rnafm: bool = True
     jepa_encoder_path: Optional[Path] = None
     jepa_head_path: Optional[Path] = None
     jepa_mode: str = "efficiency"

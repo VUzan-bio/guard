@@ -163,11 +163,31 @@ class GUARDPipeline:
         # Module 5: Heuristic scorer
         self.heuristic_scorer = HeuristicScorer()
 
-        # Module 5 ML: Sequence CNN scorer (auto-loads weights if available)
-        self.ml_scorer = SequenceMLScorer(
-            model_path=config.scoring.ml_model_path,
-            heuristic_fallback=self.heuristic_scorer,
-        )
+        # Module 5 ML: scorer selection (GUARD-Net or SeqCNN)
+        if (
+            config.scoring.scorer == "guard_net"
+            and config.scoring.guard_net_weights
+            and Path(config.scoring.guard_net_weights).exists()
+        ):
+            from guard.scoring.guard_net_scorer import GUARDNetScorer
+            self.ml_scorer = GUARDNetScorer(
+                weights_path=config.scoring.guard_net_weights,
+                heuristic_fallback=self.heuristic_scorer,
+                rnafm_cache_dir=(
+                    str(config.scoring.rnafm_cache_dir)
+                    if config.scoring.rnafm_cache_dir else None
+                ),
+                use_rlpa=config.scoring.guard_net_use_rlpa,
+                use_rnafm=config.scoring.guard_net_use_rnafm,
+            )
+            logger.info("Using GUARD-Net scorer (RLPA=%s, RNA-FM=%s)",
+                        config.scoring.guard_net_use_rlpa,
+                        config.scoring.guard_net_use_rnafm)
+        else:
+            self.ml_scorer = SequenceMLScorer(
+                model_path=config.scoring.ml_model_path,
+                heuristic_fallback=self.heuristic_scorer,
+            )
 
         # Module 5.5: Mismatch generator
         self.mismatch_gen = MismatchGenerator()
