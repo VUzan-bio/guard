@@ -1016,328 +1016,229 @@ const HomePage = ({ goTo, connected }) => {
         <div style={{ flex: 1, height: 1, background: T.border }} />
       </div>
 
-      {/* ── Pipeline Architecture — 6 cards, 2×3 grid ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "16px" }}>Pipeline Architecture</div>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "12px" }}>
+      {/* ── Pipeline Architecture ── */}
+      <CollapsibleSection title="Pipeline Architecture">
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
           {[
             { icon: Target, title: "Target Resolution", desc: "WHO catalogue mutations mapped to genomic coordinates on the H37Rv reference genome." },
             { icon: Search, title: "PAM Scanning & Filtering", desc: "Multi-PAM, multi-length spacer search with biophysical filtering (GC, homopolymer, Tm)." },
             { icon: BarChart3, title: "Heuristic Scoring & Off-Target", desc: "Biophysical composite score (seed, GC, structure, homopolymer) plus Bowtie2 genome-wide off-target screening against H37Rv." },
-            { icon: Brain, title: "Learned Scoring", desc: "Convolutional neural network (110K params) trained on 15,000 Cas12a activity measurements. Captures position-dependent nucleotide interactions invisible to hand-crafted features." },
+            { icon: Brain, title: "Learned Scoring", desc: "Convolutional neural network (110K params) trained on 15,000 Cas12a activity measurements." },
             { icon: GitBranch, title: "Discrimination & SM", desc: "MUT/WT activity ratio prediction with optional synthetic mismatch enhancement (10–100×)." },
             { icon: Grid3x3, title: "Multiplex Optimization", desc: "Simulated annealing panel selection with cross-reactivity and primer dimer checks." },
             { icon: FlaskConical, title: "Primer Design & Assembly", desc: "RPA + allele-specific primers, crRNA–primer co-selection, and IS6110 species control." },
           ].map(c => (
-            <div key={c.title} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "24px" }}>
-              <c.icon size={22} color={T.primary} strokeWidth={1.8} style={{ marginBottom: "14px" }} />
-              <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "6px" }}>{c.title}</div>
-              <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.6 }}>{c.desc}</div>
+            <div key={c.title} style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "12px", borderRadius: "8px", background: T.bgSub }}>
+              <c.icon size={18} color={T.primary} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "2px" }}>{c.title}</div>
+                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.5 }}>{c.desc}</div>
+              </div>
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* ── Scoring Models ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "8px" }}>Scoring Models</div>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 20px 0" }}>
+      <div style={{ marginBottom: "16px" }}>
+        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Scoring Models</div>
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
           Each crRNA candidate receives two independent quality scores between 0 and 1.
-          The first is a biophysical heuristic — a weighted sum of five sequence features
-          derived from high-throughput Cas12a activity profiling (Kim et al., <em>Nature Biotechnology</em> 2018).
-          The second is a convolutional neural network (SeqCNN) trained end-to-end on the same data,
-          which learns position-dependent nucleotide preferences and dinucleotide interactions
-          that fixed-weight features cannot capture. Both scores are reported; agreement between
-          models increases confidence, disagreement flags candidates for closer inspection.
-        </p>
-
-        {/* ── Biophysical Heuristic ── */}
-        <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "10px", fontFamily: HEADING }}>Biophysical Heuristic</div>
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 12px 0" }}>
-          The heuristic computes a weighted sum of five features, each normalised to [0, 1]:
-        </p>
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden", marginBottom: "12px" }}>
-          {mobile ? (
-            <div>
-              {[
-                ["Seed Position", "35%", "Mismatch penalty weighted by position within the PAM-proximal seed (nt 1\u20138). Single mismatches at positions 1\u20134 reduce Cas12a cleavage by >90% (Strohkendl et al., Molecular Cell 2018); linear decay from position 1 to position 8."],
-                ["GC Content", "20%", "Quadratic penalty for deviation from 50% GC. Spacers below 30% GC exhibit weak R-loop stability; above 70% GC promotes intramolecular folding (Kim et al., Nature Biotechnology 2018)."],
-                ["Secondary Structure", "20%", "Minimum free energy (\u0394G) of spacer self-folding estimated from nearest-neighbour thermodynamics. Stable hairpins (\u0394G < \u22122 kcal/mol) physically occlude the seed region, reducing RNP complex formation."],
-                ["Homopolymer", "10%", "Penalises runs of \u22654 identical nucleotides. Poly-T stretches (\u22654T) mimic the RNA Pol III terminator signal, reducing crRNA yield during in vitro transcription (Zetsche et al., Cell 2015)."],
-                ["Off-Target", "15%", "Bowtie2 alignment (Langmead & Salzberg, Nature Methods 2012) against H37Rv (NC_000962.3). Hits with \u22643 mismatches are counted; score decays exponentially, excluding the on-target locus."],
-              ].map(([feat, wt, desc], i) => (
-                <div key={feat} style={{ padding: "12px 16px", borderBottom: i < 4 ? `1px solid ${T.borderLight}` : "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ fontWeight: 600, color: T.text, fontSize: "13px" }}>{feat}</span>
-                    <span style={{ fontWeight: 600, color: T.primary, fontSize: "13px" }}>{wt}</span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>{desc}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {["Feature", "Weight", "Description"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "12px 18px", fontSize: "11px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, background: T.bgSub }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["Seed Position", "35%", "Mismatch penalty weighted by position within the PAM-proximal seed (nt 1\u20138). Single mismatches at positions 1\u20134 reduce Cas12a cleavage by >90% (Strohkendl et al., Molecular Cell 2018); linear decay applied from position 1 (maximal penalty) to position 8."],
-                  ["GC Content", "20%", "Quadratic penalty for deviation from 50% GC. Spacers below 30% GC exhibit weak R-loop stability due to reduced RNA:DNA hybrid melting temperature; above 70% GC promotes intramolecular folding that competes with Cas12a loading (Kim et al., Nature Biotechnology 2018)."],
-                  ["Secondary Structure", "20%", "Minimum free energy (\u0394G) of spacer self-folding estimated from nearest-neighbour thermodynamics. Stable hairpins (\u0394G < \u22122 kcal/mol) physically occlude the seed region, reducing ribonucleoprotein complex formation and R-loop initiation."],
-                  ["Homopolymer", "10%", "Penalises runs of \u22654 identical nucleotides. Poly-T stretches (\u22654T) mimic the RNA Pol III terminator signal, reducing crRNA yield during in vitro transcription (Zetsche et al., Cell 2015). Poly-G/C runs promote G-quadruplex or i-motif formation."],
-                  ["Off-Target", "15%", "Bowtie2 alignment (Langmead & Salzberg, Nature Methods 2012) against H37Rv (NC_000962.3). Hits with \u22643 mismatches within the spacer region are counted; score decays exponentially with number of off-target sites, excluding the on-target locus."],
-                ].map(([feat, wt, desc], i) => (
-                  <tr key={feat} style={{ borderBottom: i < 4 ? `1px solid ${T.borderLight}` : "none" }}>
-                    <td style={{ padding: "14px 18px", fontSize: "13px", fontWeight: 600, color: T.text, whiteSpace: "nowrap", verticalAlign: "top" }}>{feat}</td>
-                    <td style={{ padding: "14px 18px", fontSize: "13px", fontWeight: 600, color: T.primary, verticalAlign: "top" }}>{wt}</td>
-                    <td style={{ padding: "14px 18px", fontSize: "13px", color: T.textSec, lineHeight: 1.7 }}>{desc}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <p style={{ fontSize: "12px", color: T.textTer, margin: "0 0 24px 0", lineHeight: 1.6 }}>
-          For <strong>proximity</strong> candidates (mutation outside the spacer footprint), the seed position weight is
-          redistributed to a proximity bonus that decays linearly with genomic distance to the target mutation.
-          This reflects the reduced but non-zero diagnostic utility of crRNAs that rely on allele-specific
-          RPA primers rather than crRNA-level mismatch discrimination.
-        </p>
-
-        {/* ── Sequence CNN (SeqCNN) ── */}
-        <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "10px", fontFamily: HEADING }}>Sequence CNN (SeqCNN)</div>
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 12px 0" }}>
-          SeqCNN is a convolutional neural network that predicts Cas12a guide activity directly from the
-          one-hot-encoded 34-nucleotide input window (4 nt upstream context + 4 nt PAM + 20 nt spacer + 6 nt
-          downstream context). The architecture uses multi-scale parallel convolutions (kernel sizes 3, 5, and 7)
-          to capture motifs at three biological scales — dinucleotide stacking energies, seed-region patterns,
-          and broader sequence context — followed by dilated convolutions with residual connections to extend
-          the receptive field without discarding positional information. Adaptive average pooling produces a
-          fixed-size representation regardless of spacer length variation (18–23 nt), feeding into a three-layer
-          regression head with sigmoid output.
-        </p>
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden", marginBottom: "12px" }}>
-          {[
-            ["Input", "One-hot 34 nt (context + PAM + spacer + context)"],
-            ["Conv block 1", "3 parallel branches: k=3, k=5, k=7 (40 filters each \u2192 120 channels)"],
-            ["Conv block 2", "Dilated Conv1d (d=1, d=2) + residual connection"],
-            ["Pooling", "AdaptiveAvgPool1d \u2192 96-dim"],
-            ["Dense head", "96 \u2192 64 \u2192 32 \u2192 1 (GELU, dropout 0.3/0.2)"],
-            ["Output", "Sigmoid (predicted activity, 0\u20131)"],
-            ["Parameters", "110,009"],
-            ["Training data", "15,000 AsCas12a guides (Kim et al., Nature Biotechnology 2018)"],
-            ["Loss", "Huber (\u03b4=1.0) + differentiable Spearman regulariser"],
-            ["Validation \u03c1", "0.74 (Spearman, within-library HT 1-2)"],
-            ["Test \u03c1", "0.53 (Spearman, cross-library HT 2+3)"],
-          ].map(([k, v], i, arr) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 18px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none", fontSize: "12px" }}>
-              <span style={{ color: T.textSec, fontWeight: 500 }}>{k}</span>
-              <span style={{ fontWeight: 600, color: T.text, fontSize: "12px", textAlign: "right" }}>{v}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ fontSize: "12px", color: T.textTer, margin: "0 0 24px 0", lineHeight: 1.6 }}>
-          The validation–test gap (0.74 \u2192 0.53) reflects cross-library generalisation: the training data is from
-          one lentiviral library construction in HEK293T cells, while the test set spans independent library
-          preparations. This is consistent with published benchmarks (Kim et al., 2018) and motivates the next stage
-          of the scoring roadmap — a foundation model (B-DNA JEPA) pretrained on bacterial genomes, which should
-          generalise better by learning sequence features from a broader distribution than a single high-throughput screen.
-        </p>
-
-        {/* ── Model comparison ── */}
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "16px 20px" }}>
-          Both models score every candidate in the panel. The heuristic provides interpretable,
-          feature-decomposed scores; the CNN provides data-driven scores that capture nonlinear interactions.
-          Where both models agree (e.g., ranking a candidate above 0.7), confidence is high. Where they
-          diverge, the candidate merits closer inspection — the disagreement often reveals edge cases where
-          one model's assumptions break down. The multiplex optimiser currently uses the heuristic score for
-          panel selection; CNN-informed selection is planned for the next iteration once electrochemical
-          validation data enables domain-specific fine-tuning.
+          The heuristic provides interpretable, feature-decomposed scores; the CNN captures nonlinear interactions.
+          Agreement between models increases confidence; disagreement flags candidates for closer inspection.
         </p>
       </div>
 
-      {/* ── Discrimination Analysis ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "8px" }}>Discrimination Analysis</div>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
-          Discrimination quantifies a crRNA's ability to distinguish the resistance-conferring allele from the drug-susceptible wildtype.
-          The crRNA is designed to perfectly complement the mutant sequence. Against wildtype DNA, the mismatch at the SNP position
-          reduces Cas12a R-loop propagation and <em>trans</em>-cleavage, producing a measurable activity differential.
-          GUARD reports discrimination as <em>D</em> = <em>A</em>(crRNA · MUT target) / <em>A</em>(crRNA · WT target),
-          where <em>A</em> denotes predicted cleavage activity.
-          A ratio ≥ 2.0 is the minimum threshold; ≥ 3.0 is considered diagnostic-grade for fluorescence and
-          electrochemical square-wave voltammetry (SWV) on laser-induced graphene (LIG) electrodes with methylene blue reporters.
+      <CollapsibleSection title="Biophysical Heuristic">
+        <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 12px 0" }}>
+          Weighted sum of five features, each normalised to [0, 1]:
         </p>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 20px 0" }}>
-          Activity is modelled using position-dependent mismatch penalties derived from R-loop kinetics
-          (Strohkendl et al., <em>Mol. Cell</em> 2018) and high-throughput mismatch profiling (Kim et al., 2018).
-          Mismatches in the PAM-proximal seed (positions 1–8) reduce cleavage by 80–99%, while PAM-distal mismatches
-          (positions 15–23) reduce cleavage by only 10–40%.
+        {[
+          { feat: "Seed Position", wt: "35%", desc: "Mismatch penalty in PAM-proximal seed (nt 1\u20138). Positions 1\u20134 reduce cleavage by >90%.", src: "Strohkendl et al., Mol. Cell 2018" },
+          { feat: "GC Content", wt: "20%", desc: "Quadratic penalty for deviation from 50% GC. Low GC = weak R-loop; high GC = self-folding.", src: "Kim et al., Nat. Biotechnol. 2018" },
+          { feat: "Secondary Structure", wt: "20%", desc: "Spacer self-folding \u0394G. Stable hairpins (\u0394G < \u22122 kcal/mol) block Cas12a loading.", src: "SantaLucia 1998" },
+          { feat: "Homopolymer", wt: "10%", desc: "Runs of \u22654 identical nt. Poly-T mimics Pol III terminator; poly-G forms G-quadruplexes.", src: "Zetsche et al., Cell 2015" },
+          { feat: "Off-Target", wt: "15%", desc: "Bowtie2 hits with \u22643 mismatches against H37Rv. Score decays exponentially per hit.", src: "Langmead & Salzberg, Nat. Methods 2012" },
+        ].map((f, i, arr) => (
+          <div key={f.feat} style={{ padding: "10px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: T.text }}>{f.feat}</span>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: T.primary }}>{f.wt}</span>
+            </div>
+            <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.5 }}>{f.desc}</div>
+            <div style={{ fontSize: "10px", color: T.textTer, marginTop: "2px" }}>{f.src}</div>
+          </div>
+        ))}
+        <p style={{ fontSize: "11px", color: T.textTer, margin: "12px 0 0 0", lineHeight: 1.5 }}>
+          For <strong>proximity</strong> candidates, the seed position weight is redistributed to a proximity bonus
+          that decays linearly with genomic distance to the target mutation.
+        </p>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Sequence CNN (SeqCNN)">
+        <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 14px 0" }}>
+          Convolutional neural network predicting Cas12a guide activity from the one-hot-encoded
+          34 nt input window. Multi-scale parallel convolutions (k=3, 5, 7) capture motifs at three
+          biological scales, followed by dilated convolutions with residual connections.
         </p>
 
-        {/* Discrimination thresholds */}
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px", marginBottom: "16px" }}>
+        {/* Architecture — compact 2-col grid */}
+        <div style={{ fontSize: "11px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Architecture</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px", marginBottom: "16px" }}>
           {[
-            { label: "Excellent", val: "≥ 10×", color: "#16a34a", bg: "#f0fdf4", desc: "Single-plex clinical deployment. Robust across sample matrices." },
-            { label: "Good", val: "≥ 3×", color: T.primary, bg: T.primaryLight, desc: "Multiplexed panel use. Reliable in fluorescence and LFA readouts." },
-            { label: "Acceptable", val: "≥ 2×", color: "#d97706", bg: "#fffbeb", desc: "Requires electrochemical (SWV/DPV) or gel readout for confirmation." },
-            { label: "Insufficient", val: "< 2×", color: "#dc2626", bg: "#fef2f2", desc: "Cannot reliably distinguish MUT from WT. SM enhancement required." },
-          ].map(t => (
-            <div key={t.label} style={{ background: t.bg, borderRadius: "10px", padding: "16px", border: `1px solid ${T.borderLight}` }}>
-              <div style={{ fontSize: "16px", fontWeight: 800, color: t.color, marginBottom: "4px" }}>{t.val}</div>
-              <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "6px" }}>{t.label}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.5 }}>{t.desc}</div>
+            ["Input", "One-hot 34 nt"],
+            ["Conv block 1", "k=3, k=5, k=7 (40 each \u2192 120ch)"],
+            ["Conv block 2", "Dilated d=1, d=2 + residual"],
+            ["Pooling", "AdaptiveAvgPool1d \u2192 96-dim"],
+            ["Dense head", "96 \u2192 64 \u2192 32 \u2192 1 (GELU)"],
+            ["Output", "Sigmoid (0\u20131)"],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", gap: "8px", padding: "8px 12px", background: T.bgSub, borderRadius: "6px" }}>
+              <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 600, minWidth: mobile ? 80 : 90, flexShrink: 0 }}>{k}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: T.text }}>{v}</span>
             </div>
           ))}
         </div>
 
-        {/* SM Enhancement callout */}
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "20px", display: "flex", gap: "16px", alignItems: "flex-start" }}>
-          <Zap size={20} color={T.primary} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+        {/* Training — compact 2-col grid */}
+        <div style={{ fontSize: "11px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Training & Validation</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px", marginBottom: "12px" }}>
+          {[
+            ["Parameters", "110,009"],
+            ["Training data", "15K AsCas12a guides"],
+            ["Loss", "Huber (\u03b4=1.0) + Spearman reg."],
+            ["Val \u03c1", "0.74 (within-library HT 1-2)"],
+            ["Test \u03c1", "0.53 (cross-library HT 2+3)"],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", gap: "8px", padding: "8px 12px", background: T.bgSub, borderRadius: "6px" }}>
+              <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 600, minWidth: mobile ? 80 : 90, flexShrink: 0 }}>{k}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: T.text }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: "11px", color: T.textTer, margin: 0, lineHeight: 1.5 }}>
+          The val\u2013test gap (0.74 \u2192 0.53) reflects cross-library generalisation. A foundation model
+          (B-DNA JEPA) pretrained on bacterial genomes is planned to improve generalisation.
+        </p>
+      </CollapsibleSection>
+
+      {/* ── Discrimination Analysis ── */}
+      <div style={{ marginBottom: "16px", marginTop: "24px" }}>
+        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Discrimination Analysis</div>
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
+          Discrimination quantifies a crRNA's ability to distinguish the resistance allele from wildtype.
+          Reported as <em>D</em> = <em>A</em>(MUT) / <em>A</em>(WT). A ratio ≥ 2.0 is the minimum threshold;
+          ≥ 3.0 is diagnostic-grade.
+        </p>
+      </div>
+
+      <CollapsibleSection title="Discrimination Thresholds">
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px", marginBottom: "12px" }}>
+          {[
+            { label: "Excellent", val: "≥ 10×", color: "#16a34a", bg: "#f0fdf4", desc: "Single-plex clinical. Robust across matrices." },
+            { label: "Good", val: "≥ 3×", color: T.primary, bg: T.primaryLight, desc: "Multiplex panel. Fluorescence & LFA." },
+            { label: "Acceptable", val: "≥ 2×", color: "#d97706", bg: "#fffbeb", desc: "Electrochemical or gel confirmation." },
+            { label: "Insufficient", val: "< 2×", color: "#dc2626", bg: "#fef2f2", desc: "SM enhancement required." },
+          ].map(t => (
+            <div key={t.label} style={{ background: t.bg, borderRadius: "8px", padding: "14px", border: `1px solid ${T.borderLight}` }}>
+              <div style={{ fontSize: "16px", fontWeight: 800, color: t.color, marginBottom: "2px" }}>{t.val}</div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>{t.label}</div>
+              <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>{t.desc}</div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.5, margin: 0 }}>
+          Activity modelled using position-dependent mismatch penalties from R-loop kinetics.
+          Seed mismatches (pos 1–8) reduce cleavage 80–99%; PAM-distal (pos 15–23) only 10–40%.
+        </p>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Synthetic Mismatch Enhancement">
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+          <Zap size={18} color={T.primary} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "4px" }}>Synthetic Mismatch Enhancement</div>
-            <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: 0 }}>
-              For candidates with D &lt; 3×, GUARD introduces deliberate mismatches at positions 2–6 of the spacer
-              to further destabilize WT binding while preserving MUT recognition. This approach, validated across
-              SHERLOCK and DETECTR platforms (Gootenberg et al., 2018; Broughton et al., 2020), typically elevates
-              discrimination from ~2× to 10–100×. The enhancement module evaluates all single and double mismatch
-              combinations, selects the variant with the highest D ratio, and verifies that MUT-strand activity
-              remains above the minimum detection threshold (A<sub>MUT</sub> ≥ 0.3).
+            <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 8px 0" }}>
+              For candidates with D &lt; 3×, deliberate mismatches at positions 2–6 destabilize WT binding
+              while preserving MUT recognition, elevating discrimination from ~2× to 10–100×.
+              Validated across SHERLOCK and DETECTR platforms.
             </p>
-            <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "8px 0 0 0" }}>
-              Experimental validation of synthetic-mismatch crRNAs on electrochemical LIG biosensors has demonstrated
-              single-nucleotide discrimination at attomolar concentrations (Wang et al., <em>Nat. Biomed. Eng.</em> 2024).
-              Recent work combining SM-enhanced crRNAs with LAMP pre-amplification achieved 100% sensitivity and
-              specificity for rifampicin-resistant TB directly from sputum (Chen et al., <em>Biosens. Bioelectron.</em> 2025).
+            <p style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.5, margin: 0 }}>
+              Experimental validation on LIG biosensors demonstrated single-nucleotide discrimination
+              at attomolar concentrations (Wang et al., Nat. Biomed. Eng. 2024).
             </p>
           </div>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* ── Default Parameters ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "8px" }}>Default Parameters</div>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
-          Defaults target <em>M. tuberculosis</em> H37Rv (NC_000962.3, 65.6% GC) using
-          the engineered enAsCas12a variant (Kleinstiver et al., 2019). All values are overridable per-run.
+      <div style={{ marginBottom: "16px", marginTop: "24px" }}>
+        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Default Parameters</div>
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
+          Targeting <em>M. tuberculosis</em> H37Rv (65.6% GC) with enAsCas12a. All values overridable per-run.
         </p>
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
-          {mobile ? (
-            <div>
-              {[
-                ["PAM", "TTTV", "enAsCas12a expanded PAM; ~4× more targetable sites than TTTG-only"],
-                ["Spacer length", "20–23 nt", "20nt canonical; 21–23nt permitted for higher-GC organisms"],
-                ["GC range", "30–70%", "Below 30% → weak R-loop; above 70% → self-structure"],
-                ["Max homopolymer", "4 nt", "Poly-T ≥5 causes Pol III termination; poly-G ≥5 forms G-quadruplexes"],
-                ["Off-target threshold", "≤3 mismatches", "Bowtie2 -N 1 -L 15 against full genome; hits flagged"],
-                ["RPA amplicon", "100–200 bp", "Optimal RPA product range (Piepenburg et al., 2006)"],
-                ["Primer Tm", "57–72 °C", "Nearest-neighbour Tm (SantaLucia 1998); ensures efficient strand invasion at 37–42 °C"],
-                ["Discrimination min", "2.0×", "Clinical minimum; ≥3.0× preferred for lateral-flow assays"],
-              ].map(([param, value, rationale], i) => (
-                <div key={param} style={{ padding: "12px 16px", borderBottom: i < 7 ? `1px solid ${T.borderLight}` : "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ fontWeight: 600, color: T.text, fontSize: "13px" }}>{param}</span>
-                    <span style={{ fontWeight: 600, color: T.primary, fontSize: "13px" }}>{value}</span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>{rationale}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {["Parameter", "Value", "Rationale"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "12px 18px", fontSize: "11px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, background: T.bgSub }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["PAM", "TTTV", "enAsCas12a expanded PAM; ~4× more targetable sites than TTTG-only"],
-                  ["Spacer length", "20–23 nt", "20nt canonical; 21–23nt permitted for higher-GC organisms"],
-                  ["GC range", "30–70%", "Below 30% → weak R-loop; above 70% → self-structure"],
-                  ["Max homopolymer", "4 nt", "Poly-T ≥5 causes Pol III termination; poly-G ≥5 forms G-quadruplexes"],
-                  ["Off-target threshold", "≤3 mismatches", "Bowtie2 -N 1 -L 15 against full genome; hits flagged"],
-                  ["RPA amplicon", "100–200 bp", "Optimal RPA product range (Piepenburg et al., 2006)"],
-                  ["Primer Tm", "57–72 °C", "Nearest-neighbour Tm (SantaLucia 1998); ensures efficient strand invasion at 37–42 °C"],
-                  ["Discrimination min", "2.0×", "Clinical minimum; ≥3.0× preferred for lateral-flow assays"],
-                ].map(([param, value, rationale], i) => (
-                  <tr key={param} style={{ borderBottom: i < 7 ? `1px solid ${T.borderLight}` : "none" }}>
-                    <td style={{ padding: "11px 18px", fontSize: "13px", fontWeight: 600, color: T.text, whiteSpace: "nowrap", verticalAlign: "top" }}>{param}</td>
-                    <td style={{ padding: "11px 18px", fontSize: "13px", fontWeight: 600, color: T.primary, verticalAlign: "top", whiteSpace: "nowrap" }}>{value}</td>
-                    <td style={{ padding: "11px 18px", fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>{rationale}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
       </div>
+
+      <CollapsibleSection title="Pipeline Defaults">
+        {[
+          ["PAM", "TTTV", "~4× more sites than TTTG-only"],
+          ["Spacer length", "20–23 nt", "20nt canonical; 21–23 for high-GC"],
+          ["GC range", "30–70%", "Below 30% weak R-loop; above 70% self-structure"],
+          ["Max homopolymer", "4 nt", "Poly-T ≥5 = Pol III termination"],
+          ["Off-target", "≤3 mismatches", "Bowtie2 against full genome"],
+          ["RPA amplicon", "100–200 bp", "Optimal RPA range"],
+          ["Primer Tm", "57–72 °C", "Strand invasion at 37–42 °C"],
+          ["Discrimination min", "2.0×", "≥3.0× preferred for LFA"],
+        ].map(([param, value, rationale], i, arr) => (
+          <div key={param} style={{ display: "flex", alignItems: "baseline", gap: mobile ? "8px" : "16px", padding: "8px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none", flexWrap: mobile ? "wrap" : "nowrap" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: T.text, minWidth: mobile ? "100%" : 130, flexShrink: 0 }}>{param}</span>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: T.primary, minWidth: 80, flexShrink: 0 }}>{value}</span>
+            <span style={{ fontSize: "11px", color: T.textTer, flex: 1 }}>{rationale}</span>
+          </div>
+        ))}
+      </CollapsibleSection>
 
       {/* ── Nuclease Reference ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "8px" }}>Nuclease Reference</div>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
-          GUARD designs for <strong style={{ color: T.text }}>Cas12a (Cpf1)</strong>, a class 2, type V-A CRISPR effector
-          discovered by Zetsche et al. (<em>Cell</em>, 2015). The enzyme recognizes a 5'-TTTV-3' PAM on the non-target strand,
-          processes its own crRNA from a minimal 19-nt direct repeat, and generates staggered dsDNA cuts with 5' overhangs.
+      <CollapsibleSection title="Nuclease Reference — Cas12a (Cpf1)">
+        <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 12px 0" }}>
+          Class 2, type V-A CRISPR effector. Recognizes 5'-TTTV PAM, processes its own crRNA, generates
+          staggered dsDNA cuts. <em>Trans</em>-cleavage ssDNase activity enables isothermal detection.
         </p>
-        <p style={{ fontSize: "14px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
-          Upon target binding and R-loop completion, Cas12a undergoes a conformational change that activates
-          a non-specific <em>trans</em>-cleavage (collateral) ssDNase activity (Chen et al., <em>Science</em> 2018).
-          This property enables isothermal nucleic acid detection: a fluorophore-quencher ssDNA reporter is cleaved
-          upon target recognition, producing a signal detectable via fluorescence, lateral-flow dipstick,
-          or electrochemical (SWV/DPV) readout.
-        </p>
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <tbody>
-              {[
-                ["Variant", "enAsCas12a (Kleinstiver et al., 2019)"],
-                ["PAM recognition", "5'-TTTV-3' (TTTA, TTTC, TTTG)"],
-                ["Spacer orientation", "5' → 3' on non-target strand"],
-                ["crRNA architecture", "5'–[direct repeat, 19 nt]–[spacer, 20–23 nt]–3'"],
-                ["Cleavage mechanism", "Staggered cut, 5' overhangs; trans-cleavage of ssDNA reporters"],
-                ["Operating temperature", "37 °C (compatible with RPA isothermal amplification)"],
-                ["Detection modalities", "Fluorescence · lateral-flow · electrochemical (SWV/DPV)"],
-              ].map(([k, v], i) => (
-                <tr key={k} style={{ borderBottom: i < 6 ? `1px solid ${T.borderLight}` : "none" }}>
-                  <td style={{ padding: "11px 18px", fontSize: "12px", color: T.textSec, width: "30%", verticalAlign: "top" }}>{k}</td>
-                  <td style={{ padding: "11px 18px", fontSize: "13px", fontWeight: 600, color: T.text }}>{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── References ── */}
-      <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
-        <div style={{ fontSize: mobile ? "18px" : "20px", fontWeight: 800, color: T.text, marginBottom: "16px" }}>References</div>
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
-          {BIBLIOGRAPHY.map((b, i) => (
-            <div key={b.id} style={{ padding: "14px 20px", borderBottom: i < BIBLIOGRAPHY.length - 1 ? `1px solid ${T.borderLight}` : "none", display: "flex", justifyContent: "space-between", alignItems: mobile ? "flex-start" : "baseline", gap: "16px", flexDirection: mobile ? "column" : "row" }}>
-              <div style={{ flex: 1, fontSize: "13px", lineHeight: 1.6 }}>
-                <strong style={{ color: T.text }}>{b.authors} ({b.year}).</strong>{" "}
-                {b.title}.{" "}
-                <em style={{ color: T.textSec }}>{b.journal}.</em>
-              </div>
-              <div style={{ display: "flex", gap: "10px", flexShrink: 0 }}>
-                {b.doi && <a href={`https://doi.org/${b.doi}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>DOI <ExternalLink size={9} style={{ verticalAlign: "middle" }} /></a>}
-                {b.pmid && <a href={`https://pubmed.ncbi.nlm.nih.gov/${b.pmid}/`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>PMID:{b.pmid} <ExternalLink size={9} style={{ verticalAlign: "middle" }} /></a>}
-                {!b.doi && !b.pmid && b.url && <a href={b.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>WHO <ExternalLink size={9} style={{ verticalAlign: "middle" }} /></a>}
-                {b.isbn && <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 500 }}>ISBN: {b.isbn}</span>}
-              </div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px" }}>
+          {[
+            ["Variant", "enAsCas12a"],
+            ["PAM", "5'-TTTV-3'"],
+            ["Spacer", "5' → 3' non-target strand"],
+            ["crRNA", "19 nt DR + 20–23 nt spacer"],
+            ["Cleavage", "Staggered + trans ssDNase"],
+            ["Temperature", "37 °C (RPA compatible)"],
+            ["Readouts", "Fluorescence · LFA · electrochemical"],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", gap: "8px", padding: "8px 12px", background: T.bgSub, borderRadius: "6px" }}>
+              <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 600, minWidth: 75, flexShrink: 0 }}>{k}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: T.text }}>{v}</span>
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
+
+      {/* ── References ── */}
+      <CollapsibleSection title={`References (${BIBLIOGRAPHY.length})`}>
+        {BIBLIOGRAPHY.map((b, i) => (
+          <div key={b.id} style={{ padding: "8px 0", borderBottom: i < BIBLIOGRAPHY.length - 1 ? `1px solid ${T.borderLight}` : "none", display: "flex", justifyContent: "space-between", alignItems: mobile ? "flex-start" : "center", gap: "12px", flexDirection: mobile ? "column" : "row" }}>
+            <div style={{ flex: 1, fontSize: "12px", lineHeight: 1.5 }}>
+              <strong style={{ color: T.text }}>{b.authors} ({b.year}).</strong>{" "}
+              {b.title}.{" "}
+              <em style={{ color: T.textTer }}>{b.journal}.</em>
+            </div>
+            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+              {b.doi && <a href={`https://doi.org/${b.doi}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "10px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>DOI <ExternalLink size={8} style={{ verticalAlign: "middle" }} /></a>}
+              {b.pmid && <a href={`https://pubmed.ncbi.nlm.nih.gov/${b.pmid}/`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "10px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>PMID:{b.pmid} <ExternalLink size={8} style={{ verticalAlign: "middle" }} /></a>}
+              {!b.doi && !b.pmid && b.url && <a href={b.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "10px", color: T.primary, textDecoration: "none", fontWeight: 600 }}>WHO <ExternalLink size={8} style={{ verticalAlign: "middle" }} /></a>}
+            </div>
+          </div>
+        ))}
+      </CollapsibleSection>
     </div>
   );
 };
