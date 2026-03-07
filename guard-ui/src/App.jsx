@@ -815,21 +815,6 @@ const HomePage = ({ goTo, connected }) => {
           <p style={{ fontSize: "15px", color: T.textSec, lineHeight: 1.7, margin: "0 0 24px" }}>
             GUARD automates the complete CRISPR-Cas12a guide RNA design process — from WHO mutation catalogue to assay-ready crRNA panel — with AI-powered scoring and clinical performance benchmarking against WHO Target Product Profiles.
           </p>
-          {/* Key stats row */}
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "12px" }}>
-            {[
-              { value: "14", label: "Resistance targets", sub: "simultaneous markers" },
-              { value: "6", label: "Drug classes", sub: "RIF · INH · FQ · EMB · PZA · AG" },
-              { value: "< 2 hr", label: "Assay time", sub: "RPA-CRISPR at 37°C" },
-              { value: "235K", label: "ML parameters", sub: "GUARD-Net · runs on CPU" },
-            ].map(s => (
-              <div key={s.label} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "16px 20px" }}>
-                <div style={{ fontSize: "24px", fontWeight: 800, color: T.primary, fontFamily: MONO, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: "12px", fontWeight: 700, color: T.text, marginTop: "6px" }}>{s.label}</div>
-                <div style={{ fontSize: "11px", color: T.textTer, marginTop: "2px" }}>{s.sub}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
