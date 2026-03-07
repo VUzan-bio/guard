@@ -96,11 +96,7 @@ class ParameterProfile:
 
 HIGH_SENSITIVITY = ParameterProfile(
     name="high_sensitivity",
-    description=(
-        "Field screening: maximise mutation coverage, tolerate lower discrimination. "
-        "For resource-limited settings and initial screening where missing a resistant "
-        "case (false negative) is more dangerous than a false positive."
-    ),
+    description="Field screening — maximise coverage, tolerate lower discrimination.",
     efficiency_threshold=0.3,
     discrimination_threshold=2.0,
     offtarget_max_hits=10,
@@ -115,10 +111,7 @@ HIGH_SENSITIVITY = ParameterProfile(
 
 BALANCED = ParameterProfile(
     name="balanced",
-    description=(
-        "WHO TPP: sensitivity >= 95% (RIF), >= 90% (INH, FQ), >= 80% (EMB, PZA, AG); "
-        "specificity >= 98%. The default for clinical diagnostic deployment."
-    ),
+    description="WHO TPP-aligned — clinical diagnostic deployment.",
     efficiency_threshold=0.4,
     discrimination_threshold=3.0,
     offtarget_max_hits=5,
@@ -133,11 +126,7 @@ BALANCED = ParameterProfile(
 
 HIGH_SPECIFICITY = ParameterProfile(
     name="high_specificity",
-    description=(
-        "Confirmatory testing: minimise false resistance calls, accept fewer covered "
-        "targets. For reference labs where results directly inform treatment decisions "
-        "(e.g., switching to MDR-TB regimen)."
-    ),
+    description="Confirmatory — minimise false calls, reference lab use.",
     efficiency_threshold=0.6,
     discrimination_threshold=5.0,
     offtarget_max_hits=2,

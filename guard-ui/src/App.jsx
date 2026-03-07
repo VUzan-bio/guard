@@ -98,11 +98,16 @@ const RESULTS = MUTATIONS.map((m, i) => {
   const spacer = seq(20 + (i % 4));
   const wtSpacer = spacer.split("").map((c, j) => j === 10 ? (c === "A" ? "G" : c === "T" ? "C" : c === "G" ? "A" : "T") : c).join("");
   const refKey = `${m.gene}_${m.ref}${m.pos}${m.alt}`;
+  const heuristic = +(0.6 + Math.random() * 0.35).toFixed(3);
+  const cnnRaw = +(0.35 + Math.random() * 0.25).toFixed(4);
+  const cnnCal = +(cnnRaw * 1.4 + 0.15).toFixed(4);
+  const ensemble = +(heuristic * 0.993 + cnnCal * 0.007).toFixed(4);
   return {
     ...m, label: refKey,
     strategy: i % 3 === 0 ? "Direct" : i % 3 === 1 ? "Proximity" : "Direct",
     spacer, wtSpacer, pam: ["TTTV", "TTTG", "TTTA", "TTTC"][i % 4],
-    score: +(0.6 + Math.random() * 0.35).toFixed(3),
+    score: heuristic, cnnScore: cnnRaw, cnnCalibrated: cnnCal, ensembleScore: ensemble,
+    mlScores: [{ model_name: "guard_net", predicted_efficiency: cnnRaw }],
     disc: +(1.5 + Math.random() * 8).toFixed(1),
     gc: +(0.35 + Math.random() * 0.3).toFixed(2),
     ot: Math.floor(Math.random() * 3), hasPrimers: i < 12, hasSM: i % 4 === 1, proximityDistance: i % 3 === 1 ? 15 + Math.floor(Math.random() * 30) : null,
@@ -116,7 +121,9 @@ const RESULTS = MUTATIONS.map((m, i) => {
 RESULTS.push({
   gene: "IS6110", ref: "N", pos: 0, alt: "N", drug: "OTHER", drugFull: "Other", conf: "N/A", tier: 0,
   label: "IS6110_NON", strategy: "Direct", spacer: "AATGTCGCCGCGATCGAGCG", wtSpacer: "AATGTCGCCGCGATCGAGCG",
-  pam: "TTTG", score: 0.95, disc: 999, gc: 0.65, ot: 0, hasPrimers: true, hasSM: false,
+  pam: "TTTG", score: 0.95, cnnScore: 0.88, cnnCalibrated: 0.91, ensembleScore: 0.95,
+  mlScores: [{ model_name: "guard_net", predicted_efficiency: 0.88 }],
+  disc: 999, gc: 0.65, ot: 0, hasPrimers: true, hasSM: false,
   fwd: seq(30), rev: seq(30), amplicon: 142, mutActivity: 0.95, wtActivity: 0.001,
   refs: { who: "N/A", catalogue: "Species control", pmid: "30593580", cryptic: null, freq: "6–16 copies/genome" },
 });
@@ -2389,6 +2396,9 @@ const CandidatesTab = ({ results, jobId, connected }) => {
     else { setSortKey(key); setSortDir(-1); }
   };
 
+  const hasGuardNet = results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net"));
+  const mlColLabel = hasGuardNet ? "GN" : "CNN";
+
   const cols = [
     { key: "label", label: "Target", w: 140 },
     { key: "drug", label: "Drug", w: 70 },
@@ -2396,7 +2406,7 @@ const CandidatesTab = ({ results, jobId, connected }) => {
     { key: "spacer", label: "Spacer", w: 200 },
     { key: "ensembleScore", label: "Score", w: 70 },
     { key: "score", label: "Heuristic", w: 75 },
-    { key: "cnnCalibrated", label: "CNN", w: 65 },
+    { key: "cnnCalibrated", label: mlColLabel, w: 65 },
     { key: "disc", label: "Disc", w: 80 },
     { key: "gc", label: "GC%", w: 55 },
     { key: "ot", label: "OT", w: 40 },
@@ -2408,10 +2418,10 @@ const CandidatesTab = ({ results, jobId, connected }) => {
       <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "14px" : "18px 22px", marginBottom: "16px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "6px" }}>Reading the table</div>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: "6px 20px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.5, opacity: 0.85 }}>
-          <div><strong>Score</strong> — ensemble quality rating (0–1). Combines calibrated CNN prediction with heuristic biophysical features.</div>
-          <div><strong>Disc</strong> — discrimination ratio. How many times better the guide detects resistant vs normal DNA. ≥ 3× is diagnostic-grade.</div>
-          <div><strong>OT</strong> — off-target hits. Number of unintended binding sites in the TB genome (Bowtie2, ≤3 mismatches). Zero is ideal.</div>
-          <div><strong>Expand</strong> — click any row to see the full crRNA sequence, amplicon map, primer sequences, mismatch profile, and scoring breakdown.</div>
+          <div><strong>Score</strong> — ensemble rating (0–1). Heuristic + {hasGuardNet ? "GUARD-Net" : "CNN"} blended.</div>
+          <div><strong>Disc</strong> — MUT/WT discrimination ratio. ≥ 3× is diagnostic-grade.</div>
+          <div><strong>{mlColLabel}</strong> — {hasGuardNet ? "GUARD-Net (CNN + RNA-FM + RLPA)" : "SeqCNN calibrated"} prediction.</div>
+          <div><strong>Expand</strong> — click any row for full crRNA, amplicon map, primers, and scoring breakdown.</div>
         </div>
       </div>
 
@@ -3083,9 +3093,9 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
   // Load presets on mount — try API first, fall back to hardcoded
   useEffect(() => {
     const fallbackPresets = [
-      { name: "high_sensitivity", description: "Field screening: maximise mutation coverage, tolerate lower discrimination.", efficiency_threshold: 0.3, discrimination_threshold: 2.0 },
-      { name: "balanced", description: "WHO TPP: sensitivity >= 95% (RIF), >= 90% (INH, FQ), >= 80% (EMB, PZA, AG); specificity >= 98%.", efficiency_threshold: 0.4, discrimination_threshold: 3.0 },
-      { name: "high_specificity", description: "Confirmatory testing: minimise false resistance calls, accept fewer covered targets.", efficiency_threshold: 0.6, discrimination_threshold: 5.0 },
+      { name: "high_sensitivity", description: "Field screening — maximise coverage, tolerate lower discrimination.", efficiency_threshold: 0.3, discrimination_threshold: 2.0 },
+      { name: "balanced", description: "WHO TPP-aligned — clinical diagnostic deployment.", efficiency_threshold: 0.4, discrimination_threshold: 3.0 },
+      { name: "high_specificity", description: "Confirmatory — minimise false calls, reference lab use.", efficiency_threshold: 0.6, discrimination_threshold: 5.0 },
     ];
     if (!connected) { setPresets(fallbackPresets); return; }
     getPresets().then(({ data }) => { setPresets(data && data.length ? data : fallbackPresets); });
