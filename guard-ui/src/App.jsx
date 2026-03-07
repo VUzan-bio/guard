@@ -1381,14 +1381,14 @@ const HomePage = ({ goTo, connected }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
-   EXECUTION DARK THEME TOKENS
+   EXECUTION THEME TOKENS (light, integrated with sidebar)
    ═══════════════════════════════════════════════════════════════════ */
 const EX = {
-  bg: "#0a0a0f", card: "#12121a", cardBorder: "#1e1e2e",
-  text: "#e8e8ed", textSec: "#6b6b7b", textMono: "#a0a0b0",
-  accent: "#3b82f6", accentGlow: "rgba(59,130,246,0.15)", accentSoft: "rgba(59,130,246,0.08)",
-  success: "#22c55e", rail: "#1e1e2e", railActive: "#3b82f6",
-  progressBg: "#1e1e2e", progressFill: "#3b82f6",
+  bg: T.bgSub, card: T.bg, cardBorder: T.border,
+  text: T.text, textSec: T.textSec, textMono: T.textTer,
+  accent: T.primary, accentGlow: "rgba(54,184,246,0.15)", accentSoft: "rgba(54,184,246,0.06)",
+  success: T.success, rail: T.borderLight, railActive: T.primary,
+  progressBg: T.borderLight, progressFill: T.primary,
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1557,22 +1557,15 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
     );
   }
 
-  /* ── Full-page dark execution overlay ── */
+  /* ── Execution experience (inline, with sidebar) ── */
   const activeModule = MODULES[step] || MODULES[0];
   const activeStat = statMap[activeModule.id];
 
-  const overlay = (
+  return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      background: EX.bg, display: "flex", flexDirection: "column",
-      fontFamily: FONT, color: EX.text, overflow: "hidden",
+      display: "flex", flexDirection: "column", minHeight: "100%",
+      background: EX.bg, fontFamily: FONT, color: EX.text,
     }}>
-      {/* Subtle dot grid background */}
-      <div style={{
-        position: "absolute", inset: 0, opacity: 0.03,
-        backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-        backgroundSize: "24px 24px", pointerEvents: "none",
-      }} />
 
       {/* ── HORIZONTAL RAIL ── */}
       <div style={{
@@ -1833,8 +1826,6 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
       </div>
     </div>
   );
-
-  return createPortal(overlay, document.body);
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -3962,9 +3953,9 @@ const GUARDPlatform = () => {
         @keyframes pulseDot { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
         @keyframes stepSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes statReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes nodePulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(59,130,246,0.15), 0 0 16px rgba(59,130,246,0.1); } 50% { box-shadow: 0 0 0 8px rgba(59,130,246,0), 0 0 24px rgba(59,130,246,0.2); } }
+        @keyframes nodePulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(54,184,246,0.2), 0 0 12px rgba(54,184,246,0.1); } 50% { box-shadow: 0 0 0 8px rgba(54,184,246,0), 0 0 20px rgba(54,184,246,0.15); } }
         @keyframes railPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-        @keyframes railCelebrate { 0% { filter: brightness(1); } 50% { filter: brightness(1.8); } 100% { filter: brightness(1); } }
+        @keyframes railCelebrate { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
         @keyframes indeterminateProgress { 0% { width: 0%; margin-left: 0%; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
         @keyframes statFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: spin 1s linear infinite; }
