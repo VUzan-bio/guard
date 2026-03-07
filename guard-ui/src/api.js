@@ -36,10 +36,10 @@ export async function healthCheck() {
 }
 
 // Pipeline
-export async function submitRun(name, mode, mutations) {
+export async function submitRun(name, mode, mutations, configOverrides = {}) {
   return request("/api/pipeline/run", {
     method: "POST",
-    body: JSON.stringify({ name, mode, mutations }),
+    body: JSON.stringify({ name, mode, mutations, config_overrides: configOverrides }),
   });
 }
 

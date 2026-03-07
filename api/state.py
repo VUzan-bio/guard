@@ -136,14 +136,33 @@ class AppState:
                 "multiplex_size", "primer_opt_tm", "primer_min_tm",
                 "primer_max_tm", "amplicon_size_range",
             }
+            # Scoring overrides applied to nested ScoringConfig
+            SCORING_OVERRIDES = {"scorer", "guard_net_use_rlpa", "guard_net_use_rnafm"}
             config_kwargs: dict[str, Any] = {
                 "name": job.name,
                 "output_dir": output_dir,
                 "reference": ref_config,
             }
+            scoring_kwargs: dict[str, Any] = {}
             for key, val in job.config_overrides.items():
                 if key in ALLOWED_OVERRIDES:
                     config_kwargs[key] = val
+                elif key in SCORING_OVERRIDES:
+                    scoring_kwargs[key] = val
+
+            if scoring_kwargs:
+                from guard.core.config import ScoringConfig
+                # Auto-resolve GUARD-Net weights path
+                if scoring_kwargs.get("scorer") == "guard_net":
+                    scoring_kwargs.setdefault(
+                        "guard_net_weights",
+                        Path("guard/weights/guard_net_best.pt"),
+                    )
+                    scoring_kwargs.setdefault(
+                        "rnafm_cache_dir",
+                        Path("guard/data/embeddings/rnafm"),
+                    )
+                config_kwargs["scoring"] = ScoringConfig(**scoring_kwargs)
 
             config = PipelineConfig(**config_kwargs)
             pipeline = GUARDPipeline(config)

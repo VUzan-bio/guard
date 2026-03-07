@@ -766,6 +766,7 @@ const HomePage = ({ goTo, connected }) => {
   const [mode, setMode] = useState("standard");
   const [selectedModules, setSelectedModules] = useState(new Set(MODULES.map(m => m.id)));
   const [configOpen, setConfigOpen] = useState(false);
+  const [scorer, setScorer] = useState("guard_net"); // "heuristic" | "seq_cnn" | "guard_net"
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState(null);
 
@@ -799,8 +800,9 @@ const HomePage = ({ goTo, connected }) => {
       drug: MUTATIONS[i].drug || "OTHER",
     }));
     const apiMode = "full";
+    const overrides = scorer !== "heuristic" ? { scorer } : {};
     if (connected) {
-      const { data, error: err } = await submitRun(runName, apiMode, muts);
+      const { data, error: err } = await submitRun(runName, apiMode, muts, overrides);
       if (err) { setError(err); setLaunching(false); return; }
       goTo("pipeline", { jobId: data.job_id });
     } else {
@@ -1019,10 +1021,37 @@ const HomePage = ({ goTo, connected }) => {
           </div>
         </div>
 
-        {/* 4. Configuration (collapsible) */}
+        {/* 4. Scoring Model */}
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: T.primary }}>4</span>
+            <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>Scoring Model</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
+            {[
+              { id: "heuristic", label: "Heuristic", desc: "Position-weighted biophysical features.", level: "Level 1" },
+              { id: "seq_cnn", label: "SeqCNN", desc: "CNN + heuristic ensemble.", level: "Level 2" },
+              { id: "guard_net", label: "GUARD-Net", desc: "CNN + RNA-FM + RLPA attention.", level: "Level 3" },
+            ].map(s => (
+              <button key={s.id} onClick={() => setScorer(s.id)} style={{
+                padding: "14px 16px", borderRadius: "10px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                border: scorer === s.id ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                background: scorer === s.id ? T.primaryLight : T.bg, transition: "all 0.15s",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: scorer === s.id ? T.primaryDark : T.text }}>{s.label}</span>
+                  <span style={{ fontSize: "9px", fontWeight: 700, color: scorer === s.id ? T.primary : T.textTer, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.level}</span>
+                </div>
+                <div style={{ fontSize: "11px", color: scorer === s.id ? T.primaryDark : T.textSec, opacity: 0.85 }}>{s.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 5. Configuration (collapsible) */}
         <div style={{ marginBottom: "28px" }}>
           <button onClick={() => setConfigOpen(!configOpen)} style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", background: "none", border: "none", cursor: "pointer", padding: "0 0 10px 0", fontFamily: FONT }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: T.primary }}>4</span>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: T.primary }}>5</span>
             <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, flex: 1, textAlign: "left" }}>Configuration</span>
             <span style={{ fontSize: "11px", color: T.textTer, marginRight: "4px" }}>defaults shown</span>
             <ChevronDown size={14} color={T.textSec} style={{ transform: configOpen ? "rotate(180deg)" : "none", transition: "0.2s" }} />
@@ -1034,7 +1063,8 @@ const HomePage = ({ goTo, connected }) => {
                   ["Cas12a Variant", "enAsCas12a"], ["PAM Pattern", "TTTV"],
                   ["Spacer Lengths", "20, 21, 22, 23 nt"], ["GC Range", "30–70%"],
                   ["Min Discrimination", "2.0×"], ["SM Enhancement", "Enabled"],
-                  ["RPA Amplicon", "100–200 bp"], ["Scoring Model", "GUARD-Net ensemble (CNN + RNA-FM + Heuristic)"],
+                  ["RPA Amplicon", "100–200 bp"],
+                  ["Scoring Model", scorer === "guard_net" ? "GUARD-Net (CNN + RNA-FM + RLPA)" : scorer === "seq_cnn" ? "SeqCNN + Heuristic" : "Heuristic only"],
                 ].map(([k, v]) => (
                   <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${T.borderLight}`, fontSize: "13px" }}>
                     <span style={{ color: T.textSec }}>{k}</span>
@@ -1042,9 +1072,6 @@ const HomePage = ({ goTo, connected }) => {
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: "11px", color: T.textTer, margin: "12px 0 0" }}>
-                Override defaults by providing a custom YAML config file or editing parameters via the API.
-              </p>
             </div>
           )}
         </div>
