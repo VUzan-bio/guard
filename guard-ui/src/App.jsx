@@ -1419,12 +1419,17 @@ const HomePage = ({ goTo, connected }) => {
 /* ═══════════════════════════════════════════════════════════════════
    EXECUTION THEME TOKENS (light, integrated with sidebar)
    ═══════════════════════════════════════════════════════════════════ */
+/* Monotone execution palette — black, grey, white only */
 const EX = {
-  bg: T.bgSub, card: T.bg, cardBorder: T.border,
-  text: T.text, textSec: T.textSec, textMono: T.textTer,
-  accent: T.primary, accentGlow: "rgba(54,184,246,0.15)", accentSoft: "rgba(54,184,246,0.06)",
-  success: T.success, rail: T.borderLight, railActive: T.primary,
-  progressBg: T.borderLight, progressFill: T.primary,
+  bg: "#ffffff",
+  text: "#111111",
+  textSec: "#888888",
+  textTer: "#999999",
+  line: "#e0e0e0",
+  lineDone: "#111111",
+  nodeUp: "#cccccc",
+  nodeDone: "#111111",
+  desc: "#666666",
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1436,10 +1441,9 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   const [done, setDone] = useState(false);
   const [jobData, setJobData] = useState(null);
   const [moduleStats, setModuleStats] = useState([]);
-  const [celebrating, setCelebrating] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [logExpandedId, setLogExpandedId] = useState(null);
-  const [cardPhase, setCardPhase] = useState("enter"); // "enter" | "visible" | "exit"
+  const [cardPhase, setCardPhase] = useState("visible");
   const [elapsed, setElapsed] = useState(0);
   const wsRef = useRef(null);
   const pollRef = useRef(null);
@@ -1513,7 +1517,7 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
     }, 800);
   };
 
-  /* Card transition on step change */
+  /* Vertical fade transition on step change */
   const prevStepRef = useRef(0);
   useEffect(() => {
     if (step !== prevStepRef.current && !done) {
@@ -1521,21 +1525,19 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
       setTimeout(() => {
         setCardPhase("enter");
         setTimeout(() => setCardPhase("visible"), 30);
-      }, 220);
+      }, 200);
       prevStepRef.current = step;
     }
   }, [step, done]);
 
-  /* Celebration on completion */
+  /* Completion transition */
   useEffect(() => {
     if (done) {
-      setCelebrating(true);
       setCardPhase("exit");
       setTimeout(() => {
-        setCelebrating(false);
         setCardPhase("enter");
         setTimeout(() => setCardPhase("visible"), 30);
-      }, 600);
+      }, 250);
     }
   }, [done]);
 
@@ -1548,19 +1550,19 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
         });
       } else {
         setModuleStats([
-          { module_id: "M1", detail: "14 mutations → 14 genomic targets resolved", candidates_out: 14, duration_ms: 3010, breakdown: {} },
-          { module_id: "M2", detail: "34,364 positions → 1,837 PAM sites → 238 candidates", candidates_out: 238, duration_ms: 119, breakdown: { positions_scanned: 34364, pam_hits: 1837 } },
-          { module_id: "M3", detail: "238 → 213 (25 removed: GC, homopolymer, Tm)", candidates_out: 213, duration_ms: 155 },
-          { module_id: "M4", detail: "213 → 183 (30 off-target hits, Bowtie2 ≤3mm)", candidates_out: 183, duration_ms: 1420 },
-          { module_id: "M5", detail: "213 candidates scored (range 0.325–0.831, mean 0.576)", candidates_out: 213, duration_ms: 19 },
-          { module_id: "M5.5", detail: "213 MUT/WT spacer pairs (54 direct, 159 proximity)", candidates_out: 213, duration_ms: 4 },
-          { module_id: "M6", detail: "54 evaluated, 42 enhanced (seed positions 2–6)", candidates_out: 42, duration_ms: 72 },
-          { module_id: "M6.5", detail: "213 → 54 above 2× threshold (48 diagnostic-grade ≥3×)", candidates_out: 54, duration_ms: 18 },
-          { module_id: "M7", detail: "213 → 14 selected (simulated annealing, 10,000 iterations)", candidates_out: 14, duration_ms: 2240 },
-          { module_id: "M8", detail: "28 primers designed, 378 dimer checks (ΔG > -6.0 kcal/mol)", candidates_out: 14, duration_ms: 4110 },
-          { module_id: "M8.5", detail: "0 crRNA–primer conflicts", candidates_out: 14, duration_ms: 32 },
-          { module_id: "M9", detail: "14 targets + IS6110 control = 15-plex assembled", candidates_out: 15, duration_ms: 48 },
-          { module_id: "M10", detail: "JSON + TSV + FASTA exported", candidates_out: 15, duration_ms: 12 },
+          { module_id: "M1", detail: "14 mutations resolved on H37Rv", candidates_out: 14, duration_ms: 1 },
+          { module_id: "M2", detail: "34,364 positions scanned, 1,837 PAM sites, 238 candidates", candidates_out: 238, duration_ms: 74 },
+          { module_id: "M3", detail: "238 to 213 (25 removed: GC, homopolymer, Tm)", candidates_out: 213, duration_ms: 87 },
+          { module_id: "M4", detail: "213 to 183 (30 off-target hits, Bowtie2)", candidates_out: 183, duration_ms: 846 },
+          { module_id: "M5", detail: "213 scored (range 0.325 to 0.831)", candidates_out: 213, duration_ms: 4 },
+          { module_id: "M5.5", detail: "213 MUT/WT spacer pairs generated", candidates_out: 213, duration_ms: 3 },
+          { module_id: "M6", detail: "54 evaluated, 42 enhanced (seed positions 2 to 6)", candidates_out: 42, duration_ms: 34 },
+          { module_id: "M6.5", detail: "54 above 2x threshold (48 diagnostic-grade)", candidates_out: 54, duration_ms: 2 },
+          { module_id: "M7", detail: "14 selected (simulated annealing, 10K iterations)", candidates_out: 14, duration_ms: 3500 },
+          { module_id: "M8", detail: "28 primers designed, 378 dimer checks", candidates_out: 14, duration_ms: 3300 },
+          { module_id: "M8.5", detail: "0 crRNA-primer conflicts", candidates_out: 14, duration_ms: 15 },
+          { module_id: "M9", detail: "14 targets + IS6110 control = 15-plex", candidates_out: 15, duration_ms: 15 },
+          { module_id: "M10", detail: "JSON + TSV + FASTA exported", candidates_out: 15, duration_ms: 1 },
         ]);
       }
     }
@@ -1569,7 +1571,6 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   const statMap = {};
   moduleStats.forEach((s) => { statMap[s.module_id] = s; });
   const totalDuration = moduleStats.reduce((s, m) => s + (m.duration_ms || 0), 0);
-  const maxCandidates = Math.max(1, ...moduleStats.map(s => s.candidates_out || 0));
   const m2Out = statMap["M2"]?.candidates_out || 0;
   const finalSize = statMap["M9"]?.candidates_out || statMap["M7"]?.candidates_out || 0;
 
@@ -1580,94 +1581,77 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
     return (
       <div style={{ padding: mobile ? "16px" : "36px 40px" }}>
         <div style={{ textAlign: "center", padding: mobile ? "48px 24px" : "80px 24px" }}>
-          <div style={{ width: 64, height: 64, borderRadius: "16px", background: T.bgSub, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
-            <Cpu size={28} color={T.textTer} strokeWidth={1.5} />
+          <div style={{ width: 64, height: 64, borderRadius: "16px", background: "#f5f5f5", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
+            <Cpu size={28} color="#999" strokeWidth={1.5} />
           </div>
-          <div style={{ fontSize: "18px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>No pipeline running</div>
-          <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.6, maxWidth: 420, margin: "0 auto 24px" }}>
+          <div style={{ fontSize: "18px", fontWeight: 700, color: EX.text, fontFamily: HEADING, marginBottom: "8px" }}>No pipeline running</div>
+          <p style={{ fontSize: "13px", color: EX.textSec, lineHeight: 1.6, maxWidth: 420, margin: "0 auto 24px" }}>
             Configure your target mutations and launch the GUARD pipeline from the Home page.
           </p>
-          <Btn icon={Play} onClick={() => goTo("home")}>Configure & Launch</Btn>
+          <button onClick={() => goTo("home")} style={{ padding: "10px 24px", borderRadius: "8px", background: EX.text, color: "#fff", border: "none", fontSize: "13px", fontWeight: 600, fontFamily: FONT, cursor: "pointer" }}>
+            Configure & Launch
+          </button>
         </div>
       </div>
     );
   }
 
-  /* ── Execution experience (inline, with sidebar) ── */
+  /* ── Execution ── */
   const activeModule = MODULES[step] || MODULES[0];
   const activeStat = statMap[activeModule.id];
 
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", minHeight: "100%",
-      background: EX.bg, fontFamily: FONT, color: EX.text,
-    }}>
+  /* Card vertical fade style */
+  const cardStyle = {
+    transform: cardPhase === "exit" ? "translateY(8px)" : cardPhase === "enter" ? "translateY(-8px)" : "translateY(0)",
+    opacity: cardPhase === "visible" ? 1 : 0,
+    transition: cardPhase === "exit" ? "all 0.15s ease-in" : "all 0.2s ease-out",
+  };
 
-      {/* ── HORIZONTAL RAIL ── */}
-      <div style={{
-        position: "relative", zIndex: 2, padding: mobile ? "24px 16px 16px" : "40px 48px 24px",
-        display: "flex", flexDirection: "column", alignItems: "center",
-      }}>
-        {/* Rail nodes + connectors */}
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: EX.bg, fontFamily: FONT, color: EX.text }}>
+
+      {/* ── HORIZONTAL ICON RAIL ── */}
+      <div style={{ padding: mobile ? "24px 16px 16px" : "40px 32px 24px" }}>
         {mobile ? (
-          /* Mobile: compact counter */
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontFamily: MONO, fontSize: "14px", fontWeight: 600, color: EX.accent }}>{step + 1}</span>
+            <span style={{ fontFamily: MONO, fontSize: "14px", fontWeight: 500, color: EX.text }}>{step + 1}</span>
             <span style={{ fontSize: "12px", color: EX.textSec }}>/</span>
             <span style={{ fontFamily: MONO, fontSize: "14px", color: EX.textSec }}>{MODULES.length}</span>
-            <span style={{ fontSize: "12px", color: EX.textSec, marginLeft: "8px" }}>{done ? "Complete" : activeModule.name}</span>
+            <span style={{ fontSize: "13px", color: EX.textSec, marginLeft: "8px", fontWeight: 500 }}>{done ? "Complete" : activeModule.name}</span>
           </div>
         ) : (
-          /* Desktop: full horizontal rail */
-          <div style={{ display: "flex", alignItems: "center", maxWidth: 900, width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
             {MODULES.map((m, i) => {
-              const nodeStatus = i < step ? "done" : i === step && !done ? "active" : done ? "done" : "upcoming";
+              const st = i < step ? "done" : i === step && !done ? "active" : done ? "done" : "upcoming";
               const nodeStat = statMap[m.id];
+              const Icon = m.icon;
               return (
                 <React.Fragment key={m.id}>
-                  {/* Connector line (before each node except first) */}
                   {i > 0 && (
-                    <div style={{
-                      flex: 1, height: "2px", minWidth: 8,
-                      background: (i <= step || done)
-                        ? (celebrating ? EX.accent : (nodeStatus === "active" ? `linear-gradient(90deg, ${EX.success}, ${EX.accent})` : EX.success))
-                        : EX.rail,
-                      transition: "background 0.4s ease",
-                      ...(nodeStatus === "active" ? { animation: "railPulse 2s ease-in-out infinite" } : {}),
-                    }} />
-                  )}
-                  {/* Node */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-                    <div style={{
-                      width: nodeStatus === "active" ? 14 : 10,
-                      height: nodeStatus === "active" ? 14 : 10,
-                      borderRadius: "50%",
-                      background: nodeStatus === "done" ? EX.success
-                        : nodeStatus === "active" ? EX.accent
-                        : EX.rail,
-                      border: nodeStatus === "upcoming" ? `1.5px solid ${EX.textSec}40` : "none",
-                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      ...(nodeStatus === "active" ? {
-                        boxShadow: `0 0 0 4px ${EX.accentGlow}, 0 0 16px ${EX.accentGlow}`,
-                        animation: "nodePulse 2s ease-in-out infinite",
-                      } : {}),
-                      ...(celebrating ? { background: EX.accent, animation: "railCelebrate 0.6s ease-out" } : {}),
-                    }}>
-                      {nodeStatus === "done" && <Check size={6} color="#fff" strokeWidth={3} />}
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", paddingTop: "10px" }}>
+                      <div style={{ width: "100%", height: "1px", background: (i <= step || done) ? EX.lineDone : EX.line, transition: "background 0.3s ease" }} />
                     </div>
-                    {/* Module label below */}
-                    <span style={{
-                      fontFamily: MONO, fontSize: "9px", color: nodeStatus === "active" ? EX.accent : EX.textSec,
-                      marginTop: "6px", letterSpacing: "0.02em", fontWeight: nodeStatus === "active" ? 600 : 400,
-                      whiteSpace: "nowrap",
-                    }}>{m.id}</span>
-                    {/* Duration below completed nodes */}
-                    {nodeStatus === "done" && nodeStat && (
-                      <span style={{ fontFamily: MONO, fontSize: "8px", color: EX.textSec, marginTop: "1px" }}>
-                        {fmtDur(nodeStat.duration_ms)}
-                      </span>
-                    )}
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
+                    <div style={{
+                      width: st === "active" ? 24 : 20, height: st === "active" ? 24 : 20,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s ease",
+                      ...(st === "active" ? { animation: "subtlePulse 2s ease-in-out infinite" } : {}),
+                    }}>
+                      <Icon
+                        size={st === "active" ? 18 : 14}
+                        color={st === "upcoming" ? EX.nodeUp : EX.nodeDone}
+                        strokeWidth={st === "upcoming" ? 1.2 : 1.8}
+                        style={{ transition: "all 0.2s ease" }}
+                      />
+                    </div>
+                    <span style={{ fontFamily: MONO, fontSize: "10px", fontWeight: 400, color: st === "active" ? EX.text : EX.textSec, marginTop: "4px", whiteSpace: "nowrap" }}>
+                      {m.id}
+                    </span>
+                    <span style={{ fontFamily: MONO, fontSize: "9px", fontWeight: 400, color: EX.textTer, marginTop: "1px", minHeight: "12px" }}>
+                      {st === "done" && nodeStat ? fmtDur(nodeStat.duration_ms) : st === "active" ? "..." : ""}
+                    </span>
                   </div>
                 </React.Fragment>
               );
@@ -1676,189 +1660,145 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
         )}
       </div>
 
-      {/* ── CENTER AREA: Active step card / Completion card ── */}
-      <div style={{
-        flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-        position: "relative", zIndex: 2, padding: mobile ? "0 16px" : "0 48px",
-      }}>
+      {/* ── DETAIL AREA ── */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: mobile ? "0 16px 24px" : "0 32px 40px" }}>
         {!done ? (
-          /* ── ACTIVE STEP CARD ── */
-          <div style={{
-            background: EX.card, border: `1px solid ${EX.cardBorder}`,
-            borderRadius: "16px", padding: mobile ? "28px 24px" : "36px 40px",
-            maxWidth: 560, width: "100%",
-            transform: cardPhase === "exit" ? "translateX(-60px)" : cardPhase === "enter" ? "translateX(60px)" : "translateX(0)",
-            opacity: cardPhase === "visible" ? 1 : 0,
-            transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease",
-          }}>
-            {/* Module number */}
-            <div style={{ fontFamily: MONO, fontSize: "13px", fontWeight: 600, color: EX.accent, letterSpacing: "0.05em", marginBottom: "6px" }}>
-              {activeModule.id}
-            </div>
-            {/* Module name */}
-            <div style={{ fontSize: mobile ? "20px" : "24px", fontWeight: 700, color: EX.text, fontFamily: HEADING, letterSpacing: "-0.02em", marginBottom: "8px" }}>
-              {activeModule.name}
-            </div>
-            {/* Description */}
-            <div style={{ fontSize: "13px", color: EX.textSec, lineHeight: 1.6, marginBottom: "24px" }}>
-              {activeModule.execDesc}
-            </div>
-            {/* Progress bar */}
-            <div style={{ height: "3px", background: EX.progressBg, borderRadius: "2px", marginBottom: "24px", overflow: "hidden" }}>
-              <div style={{
-                height: "100%", borderRadius: "2px", background: EX.progressFill,
-                width: "60%", animation: "indeterminateProgress 1.8s ease-in-out infinite",
-              }} />
-            </div>
-            {/* Elapsed time */}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <span style={{ fontFamily: MONO, fontSize: "13px", color: EX.accent, fontVariantNumeric: "tabular-nums" }}>
-                {elapsed.toFixed(1)}s
-              </span>
+          /* ── ACTIVE STEP DETAIL ── */
+          <div style={{ maxWidth: 600, width: "100%", ...cardStyle }}>
+            <div style={{ borderTop: `1px solid ${EX.line}`, padding: "28px 0" }}>
+              {/* Header: icon + module ID + name */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                {React.createElement(activeModule.icon, { size: 20, color: EX.text, strokeWidth: 1.5 })}
+                <span style={{ fontFamily: MONO, fontSize: "12px", fontWeight: 400, color: EX.textSec }}>{activeModule.id}</span>
+                <span style={{ fontSize: "12px", color: EX.textSec }}>·</span>
+                <span style={{ fontSize: "16px", fontWeight: 500, color: EX.text }}>{activeModule.name}</span>
+              </div>
+              {/* Description */}
+              <div style={{ fontSize: "14px", fontWeight: 400, color: EX.desc, lineHeight: 1.6, marginBottom: "20px" }}>
+                {activeModule.execDesc}
+              </div>
+              {/* Progress indicator */}
+              <div style={{ height: "2px", background: EX.line, borderRadius: "1px", marginBottom: "20px", overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: "1px", background: EX.text, animation: "indeterminateProgress 1.8s ease-in-out infinite" }} />
+              </div>
+              {/* Elapsed */}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <span style={{ fontFamily: MONO, fontSize: "12px", fontWeight: 400, color: EX.textTer, fontVariantNumeric: "tabular-nums" }}>
+                  {elapsed.toFixed(1)}s
+                </span>
+              </div>
             </div>
           </div>
         ) : (
-          /* ── COMPLETION CARD ── */
-          <div style={{
-            background: EX.card, border: `1px solid ${EX.cardBorder}`,
-            borderRadius: "16px", padding: mobile ? "32px 24px" : "40px 48px",
-            maxWidth: 560, width: "100%",
-            transform: cardPhase === "exit" ? "translateX(-60px)" : cardPhase === "enter" ? "translateX(60px)" : "translateX(0)",
-            opacity: cardPhase === "visible" ? 1 : 0,
-            transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease",
-          }}>
-            {/* Header */}
-            <div style={{ textAlign: "center", marginBottom: "28px" }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: "50%", background: EX.success + "22",
-                display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "12px",
-              }}>
-                <Check size={20} color={EX.success} strokeWidth={2.5} />
-              </div>
+          /* ── COMPLETION ── */
+          <div style={{ maxWidth: 600, width: "100%", ...cardStyle }}>
+            <div style={{ borderTop: `1px solid ${EX.line}`, padding: "32px 0" }}>
               <div style={{ fontSize: mobile ? "22px" : "26px", fontWeight: 700, color: EX.text, fontFamily: HEADING, letterSpacing: "-0.02em" }}>
                 Pipeline Complete
               </div>
-              <div style={{ fontFamily: MONO, fontSize: "15px", color: EX.accent, marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ fontFamily: MONO, fontSize: "14px", color: EX.textTer, marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
                 {totalDuration > 0 ? fmtDur(totalDuration) : `${elapsed.toFixed(1)}s`}
               </div>
-            </div>
 
-            {/* Divider */}
-            <div style={{ height: "1px", background: EX.cardBorder, marginBottom: "20px" }} />
+              {/* Summary stats */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "24px", marginBottom: "28px" }}>
+                {[
+                  statMap["M1"] && `${statMap["M1"].candidates_out} mutations resolved`,
+                  m2Out > 0 && `${m2Out} candidates generated`,
+                  finalSize > 0 && `${finalSize} selected for panel`,
+                  statMap["M8"] && `${statMap["M8"].detail?.match(/(\d+) primers/)?.[0] || "Primers designed"}`,
+                ].filter(Boolean).map((line, i) => (
+                  <div key={i} style={{
+                    fontFamily: MONO, fontSize: "14px", fontWeight: 400, color: EX.text, lineHeight: 1.6,
+                    animation: `statFadeIn 0.3s ease-out ${i * 0.08}s both`,
+                  }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
 
-            {/* Summary stats */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "28px" }}>
-              {[
-                statMap["M1"] && `${statMap["M1"].candidates_out} mutations resolved`,
-                m2Out > 0 && `${m2Out} candidates generated`,
-                finalSize > 0 && `${finalSize} selected for panel`,
-                statMap["M8"] && `${statMap["M8"].detail?.match(/(\d+) primers/)?.[0] || "Primers designed"}`,
-              ].filter(Boolean).map((line, i) => (
-                <div key={i} style={{
-                  fontFamily: MONO, fontSize: "13px", color: EX.textMono, lineHeight: 1.6,
-                  animation: `statFadeIn 0.3s ease-out ${i * 0.08}s both`,
-                }}>
-                  {line}
-                </div>
-              ))}
-            </div>
+              {/* View Results button — black */}
+              <button
+                onClick={() => goTo("results", { jobId })}
+                style={{
+                  display: "block", width: "fit-content", padding: "12px 32px", borderRadius: "8px",
+                  background: EX.text, color: "#ffffff", border: "none",
+                  fontSize: "14px", fontWeight: 600, fontFamily: FONT,
+                  cursor: "pointer", transition: "opacity 0.15s ease",
+                  marginBottom: "24px",
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+              >
+                View Results →
+              </button>
 
-            {/* View Results button */}
-            <button
-              onClick={() => goTo("results", { jobId })}
-              style={{
-                width: "100%", padding: "14px", borderRadius: "10px",
-                background: EX.accent, color: "#fff", border: "none",
-                fontSize: "14px", fontWeight: 700, fontFamily: FONT,
-                cursor: "pointer", letterSpacing: "-0.01em",
-                transition: "opacity 0.15s ease",
-                marginBottom: "16px",
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-            >
-              View Results →
-            </button>
+              {/* Execution log toggle */}
+              <button
+                onClick={() => setShowLog(!showLog)}
+                style={{
+                  background: "none", border: "none", color: EX.textSec,
+                  fontSize: "12px", fontFamily: FONT, fontWeight: 400, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: "6px", padding: "4px 0",
+                }}
+              >
+                <ChevronRight size={12} style={{ transition: "transform 0.2s ease", transform: showLog ? "rotate(90deg)" : "rotate(0)" }} />
+                {showLog ? "Hide" : "Show"} execution log
+              </button>
 
-            {/* Show execution log toggle */}
-            <button
-              onClick={() => setShowLog(!showLog)}
-              style={{
-                background: "none", border: "none", color: EX.textSec,
-                fontSize: "12px", fontFamily: FONT, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: "6px",
-                padding: "4px 0", width: "100%",
-              }}
-            >
-              <ChevronRight size={12} style={{ transition: "transform 0.2s ease", transform: showLog ? "rotate(90deg)" : "rotate(0)" }} />
-              {showLog ? "Hide" : "Show"} execution log
-            </button>
-
-            {/* Execution log (collapsible) */}
-            <div style={{
-              overflow: "hidden",
-              maxHeight: showLog ? "400px" : "0px",
-              opacity: showLog ? 1 : 0,
-              transition: "max-height 0.35s ease, opacity 0.25s ease",
-            }}>
-              <div style={{ marginTop: "12px", maxHeight: "360px", overflowY: "auto" }}>
-                {MODULES.map((m, i) => {
-                  const st = statMap[m.id];
-                  const isLogExpanded = logExpandedId === m.id;
-                  const barW = st ? Math.max(2, (st.candidates_out / maxCandidates) * 100) : 0;
-                  return (
-                    <div key={m.id}>
-                      <button
-                        onClick={() => setLogExpandedId(isLogExpanded ? null : m.id)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: "10px",
-                          width: "100%", padding: "6px 0", background: "none", border: "none",
-                          borderBottom: `1px solid ${EX.cardBorder}`, cursor: st ? "pointer" : "default",
-                          fontFamily: MONO, fontSize: "11px", color: EX.textMono, textAlign: "left",
-                        }}
-                      >
-                        <Check size={10} color={EX.success} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                        <span style={{ color: EX.accent, fontWeight: 600, minWidth: 32 }}>{m.id}</span>
-                        <span style={{ color: EX.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name}</span>
-                        {st && <span style={{ color: EX.textSec, flexShrink: 0 }}>{fmtDur(st.duration_ms)}</span>}
-                      </button>
-                      {/* Expanded detail */}
-                      <div style={{
-                        overflow: "hidden", maxHeight: isLogExpanded && st ? "120px" : "0px",
-                        opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.25s ease, opacity 0.2s ease",
-                      }}>
-                        {st && (
-                          <div style={{ padding: "8px 0 8px 22px", fontSize: "11px", color: EX.textSec, lineHeight: 1.7 }}>
-                            {st.detail}
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
-                              <span style={{ fontSize: "10px", color: EX.textSec, minWidth: 28 }}>{st.candidates_out}</span>
-                              <div style={{ flex: 1, maxWidth: 200, height: 3, background: EX.rail, borderRadius: 2, overflow: "hidden" }}>
-                                <div style={{ width: `${barW}%`, height: "100%", borderRadius: 2, background: EX.accent }} />
-                              </div>
+              {/* Execution log — vertical list */}
+              <div style={{
+                overflow: "hidden",
+                maxHeight: showLog ? "600px" : "0px",
+                opacity: showLog ? 1 : 0,
+                transition: "max-height 0.35s ease, opacity 0.25s ease",
+              }}>
+                <div style={{ marginTop: "12px" }}>
+                  {MODULES.map((m) => {
+                    const st = statMap[m.id];
+                    const isLogExpanded = logExpandedId === m.id;
+                    const Icon = m.icon;
+                    return (
+                      <div key={m.id}>
+                        <button
+                          onClick={() => st && setLogExpandedId(isLogExpanded ? null : m.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "10px",
+                            width: "100%", padding: "7px 0", background: "none", border: "none",
+                            borderBottom: `1px solid ${EX.line}`, cursor: st ? "pointer" : "default",
+                            fontSize: "12px", textAlign: "left",
+                          }}
+                        >
+                          <Icon size={13} color={EX.textSec} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+                          <span style={{ fontFamily: MONO, fontWeight: 400, color: EX.textSec, minWidth: 30, fontSize: "11px" }}>{m.id}</span>
+                          <span style={{ fontWeight: 400, color: EX.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px" }}>{m.name}</span>
+                          {st && <span style={{ fontFamily: MONO, fontWeight: 400, color: EX.textTer, flexShrink: 0, fontSize: "11px" }}>{fmtDur(st.duration_ms)}</span>}
+                          {st && <span style={{ fontWeight: 400, color: EX.textSec, flex: 2, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "11px", textAlign: "right" }}>{st.detail}</span>}
+                        </button>
+                        {/* Expanded detail */}
+                        <div style={{
+                          overflow: "hidden", maxHeight: isLogExpanded && st ? "120px" : "0px",
+                          opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.25s ease, opacity 0.2s ease",
+                        }}>
+                          {st && (
+                            <div style={{ padding: "10px 0 10px 23px", fontSize: "13px", fontWeight: 400, color: EX.desc, lineHeight: 1.7 }}>
+                              {st.detail}
+                              {st.candidates_out != null && (
+                                <div style={{ fontFamily: MONO, fontSize: "12px", color: EX.text, marginTop: "4px" }}>
+                                  {st.candidates_out} candidates out
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── BOTTOM BAR ── */}
-      <div style={{
-        position: "relative", zIndex: 2, padding: mobile ? "16px" : "20px 48px",
-        display: "flex", justifyContent: "center",
-      }}>
-        <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textSec, fontVariantNumeric: "tabular-nums" }}>
-          {done
-            ? (totalDuration > 0 ? `${fmtDur(totalDuration)} total` : `${elapsed.toFixed(1)}s total`)
-            : `${elapsed.toFixed(1)}s elapsed`
-          }
-        </span>
       </div>
     </div>
   );
@@ -4046,9 +3986,7 @@ const GUARDPlatform = () => {
         @keyframes pulseDot { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
         @keyframes stepSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes statReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes nodePulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(54,184,246,0.2), 0 0 12px rgba(54,184,246,0.1); } 50% { box-shadow: 0 0 0 8px rgba(54,184,246,0), 0 0 20px rgba(54,184,246,0.15); } }
-        @keyframes railPulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-        @keyframes railCelebrate { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+        @keyframes subtlePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes indeterminateProgress { 0% { width: 0%; margin-left: 0%; } 50% { width: 60%; margin-left: 20%; } 100% { width: 0%; margin-left: 100%; } }
         @keyframes statFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: spin 1s linear infinite; }
