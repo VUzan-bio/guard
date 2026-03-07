@@ -2397,6 +2397,7 @@ const CandidatesTab = ({ results, jobId, connected }) => {
   };
 
   const hasGuardNet = results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net"));
+  const hasML = results.some(r => r.cnnCalibrated != null);
   const mlColLabel = hasGuardNet ? "GN" : "CNN";
 
   const cols = [
@@ -2404,9 +2405,9 @@ const CandidatesTab = ({ results, jobId, connected }) => {
     { key: "drug", label: "Drug", w: 70 },
     { key: "strategy", label: "Strategy", w: 80 },
     { key: "spacer", label: "Spacer", w: 200 },
-    { key: "ensembleScore", label: "Score", w: 70 },
-    { key: "score", label: "Heuristic", w: 75 },
-    { key: "cnnCalibrated", label: mlColLabel, w: 65 },
+    { key: "ensembleScore", label: hasML ? "Ensemble" : "Score", w: 70 },
+    ...(hasML ? [{ key: "score", label: "Heuristic", w: 75 }] : []),
+    ...(hasML ? [{ key: "cnnCalibrated", label: mlColLabel, w: 65 }] : []),
     { key: "disc", label: "Disc", w: 80 },
     { key: "gc", label: "GC%", w: 55 },
     { key: "ot", label: "OT", w: 40 },
@@ -2417,10 +2418,10 @@ const CandidatesTab = ({ results, jobId, connected }) => {
       {/* Blue explainer box */}
       <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "14px" : "18px 22px", marginBottom: "16px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "6px" }}>Reading the table</div>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: "6px 20px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.5, opacity: 0.85 }}>
-          <div><strong>Score</strong> — ensemble rating (0–1). Heuristic + {hasGuardNet ? "GUARD-Net" : "CNN"} blended.</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : hasML ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr", gap: "6px 20px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.5, opacity: 0.85 }}>
+          <div><strong>Score</strong> — {hasML ? `ensemble (heuristic + ${hasGuardNet ? "GUARD-Net" : "CNN"})` : "heuristic composite (0–1)"}.</div>
           <div><strong>Disc</strong> — MUT/WT discrimination ratio. ≥ 3× is diagnostic-grade.</div>
-          <div><strong>{mlColLabel}</strong> — {hasGuardNet ? "GUARD-Net (CNN + RNA-FM + RLPA)" : "SeqCNN calibrated"} prediction.</div>
+          {hasML && <div><strong>{mlColLabel}</strong> — {hasGuardNet ? "GUARD-Net (CNN + RNA-FM + RLPA)" : "SeqCNN calibrated"} prediction.</div>}
           <div><strong>Expand</strong> — click any row for full crRNA, amplicon map, primers, and scoring breakdown.</div>
         </div>
       </div>
@@ -2544,8 +2545,8 @@ const CandidatesTab = ({ results, jobId, connected }) => {
                     <td style={{ padding: "10px 12px" }}><Badge variant={r.strategy === "Direct" ? "success" : "purple"}>{r.strategy}</Badge></td>
                     <td style={{ padding: "10px 12px" }}><Seq s={r.spacer?.slice(0, 24)} /></td>
                     <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 700, color: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger }}>{(r.ensembleScore || r.score).toFixed(3)}</td>
-                    <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.score > 0.8 ? T.primary : r.score > 0.65 ? T.warning : T.danger }}>{r.score.toFixed(3)}</td>
-                    <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.cnnCalibrated != null ? (r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger) : T.textTer }}>{r.cnnCalibrated != null ? r.cnnCalibrated.toFixed(3) : "—"}</td>
+                    {hasML && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.score > 0.8 ? T.primary : r.score > 0.65 ? T.warning : T.danger }}>{r.score.toFixed(3)}</td>}
+                    {hasML && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.cnnCalibrated != null ? (r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger) : T.textTer }}>{r.cnnCalibrated != null ? r.cnnCalibrated.toFixed(3) : "—"}</td>}
                     <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 1.5 ? T.warning : T.danger }}>
                       {r.strategy === "Proximity" ? <span style={{ fontSize: "10px" }}>AS-RPA</span> : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`}
                     </td>
