@@ -922,7 +922,7 @@ const HomePage = ({ goTo, connected }) => {
       <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
         <div style={{ maxWidth: "100%" }}>
           <div style={{ marginBottom: "4px" }}>
-            <img src="/guard-logo.png" alt="GUARD" style={{ height: mobile ? "28px" : "40px", objectFit: "contain", display: "block" }} />
+            <img src="/guard-logo.png" alt="GUARD" style={{ height: mobile ? "22px" : "32px", objectFit: "contain", display: "block" }} />
           </div>
           <p style={{ fontSize: mobile ? "12px" : "14px", fontWeight: 600, color: T.textSec, margin: "0 0 2px", letterSpacing: "0.02em" }}>
             Guide RNA Automated Resistance Diagnostics
