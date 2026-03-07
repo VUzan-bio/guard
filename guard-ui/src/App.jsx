@@ -661,29 +661,21 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
       transition: "width 0.2s ease",
       ...(mobile ? { position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 9998, boxShadow: "4px 0 24px rgba(0,0,0,0.15)" } : {}),
     }}>
-      {/* Logo + Toggle */}
-      <div style={{ padding: isCollapsed ? "16px 0" : "16px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: isCollapsed ? "center" : "space-between", gap: "8px" }}>
-          {!isCollapsed && (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src="/logo.png" alt="GUARD" style={{ height: 28, width: "auto", objectFit: "contain" }} />
-              <span style={{ fontSize: "15px", fontWeight: 800, color: T.text, fontFamily: HEADING, letterSpacing: "-0.02em" }}>GUARD</span>
-            </div>
-          )}
-          {isCollapsed && <img src="/logo.png" alt="GUARD" style={{ height: 24, width: "auto", objectFit: "contain" }} />}
-          {mobile ? (
-            <button onClick={() => setMobileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", marginLeft: "auto" }}><X size={20} color={T.textSec} /></button>
-          ) : (
-            <button onClick={() => setCollapsed(!collapsed)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", borderRadius: "6px" }} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-              {isCollapsed ? <PanelLeft size={18} color={T.textSec} /> : <PanelLeftClose size={18} color={T.textSec} />}
-            </button>
-          )}
-        </div>
+      {/* Status + Toggle */}
+      <div style={{ padding: isCollapsed ? "16px 0" : "16px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: isCollapsed ? "center" : "space-between", gap: "8px" }}>
         {!isCollapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
             {connected ? <Wifi size={12} color={T.success} /> : <WifiOff size={12} color={T.danger} />}
-            <span style={{ color: connected ? T.success : T.danger, fontWeight: 600 }}>{connected ? "API Connected" : "Offline (mock)"}</span>
+            <span style={{ color: connected ? T.success : T.danger, fontWeight: 600 }}>{connected ? "Connected" : "Offline"}</span>
           </div>
+        )}
+        {isCollapsed && (connected ? <Wifi size={14} color={T.success} /> : <WifiOff size={14} color={T.danger} />)}
+        {mobile ? (
+          <button onClick={() => setMobileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", marginLeft: "auto" }}><X size={20} color={T.textSec} /></button>
+        ) : (
+          <button onClick={() => setCollapsed(!collapsed)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", borderRadius: "6px" }} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            {isCollapsed ? <PanelLeft size={18} color={T.textSec} /> : <PanelLeftClose size={18} color={T.textSec} />}
+          </button>
         )}
       </div>
       {/* Nav groups */}
