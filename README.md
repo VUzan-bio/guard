@@ -12,6 +12,8 @@ GUARD takes WHO-catalogued drug-resistance mutations as input and produces ready
 
 <img width="3398" height="1147" alt="GUARD pipeline architecture" src="https://github.com/user-attachments/assets/89c58154-ba94-4e98-94ec-c2c8580c4c99" />
 
+<br />
+<br />
 Ten modules execute sequentially:
 
 1. **Target Resolution** — WHO-catalogued mutations → genomic coordinates on H37Rv (5-strategy offset resolver)
