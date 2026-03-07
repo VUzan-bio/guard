@@ -1,4 +1,4 @@
-# <img src="logo.png" alt="GUARD logo" height="32" style="vertical-align: middle;"> GUARD
+# GUARD
 
 **Guide RNA Automated Resistance Diagnostics**
 
