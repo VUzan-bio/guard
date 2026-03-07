@@ -6,7 +6,7 @@ Computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels
 
 ---
 
-GUARD takes WHO-catalogued drug-resistance mutations as input and produces ready-to-order crRNA sequences, RPA primer pairs, and a fully optimised multiplex panel for CRISPR-Cas12a electrochemical diagnostics. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses a three-level hierarchy — biophysical heuristic, temperature-calibrated SeqCNN, and GUARD-Net (dual-branch CNN + RNA-FM with physics-informed R-loop attention) — blended via Spearman-optimised ensemble weighting. GUARD designs a complete 15-channel MDR-TB panel — covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance plus an IS6110 species control — in under 15 seconds.
+GUARD takes WHO-catalogued drug-resistance mutations as input and produces ready-to-order crRNA sequences, RPA primer pairs, and a fully optimised multiplex panel for CRISPR-Cas12a electrochemical diagnostics. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses a three-level hierarchy — biophysical heuristic, temperature-calibrated SeqCNN, and GUARD-Net (dual-branch CNN + RNA-FM with physics-informed R-loop attention) — blended via Spearman-optimised ensemble weighting. GUARD designs a complete 15-channel MDR-TB panel — covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance plus an IS6110 species control.
 
 ## Pipeline
 
