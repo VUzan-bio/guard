@@ -636,7 +636,6 @@ const CandidateViewer = ({ r, onClose }) => {
 const NAV = [
   { section: "Design", items: [
     { id: "home", label: "Home", icon: Activity },
-    { id: "pipeline", label: "Pipeline", icon: Cpu },
     { id: "results", label: "Results", icon: BarChart3 },
   ]},
   { section: "Library", items: [
