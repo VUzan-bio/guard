@@ -1421,7 +1421,7 @@ const HomePage = ({ goTo, connected }) => {
    ═══════════════════════════════════════════════════════════════════ */
 /* Monotone execution palette — black, grey, white only */
 const EX = {
-  bg: "#ffffff",
+  bg: T.bgSub,
   text: "#111111",
   textSec: "#888888",
   textTer: "#999999",
@@ -1610,69 +1610,64 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: EX.bg, fontFamily: FONT, color: EX.text, padding: mobile ? "32px 20px" : "48px 48px" }}>
 
-      {!done ? (
-        /* ── RUNNING: step list that builds up like Claude Code ── */
-        <>
-          {/* Completed steps — stacked vertically, each appears as it finishes */}
-          {MODULES.slice(0, step).map((m) => {
-            const st = statMap[m.id];
-            const Icon = m.icon;
-            return (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 0", opacity: 0.5 }}>
-                <Icon size={15} color={EX.nodeDone} strokeWidth={1.5} />
-                <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{m.id}</span>
-                <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{m.name}</span>
-                {st && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
+      {(() => {
+        /* Build step rows — shared between running and complete states */
+        const stepRows = !done ? MODULES.slice(0, step + 1) : MODULES;
+        const totalRows = !done ? step + 1 : MODULES.length;
+        return stepRows.map((m, idx) => {
+          const st = statMap[m.id];
+          const Icon = m.icon;
+          const isActive = !done && idx === step;
+          const isLast = idx === totalRows - 1;
+          const isLogExpanded = done && logExpandedId === m.id;
+          return (
+            <div key={m.id} style={{ display: "flex", gap: "0" }}>
+              {/* Left: icon + vertical line */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "24px", flexShrink: 0 }}>
+                <div style={{
+                  width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
+                  ...(isActive ? { animation: "subtlePulse 2s ease-in-out infinite" } : {}),
+                }}>
+                  <Icon size={14} color={isActive ? EX.nodeDone : (!done && !isActive) ? EX.nodeDone : EX.nodeDone} strokeWidth={isActive ? 1.8 : 1.5} style={{ opacity: isActive || done ? 1 : 0.5 }} />
+                </div>
+                {!isLast && (
+                  <div style={{ width: "1px", flex: 1, minHeight: "8px", background: EX.line }} />
+                )}
               </div>
-            );
-          })}
-
-          {/* Active step — highlighted */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: "10px", padding: "6px 0",
-            ...cardStyle,
-          }}>
-            <div style={{ animation: "subtlePulse 2s ease-in-out infinite", display: "flex" }}>
-              {React.createElement(activeModule.icon, { size: 15, color: EX.nodeDone, strokeWidth: 1.8 })}
-            </div>
-            <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{activeModule.id}</span>
-            <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{activeModule.name}</span>
-            <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>{elapsed.toFixed(1)}s</span>
-          </div>
-        </>
-      ) : (
-        /* ── COMPLETE: all steps shown + summary ── */
-        <>
-          {/* All steps */}
-          {MODULES.map((m) => {
-            const st = statMap[m.id];
-            const Icon = m.icon;
-            const isLogExpanded = logExpandedId === m.id;
-            return (
-              <div key={m.id}>
+              {/* Right: content */}
+              <div style={{ flex: 1, paddingLeft: "10px", paddingBottom: isLast ? "0" : "4px" }}>
                 <div
-                  onClick={() => st && setLogExpandedId(isLogExpanded ? null : m.id)}
-                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 0", cursor: st ? "pointer" : "default" }}
+                  onClick={() => done && st && setLogExpandedId(isLogExpanded ? null : m.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "8px", height: "24px",
+                    cursor: done && st ? "pointer" : "default",
+                    opacity: isActive || done ? 1 : 0.5,
+                    ...(!done && isActive ? cardStyle : {}),
+                  }}
                 >
-                  <Icon size={15} color={EX.nodeDone} strokeWidth={1.5} />
                   <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{m.id}</span>
                   <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{m.name}</span>
-                  {st && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
+                  {isActive && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>{elapsed.toFixed(1)}s</span>}
+                  {!isActive && st && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
                 </div>
-                {/* Expandable detail */}
-                <div style={{
-                  overflow: "hidden", maxHeight: isLogExpanded && st ? "80px" : "0px",
-                  opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.2s ease, opacity 0.15s ease",
-                }}>
-                  {st && (
-                    <div style={{ padding: "2px 0 8px 25px", fontSize: "12px", fontWeight: 400, color: EX.desc, lineHeight: 1.6 }}>
-                      {st.detail}
-                    </div>
-                  )}
-                </div>
+                {/* Expandable detail (complete state only) */}
+                {done && (
+                  <div style={{
+                    overflow: "hidden", maxHeight: isLogExpanded && st ? "80px" : "0px",
+                    opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.2s ease, opacity 0.15s ease",
+                  }}>
+                    {st && (
+                      <div style={{ fontSize: "12px", fontWeight: 400, color: EX.desc, lineHeight: 1.6, padding: "4px 0 6px" }}>
+                        {st.detail}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            );
-          })}
+            </div>
+          );
+        });
+      })()}
 
           {/* Divider */}
           <div style={{ height: "1px", background: EX.line, margin: "20px 0" }} />
