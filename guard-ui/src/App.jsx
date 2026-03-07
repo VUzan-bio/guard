@@ -11,7 +11,7 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, Cell, Legend, ComposedChart, ReferenceLine,
-  LineChart, Line,
+  LineChart, Line, Area, AreaChart,
 } from "recharts";
 import {
   healthCheck, submitRun, getJob, getResults, exportResults,
@@ -1776,50 +1776,69 @@ const OverviewTab = ({ results, scorer }) => {
 
       {/* KDE Score Distribution */}
       {!mobile && (() => {
-        const scoresByDrug = results.map(r => ({ score: usesGuardNet ? (r.ensembleScore || r.score) : r.score, drug: r.drug }));
+        const scoresByDrug = results.map(r => ({ score: usesGuardNet ? (r.ensembleScore || r.score) : r.score, drug: r.drug, label: r.label }));
         const scores = scoresByDrug.map(s => s.score);
         const kde = gaussianKDE(scores, 0.05, 100);
         const sigma = stdDev(scores);
+        const mean = +(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3);
         const scoreMin = Math.min(...scores).toFixed(2);
         const scoreMax = Math.max(...scores).toFixed(2);
         const effThreshold = 0.4;
-        const DRUG_DOT = { RIF: "#1E40AF", INH: "#92400E", EMB: "#6B21A8", FQ: "#9F1239", AG: "#3730A3", PZA: "#166534", OTHER: "#6B7280" };
+        const DRUG_DOT = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#6B7280" };
         return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "12px" }}>
-              <span style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score Distribution</span>
-              <span style={{ fontSize: "11px", color: T.textTer, fontFamily: MONO }}>Range: {scoreMin}–{scoreMax} | σ = {sigma.toFixed(3)}</span>
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score Distribution</div>
+                <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
+                  Kernel density estimation of {usesGuardNet ? "ensemble" : "heuristic"} scores across all candidates.
+                  A wider spread indicates the model differentiates strongly between targets.
+                </div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "20px" }}>
+                <div style={{ display: "flex", gap: "16px" }}>
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>RANGE</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{scoreMin}–{scoreMax}</div></div>
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>MEAN</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{mean}</div></div>
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>STD DEV</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{sigma.toFixed(3)}</div></div>
+                </div>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <ComposedChart data={kde} margin={{ top: 5, right: 10, bottom: 20, left: 10 }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={kde} margin={{ top: 5, right: 15, bottom: 20, left: 15 }}>
                 <defs>
                   <linearGradient id="kdeAreaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={T.primary} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={T.primary} stopOpacity={0.02} />
+                    <stop offset="0%" stopColor={T.primary} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={T.primary} stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.borderLight }} tickLine={false} label={{ value: "Score", position: "insideBottom", offset: -10, fontSize: 10, fill: T.textTer }} />
+                <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.border }} tickLine={false} />
                 <YAxis hide domain={[0, "auto"]} />
                 <Tooltip contentStyle={{ ...tooltipStyle, padding: "8px 12px" }} formatter={(v) => [v.toFixed(4), "Density"]} labelFormatter={(l) => `Score: ${l}`} />
-                <ReferenceLine x={effThreshold} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1.5} label={{ value: `${effThreshold} min`, position: "top", fontSize: 10, fill: T.danger, fontWeight: 600 }} />
-                {/* Filled area under curve */}
-                <Line type="monotone" dataKey="density" stroke={T.primary} strokeWidth={2.5} dot={false} isAnimationActive={false} fill="url(#kdeAreaFill)" fillOpacity={1} />
-              </ComposedChart>
+                <ReferenceLine x={effThreshold} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "0.4 min", position: "insideTopRight", fontSize: 9, fill: T.danger, fontWeight: 600 }} />
+                <ReferenceLine x={mean} stroke={T.primary} strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ", position: "insideTopRight", fontSize: 10, fill: T.primary, fontWeight: 700 }} />
+                <Area type="monotone" dataKey="density" stroke={T.primary} strokeWidth={2.5} fill="url(#kdeAreaFill)" isAnimationActive={false} />
+              </AreaChart>
             </ResponsiveContainer>
             {/* Rug plot — colored by drug */}
-            <div style={{ position: "relative", height: "16px", marginTop: "-16px", marginLeft: "10px", marginRight: "10px" }}>
+            <div style={{ position: "relative", height: "18px", marginTop: "-14px", marginLeft: "15px", marginRight: "15px" }}>
               {scoresByDrug.map((s, i) => (
-                <div key={i} style={{ position: "absolute", left: `${s.score * 100}%`, bottom: 0, width: "2px", height: "10px", background: DRUG_DOT[s.drug] || DRUG_DOT.OTHER, opacity: 0.8, borderRadius: "1px" }} title={`${results[i]?.label || ""} (${s.drug}): ${s.score.toFixed(3)}`} />
+                <div key={i} style={{ position: "absolute", left: `${s.score * 100}%`, bottom: 0, width: "2.5px", height: "12px", background: DRUG_DOT[s.drug] || DRUG_DOT.OTHER, opacity: 0.85, borderRadius: "1px" }} title={`${s.label} (${s.drug}): ${s.score.toFixed(3)}`} />
               ))}
             </div>
-            {/* Legend for rug colors */}
-            <div style={{ display: "flex", gap: "12px", marginTop: "6px", marginLeft: "10px", flexWrap: "wrap" }}>
+            {/* Legend */}
+            <div style={{ display: "flex", gap: "12px", marginTop: "8px", marginLeft: "15px", flexWrap: "wrap", alignItems: "center" }}>
               {Object.entries(DRUG_DOT).filter(([d]) => d !== "OTHER" && results.some(r => r.drug === d)).map(([drug, color]) => (
                 <div key={drug} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: color }} />
-                  <span style={{ fontSize: "10px", color: T.textSec }}>{drug}</span>
+                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: color }} />
+                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{drug}</span>
                 </div>
               ))}
+            </div>
+            {/* Interpretation */}
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+              <strong style={{ color: T.text }}>Interpretation:</strong> The peak location shows where most candidates cluster.
+              Scores above 0.7 are high-confidence; between 0.4–0.7 are viable but may need optimisation.
+              {sigma < 0.05 ? " The narrow spread (σ < 0.05) suggests the model assigns similar scores — consider a checkpoint with wider dynamic range." : sigma > 0.1 ? " The wide spread (σ > 0.1) indicates the model differentiates well between strong and weak candidates." : ""}
             </div>
           </div>
         );
@@ -1828,111 +1847,130 @@ const OverviewTab = ({ results, scorer }) => {
       {/* Drug Class Score Distribution — Box Plot */}
       {!mobile && (() => {
         const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
-        const DRUG_FILL = { RIF: { bg: "#DBEAFE", dot: "#1E40AF", bar: "#3B82F6" }, INH: { bg: "#FEF3C7", dot: "#92400E", bar: "#F59E0B" }, EMB: { bg: "#F3E8FF", dot: "#6B21A8", bar: "#8B5CF6" }, FQ: { bg: "#FFE4E6", dot: "#9F1239", bar: "#F43F5E" }, AG: { bg: "#E0E7FF", dot: "#3730A3", bar: "#6366F1" }, PZA: { bg: "#F0FDF4", dot: "#166534", bar: "#22C55E" }, OTHER: { bg: "#F3F4F6", dot: "#6B7280", bar: "#9CA3AF" } };
+        const DRUG_FILL = { RIF: { bg: "#DBEAFE", dot: "#2563EB", bar: "#3B82F6" }, INH: { bg: "#FEF3C7", dot: "#D97706", bar: "#F59E0B" }, EMB: { bg: "#F3E8FF", dot: "#7C3AED", bar: "#8B5CF6" }, FQ: { bg: "#FFE4E6", dot: "#E11D48", bar: "#F43F5E" }, AG: { bg: "#E0E7FF", dot: "#4F46E5", bar: "#6366F1" }, PZA: { bg: "#F0FDF4", dot: "#16A34A", bar: "#22C55E" }, OTHER: { bg: "#F3F4F6", dot: "#6B7280", bar: "#9CA3AF" } };
         const drugOrder = [...new Set(results.map(r => r.drug))];
         const drugData = drugOrder.map(d => {
-          const scores = results.filter(r => r.drug === d).map(r => getScore(r)).sort((a, b) => a - b);
-          return { drug: d, min: scores[0], max: scores[scores.length - 1], avg: +(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3), scores };
-        });
+          const dScores = results.filter(r => r.drug === d).map(r => getScore(r)).sort((a, b) => a - b);
+          const avg = +(dScores.reduce((a, b) => a + b, 0) / dScores.length).toFixed(3);
+          return { drug: d, min: dScores[0], max: dScores[dScores.length - 1], avg, count: dScores.length, scores: dScores };
+        }).sort((a, b) => b.avg - a.avg);
+        const weakest = drugData[drugData.length - 1];
         return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "16px" }}>Score by Drug Class</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score by Drug Class</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
+                Score range and distribution per drug. Sorted by average score, highest first. Each dot is one candidate.
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {drugData.map(d => {
                 const c = DRUG_FILL[d.drug] || DRUG_FILL.OTHER;
+                const isWeakest = d === weakest && d.avg < 0.5;
                 return (
-                  <div key={d.drug} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "44px", textAlign: "right" }}><span style={{ background: c.bg, color: c.dot, padding: "2px 8px", borderRadius: "999px", fontSize: "10px", fontWeight: 700 }}>{d.drug}</span></div>
-                    <div style={{ flex: 1, position: "relative", height: "28px", background: T.bgSub, borderRadius: "6px", overflow: "hidden" }}>
-                      {/* Threshold zone */}
-                      <div style={{ position: "absolute", left: 0, top: 0, width: "40%", height: "100%", background: "rgba(220,38,38,0.04)" }} />
-                      {/* Range bar */}
-                      <div style={{ position: "absolute", top: "11px", left: `${d.min * 100}%`, width: `${Math.max((d.max - d.min) * 100, 0.5)}%`, height: "6px", background: c.bar, borderRadius: "3px", opacity: 0.35 }} />
-                      {/* Avg marker */}
-                      <div style={{ position: "absolute", top: "7px", left: `${d.avg * 100}%`, width: "3px", height: "14px", background: c.bar, borderRadius: "1px", transform: "translateX(-1.5px)", opacity: 0.6 }} />
+                  <div key={d.drug} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px 0" }}>
+                    <div style={{ width: "50px", textAlign: "right" }}><span style={{ background: c.bg, color: c.dot, padding: "3px 10px", borderRadius: "999px", fontSize: "10px", fontWeight: 700, border: isWeakest ? `1.5px solid ${T.danger}` : "none" }}>{d.drug}</span></div>
+                    <div style={{ flex: 1, position: "relative", height: "32px", background: T.bgSub, borderRadius: "6px" }}>
+                      {/* Range bar with gradient */}
+                      <div style={{ position: "absolute", top: "12px", left: `${d.min * 100}%`, width: `${Math.max((d.max - d.min) * 100, 0.3)}%`, height: "8px", background: `linear-gradient(90deg, ${c.bar}44, ${c.bar}88)`, borderRadius: "4px" }} />
+                      {/* Mean tick */}
+                      <div style={{ position: "absolute", top: "8px", left: `${d.avg * 100}%`, width: "2px", height: "16px", background: c.dot, borderRadius: "1px", transform: "translateX(-1px)" }} />
                       {/* Individual dots */}
                       {d.scores.map((s, i) => (
-                        <div key={i} style={{ position: "absolute", top: "8px", left: `${s * 100}%`, width: "12px", height: "12px", borderRadius: "50%", background: c.dot, border: "2px solid #fff", transform: "translateX(-6px)", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
+                        <div key={i} style={{ position: "absolute", top: "10px", left: `${s * 100}%`, width: "12px", height: "12px", borderRadius: "50%", background: c.dot, border: "2px solid #fff", transform: "translateX(-6px)", boxShadow: "0 1px 4px rgba(0,0,0,0.12)", zIndex: 2 }} />
                       ))}
                     </div>
-                    <div style={{ width: "80px", fontSize: "11px", color: T.textSec, fontFamily: MONO, whiteSpace: "nowrap", fontWeight: 600 }}>
-                      {d.avg}
+                    <div style={{ width: "90px", textAlign: "right" }}>
+                      <span style={{ fontSize: "13px", fontWeight: 800, color: d.avg >= 0.7 ? T.success : d.avg >= 0.5 ? T.text : T.danger, fontFamily: MONO }}>{d.avg}</span>
+                      <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "4px" }}>({d.count})</span>
                     </div>
                   </div>
                 );
               })}
             </div>
-            {/* Scale */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px" }}>
-              <div style={{ width: "44px" }} />
-              <div style={{ flex: 1, position: "relative" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: T.textTer, fontFamily: MONO }}>
-                  <span>0.0</span><span>0.2</span><span style={{ color: T.danger, fontWeight: 600 }}>0.4</span><span>0.6</span><span>0.8</span><span>1.0</span>
+            {/* Scale line */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px" }}>
+              <div style={{ width: "50px" }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: T.textTer, fontFamily: MONO, padding: "0 1px" }}>
+                  {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map(v => <span key={v} style={v === 0.4 ? { color: T.danger, fontWeight: 700 } : {}}>{v}</span>)}
                 </div>
               </div>
-              <div style={{ width: "80px" }} />
+              <div style={{ width: "90px" }} />
+            </div>
+            {/* Interpretation */}
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+              <strong style={{ color: T.text }}>Interpretation:</strong> Drug classes sorted by average score. Wider bars indicate more variation between targets.
+              {weakest && weakest.avg < 0.6 ? ` ${weakest.drug} (avg ${weakest.avg}) is the weakest drug class — its targets may need alternative spacer designs or SM enhancement.` : " All drug classes show competitive scores."}
             </div>
           </div>
         );
       })()}
 
-      {/* Score distribution chart — bars colored by drug class */}
+      {/* Score by Target — bars colored by drug class */}
       {(() => {
-        const DRUG_BAR = { RIF: "#3B82F6", INH: "#F59E0B", EMB: "#8B5CF6", FQ: "#F43F5E", AG: "#6366F1", PZA: "#22C55E", OTHER: "#9CA3AF" };
-        const DRUG_BAR_LIGHT = { RIF: "rgba(59,130,246,0.2)", INH: "rgba(245,158,11,0.2)", EMB: "rgba(139,92,246,0.2)", FQ: "rgba(244,63,94,0.2)", AG: "rgba(99,102,241,0.2)", PZA: "rgba(34,197,94,0.2)", OTHER: "rgba(156,163,175,0.2)" };
+        const DRUG_BAR = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
+        const DRUG_BAR_LIGHT = { RIF: "rgba(37,99,235,0.15)", INH: "rgba(217,119,6,0.15)", EMB: "rgba(124,58,237,0.15)", FQ: "rgba(225,29,72,0.15)", AG: "rgba(79,70,229,0.15)", PZA: "rgba(22,163,74,0.15)", OTHER: "rgba(156,163,175,0.15)" };
         const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
         const sorted = [...results].sort((a, b) => getScore(b) - getScore(a));
-        const chartData = sorted.map((r, i) => ({ name: r.label, score: getScore(r), disc: r.disc, drug: r.drug, idx: i }));
-        const drugLegend = [...new Set(results.map(r => r.drug))];
+        const chartData = sorted.map((r) => ({ name: r.label, score: getScore(r), disc: r.disc, drug: r.drug, strategy: r.strategy }));
+        const belowThreshold = chartData.filter(d => d.score < 0.4).length;
+        const aboveTarget = chartData.filter(d => d.score >= 0.7).length;
         return (
           <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px" }}>
-              <div>
-                <span style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>{usesGuardNet ? "Ensemble Score" : "Heuristic Score"} by Target</span>
-                <span style={{ fontSize: "12px", color: T.textTer, marginLeft: "10px" }}>{results.length} candidates · colored by drug class</span>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>{usesGuardNet ? "Ensemble Score" : "Heuristic Score"} by Target</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
+                Individual candidate scores sorted by rank. Bar color = drug class. Dot marks the exact score.
               </div>
             </div>
             <ResponsiveContainer width="100%" height={320}>
-              <ComposedChart data={chartData} barCategoryGap="30%">
+              <ComposedChart data={chartData} barCategoryGap="25%">
                 <CartesianGrid vertical={false} stroke={T.borderLight} />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: T.textTer, fontFamily: MONO }} angle={-45} textAnchor="end" height={60} axisLine={{ stroke: T.borderLight }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: T.textTer, fontFamily: MONO }} domain={[0, 1]} axisLine={false} tickLine={false} label={{ value: "Score", angle: -90, position: "insideLeft", style: { fontSize: 11, fill: T.textTer }, offset: 0 }} />
-                <Tooltip
-                  contentStyle={{ ...tooltipStyle, padding: "10px 14px" }}
-                  cursor={{ fill: "rgba(0,0,0,0.03)" }}
-                  formatter={(v, name) => [typeof v === "number" ? v.toFixed(3) : v, "Score"]}
-                  labelFormatter={(l) => l}
-                />
-                <ReferenceLine y={0.4} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1} label={{ value: "Min threshold", position: "left", style: { fontSize: 10, fill: T.danger, fontWeight: 600 } }} />
-                <ReferenceLine y={0.7} stroke={T.success} strokeDasharray="4 3" strokeWidth={1} label={{ value: "Target", position: "left", style: { fontSize: 10, fill: T.success, fontWeight: 600 } }} />
-                <Bar dataKey="score" radius={[4, 4, 0, 0]} name="Score" isAnimationActive={false}>
+                <XAxis dataKey="name" tick={{ fontSize: 8, fill: T.textTer, fontFamily: MONO }} angle={-50} textAnchor="end" height={65} axisLine={{ stroke: T.border }} tickLine={false} interval={0} />
+                <YAxis tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} domain={[0, 1]} axisLine={false} tickLine={false} label={{ value: "Score", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: T.textTer }, offset: 0 }} />
+                <Tooltip content={({ payload, label }) => {
+                  if (!payload?.length) return null;
+                  const d = payload[0]?.payload;
+                  return d ? (
+                    <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
+                      <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_BAR[d.drug] || T.text }}>{d.name}</div>
+                      <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Score: <strong>{d.score.toFixed(3)}</strong></div>
+                      <div style={{ fontSize: "11px", color: T.textSec }}>Disc: {d.disc?.toFixed(1)}× · {d.drug} · {d.strategy}</div>
+                    </div>
+                  ) : null;
+                }} />
+                <ReferenceLine y={0.4} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1} />
+                <ReferenceLine y={0.7} stroke={T.success} strokeDasharray="4 3" strokeWidth={1} />
+                <Bar dataKey="score" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_BAR_LIGHT[entry.drug] || DRUG_BAR_LIGHT.OTHER} stroke={DRUG_BAR[entry.drug] || DRUG_BAR.OTHER} strokeWidth={1.5} />
+                    <Cell key={i} fill={DRUG_BAR_LIGHT[entry.drug] || DRUG_BAR_LIGHT.OTHER} stroke={DRUG_BAR[entry.drug] || DRUG_BAR.OTHER} strokeWidth={1} />
                   ))}
                 </Bar>
-                <Scatter dataKey="score" r={5} name="Score" isAnimationActive={false}>
+                <Scatter dataKey="score" r={5} isAnimationActive={false}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={DRUG_BAR[entry.drug] || DRUG_BAR.OTHER} stroke="#fff" strokeWidth={1.5} />
                   ))}
                 </Scatter>
               </ComposedChart>
             </ResponsiveContainer>
-            {/* Drug color legend */}
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "4px", paddingLeft: "50px", flexWrap: "wrap" }}>
-              {drugLegend.map(d => (
-                <div key={d} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            {/* Legend + thresholds */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+              {[...new Set(results.map(r => r.drug))].map(d => (
+                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <div style={{ width: 10, height: 10, borderRadius: "3px", background: DRUG_BAR[d] || DRUG_BAR.OTHER }} />
-                  <span style={{ fontSize: "11px", color: T.textSec, fontWeight: 500 }}>{d}</span>
+                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
                 </div>
               ))}
-              <div style={{ display: "flex", alignItems: "center", gap: "5px", marginLeft: "8px" }}>
-                <div style={{ width: 14, height: 2, background: T.danger, borderRadius: 1 }} />
-                <span style={{ fontSize: "10px", color: T.textTer }}>0.4 min</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                <div style={{ width: 14, height: 2, background: T.success, borderRadius: 1 }} />
-                <span style={{ fontSize: "10px", color: T.textTer }}>0.7 target</span>
-              </div>
+              <span style={{ fontSize: "10px", color: T.textTer, marginLeft: "6px" }}>—</span>
+              <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600 }}>0.4 minimum</span>
+              <span style={{ fontSize: "10px", color: T.success, fontWeight: 600 }}>0.7 target</span>
+            </div>
+            {/* Interpretation */}
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+              <strong style={{ color: T.text }}>Interpretation:</strong> {aboveTarget}/{chartData.length} candidates exceed the 0.7 target score.
+              {belowThreshold > 0 ? ` ${belowThreshold} candidate${belowThreshold > 1 ? "s fall" : " falls"} below the 0.4 minimum threshold and may not be viable.` : " All candidates clear the 0.4 minimum threshold."}
+              {" "}Bars are ranked left-to-right from highest to lowest score.
             </div>
           </div>
         );
@@ -1975,70 +2013,81 @@ const OverviewTab = ({ results, scorer }) => {
         </div>
       </div>
 
-      {/* Score vs Discrimination Scatter — Heatmap-style */}
+      {/* Score vs Discrimination Scatter */}
       {!mobile && (() => {
-        const DRUG_SC = { RIF: "#3B82F6", INH: "#F59E0B", EMB: "#8B5CF6", FQ: "#F43F5E", AG: "#6366F1", PZA: "#22C55E", OTHER: "#9CA3AF" };
+        const DRUG_SC = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
         const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
-        const scatterData = results.map(r => ({
-          score: getScore(r),
-          disc: Math.min(r.disc, 20),
-          label: r.label,
-          drug: r.drug,
-          strategy: r.strategy,
-          hasPrimers: r.hasPrimers,
+        const scatterData = results.filter(r => r.disc > 0 && r.disc < 900).map(r => ({
+          score: getScore(r), disc: Math.min(r.disc, 25), label: r.label, drug: r.drug, strategy: r.strategy, hasPrimers: r.hasPrimers,
         }));
+        const inTopRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3).length;
         return (
           <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginTop: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "16px" }}>
-              <div>
-                <span style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score vs Discrimination</span>
-                <span style={{ fontSize: "12px", color: T.textTer, marginLeft: "10px" }}>Each dot is a candidate · size = primer status</span>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score vs Discrimination</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
+                Each candidate plotted by efficiency score (x) and discrimination ratio (y).
+                Top-right quadrant = diagnostic-ready. Dot size reflects primer availability.
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={340}>
-              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
-                <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -10, fontSize: 11, fill: T.textSec }} />
-                <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
-                <Tooltip contentStyle={{ ...tooltipStyle, padding: "10px 14px" }} formatter={(val, name) => [name === "disc" ? `${val.toFixed(1)}×` : val.toFixed(3), name === "disc" ? "Discrimination" : "Score"]} labelFormatter={() => ""} content={({ payload }) => {
-                  if (!payload?.length) return null;
-                  const d = payload[0]?.payload;
-                  return d ? (
-                    <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
-                      <div style={{ fontWeight: 700, fontSize: "12px", marginBottom: "4px" }}>{d.label}</div>
-                      <div style={{ fontSize: "11px", color: T.textSec }}>Score: {d.score.toFixed(3)} | Disc: {d.disc.toFixed(1)}×</div>
-                      <div style={{ fontSize: "11px", color: T.textSec }}>{d.drug} · {d.strategy} · {d.hasPrimers ? "Primers OK" : "No primers"}</div>
-                    </div>
-                  ) : null;
-                }} />
-                {/* Quadrant zones */}
-                <ReferenceLine x={0.4} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1} />
-                <ReferenceLine y={3} stroke={T.warning} strokeDasharray="4 3" strokeWidth={1} />
-                <Scatter data={scatterData} isAnimationActive={false}>
-                  {scatterData.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_SC[entry.drug] || DRUG_SC.OTHER} r={entry.hasPrimers ? 7 : 4} stroke="#fff" strokeWidth={1.5} opacity={entry.hasPrimers ? 0.9 : 0.5} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "4px", flexWrap: "wrap" }}>
+            <div style={{ position: "relative" }}>
+              <ResponsiveContainer width="100%" height={360}>
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
+                  <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
+                  <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
+                  <Tooltip content={({ payload }) => {
+                    if (!payload?.length) return null;
+                    const d = payload[0]?.payload;
+                    if (!d) return null;
+                    const ready = d.score >= 0.4 && d.disc >= 3;
+                    return (
+                      <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
+                        <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_SC[d.drug] || T.text, marginBottom: "4px" }}>{d.label}</div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>Score: <strong style={{ color: T.text }}>{d.score.toFixed(3)}</strong></div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>Discrimination: <strong style={{ color: T.text }}>{d.disc.toFixed(1)}×</strong></div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>{d.drug} · {d.strategy} · {d.hasPrimers ? "Primers OK" : "No primers"}</div>
+                        <div style={{ marginTop: "4px" }}><Badge variant={ready ? "success" : "warning"}>{ready ? "Diagnostic-ready" : "Needs improvement"}</Badge></div>
+                      </div>
+                    );
+                  }} />
+                  <ReferenceLine x={0.4} stroke={T.danger} strokeDasharray="5 3" strokeWidth={1.5} />
+                  <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} />
+                  <Scatter data={scatterData} isAnimationActive={false}>
+                    {scatterData.map((entry, i) => (
+                      <Cell key={i} fill={DRUG_SC[entry.drug] || DRUG_SC.OTHER} r={entry.hasPrimers ? 8 : 5} stroke="#fff" strokeWidth={2} opacity={entry.hasPrimers ? 0.9 : 0.5} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+              {/* Quadrant labels */}
+              <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.success, opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
+              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: T.danger, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
+              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.warning, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
+            </div>
+            {/* Legend */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
               {[...new Set(results.map(r => r.drug))].map(d => (
-                <div key={d} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: DRUG_SC[d] || DRUG_SC.OTHER }} />
-                  <span style={{ fontSize: "10px", color: T.textSec }}>{d}</span>
+                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
                 </div>
               ))}
-              <div style={{ display: "flex", alignItems: "center", gap: "5px", marginLeft: "8px" }}>
-                <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.textTer, opacity: 0.9 }} />
+              <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.textTer, opacity: 0.8 }} />
                 <span style={{ fontSize: "10px", color: T.textTer }}>With primers</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                 <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.textTer, opacity: 0.4 }} />
                 <span style={{ fontSize: "10px", color: T.textTer }}>No primers</span>
               </div>
-              <div style={{ fontSize: "10px", color: T.textTer, marginLeft: "8px" }}>
-                Top-right quadrant = diagnostic-ready (score ≥ 0.4, disc ≥ 3×)
-              </div>
+            </div>
+            {/* Interpretation */}
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+              <strong style={{ color: T.text }}>Interpretation:</strong> {inTopRight}/{scatterData.length} Direct candidates are in the diagnostic-ready quadrant (score ≥ 0.4, discrimination ≥ 3×).
+              Candidates in the bottom-right have good scores but need synthetic mismatch enhancement to improve discrimination.
+              The ideal candidate sits in the top-right corner: high efficiency and high discrimination.
             </div>
           </div>
         );
@@ -2647,61 +2696,69 @@ const DiscriminationTab = ({ results }) => {
         ))}
       </div>
 
-      {/* Discrimination chart — Adaptyv style: bars + scatter, sorted by disc desc */}
+      {/* Discrimination chart — drug-colored bars, sorted desc */}
       {(() => {
+        const DRUG_DC = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
+        const DRUG_DC_LIGHT = { RIF: "rgba(37,99,235,0.15)", INH: "rgba(217,119,6,0.15)", EMB: "rgba(124,58,237,0.15)", FQ: "rgba(225,29,72,0.15)", AG: "rgba(79,70,229,0.15)", PZA: "rgba(22,163,74,0.15)", OTHER: "rgba(156,163,175,0.15)" };
         const sorted = [...directCands].sort((a, b) => b.disc - a.disc);
         const discChart = sorted.map((r) => ({ name: r.label, disc: +r.disc, score: r.score, drug: r.drug }));
+        const diagGrade = discChart.filter(d => d.disc >= 3).length;
         return (
           <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ marginBottom: "20px" }}>
-              <span style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Discrimination Ratio — Direct Detection</span>
-              <span style={{ fontSize: "12px", color: T.textTer, marginLeft: "10px" }}>{directCands.length} candidates (crRNA mismatch)</span>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Discrimination Ratio — Direct Detection</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
+                {directCands.length} candidates using crRNA mismatch discrimination. Sorted highest to lowest.
+                The ratio indicates how many times stronger the signal is on resistant vs susceptible DNA.
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={340}>
-              <ComposedChart data={discChart} barCategoryGap="40%">
-                <CartesianGrid vertical={false} stroke={T.borderLight} strokeDasharray="none" />
-                <XAxis dataKey="name" tick={false} axisLine={{ stroke: T.borderLight }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: T.textTer, fontFamily: MONO }} axisLine={false} tickLine={false} label={{ value: "Disc (×)", angle: -90, position: "insideLeft", style: { fontSize: 11, fill: T.textTer }, offset: 0 }} />
-                <Tooltip
-                  contentStyle={{ ...tooltipStyle, padding: "10px 14px" }}
-                  cursor={{ fill: "rgba(54,184,246,0.06)" }}
-                  formatter={(v) => [typeof v === "number" ? `${v.toFixed(1)}×` : v, "Discrimination"]}
-                  labelFormatter={(l) => l}
-                />
-                {/* Diagnostic-grade threshold */}
-                <ReferenceLine y={3} stroke="#EAB308" strokeDasharray="6 4" strokeWidth={1.5} label={{ value: "Diagnostic (3×)", position: "left", style: { fontSize: 11, fill: "#EAB308", fontWeight: 600 } }} />
-                {/* Minimum threshold */}
-                <ReferenceLine y={2} stroke="#F87171" strokeDasharray="4 4" strokeWidth={1} label={{ value: "Minimum (2×)", position: "left", style: { fontSize: 10, fill: "#F87171", fontWeight: 500 } }} />
-                {/* Light bars */}
-                <Bar dataKey="disc" fill="rgba(54,184,246,0.2)" radius={[3, 3, 0, 0]} name="Disc" isAnimationActive={false} />
-                {/* Scatter dots */}
-                <Scatter dataKey="disc" r={4.5} name="Disc" isAnimationActive={false}>
+              <ComposedChart data={discChart} barCategoryGap="25%">
+                <CartesianGrid vertical={false} stroke={T.borderLight} />
+                <XAxis dataKey="name" tick={{ fontSize: 8, fill: T.textTer, fontFamily: MONO }} angle={-50} textAnchor="end" height={65} axisLine={{ stroke: T.border }} tickLine={false} interval={0} />
+                <YAxis tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} axisLine={false} tickLine={false} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: T.textTer }, offset: 0 }} />
+                <Tooltip content={({ payload }) => {
+                  if (!payload?.length) return null;
+                  const d = payload[0]?.payload;
+                  if (!d) return null;
+                  return (
+                    <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
+                      <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_DC[d.drug] || T.text }}>{d.name}</div>
+                      <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Discrimination: <strong style={{ color: T.text }}>{d.disc.toFixed(1)}×</strong></div>
+                      <div style={{ fontSize: "11px", color: T.textSec }}>Score: {d.score.toFixed(3)} · {d.drug}</div>
+                      <div style={{ marginTop: "4px" }}><Badge variant={d.disc >= 10 ? "success" : d.disc >= 3 ? "primary" : d.disc >= 2 ? "warning" : "danger"}>{d.disc >= 10 ? "Excellent" : d.disc >= 3 ? "Good" : d.disc >= 2 ? "Acceptable" : "Insufficient"}</Badge></div>
+                    </div>
+                  );
+                }} />
+                <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "3× diagnostic", position: "left", style: { fontSize: 10, fill: T.warning, fontWeight: 600 } }} />
+                <ReferenceLine y={2} stroke={T.danger} strokeDasharray="4 4" strokeWidth={1} label={{ value: "2× minimum", position: "left", style: { fontSize: 10, fill: T.danger, fontWeight: 500 } }} />
+                <Bar dataKey="disc" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {discChart.map((entry, i) => (
-                    <Cell key={i} fill={entry.disc >= 3 ? T.primary : entry.disc >= 2 ? "#60A5FA" : "#93C5FD"} />
+                    <Cell key={i} fill={DRUG_DC_LIGHT[entry.drug] || DRUG_DC_LIGHT.OTHER} stroke={DRUG_DC[entry.drug] || DRUG_DC.OTHER} strokeWidth={1} />
+                  ))}
+                </Bar>
+                <Scatter dataKey="disc" r={5} isAnimationActive={false}>
+                  {discChart.map((entry, i) => (
+                    <Cell key={i} fill={DRUG_DC[entry.drug] || DRUG_DC.OTHER} stroke="#fff" strokeWidth={1.5} />
                   ))}
                 </Scatter>
               </ComposedChart>
             </ResponsiveContainer>
-            {/* Low zone + legend */}
-            <div style={{ position: "relative", marginTop: "-4px", paddingLeft: "50px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.primary }} />
-                  <span style={{ fontSize: "11px", color: T.textSec }}>Diagnostic-grade (≥ 3×)</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+              {[...new Set(directCands.map(r => r.drug))].map(d => (
+                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "3px", background: DRUG_DC[d] || DRUG_DC.OTHER }} />
+                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#93C5FD" }} />
-                  <span style={{ fontSize: "11px", color: T.textSec }}>Below threshold</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{ width: 12, height: 3, background: "#EAB308", borderRadius: 2 }} />
-                  <span style={{ fontSize: "11px", color: T.textSec }}>3× diagnostic</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{ width: 12, height: 3, background: "#F87171", borderRadius: 2 }} />
-                  <span style={{ fontSize: "11px", color: T.textSec }}>2× minimum</span>
-                </div>
-              </div>
+              ))}
+              <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+              <span style={{ fontSize: "10px", color: T.warning, fontWeight: 600 }}>3× diagnostic</span>
+              <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600 }}>2× minimum</span>
+            </div>
+            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+              <strong style={{ color: T.text }}>Interpretation:</strong> {diagGrade}/{directCands.length} Direct candidates reach diagnostic-grade discrimination (≥ 3×).
+              Discrimination depends primarily on mismatch position relative to PAM: seed-region mismatches (positions 1–4) give 10–50×,
+              while PAM-distal mismatches (15–20) give 1–2×. Candidates below 2× require synthetic mismatch enhancement.
             </div>
           </div>
         );
@@ -3280,53 +3337,98 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
             const meanMut = +(mutScores.reduce((a, b) => a + b, 0) / mutScores.length).toFixed(3);
             const meanWt = +(wtScores.reduce((a, b) => a + b, 0) / wtScores.length).toFixed(3);
             const separation = +(meanMut - meanWt).toFixed(3);
+            // Compute overlap coefficient (proportion of area that overlaps)
+            const totalMut = kdeMut.reduce((a, p) => a + p.density, 0);
+            const overlapArea = combined.reduce((a, p) => a + p.overlap, 0);
+            const overlapPct = totalMut > 0 ? Math.round((overlapArea / totalMut) * 100) : 0;
             return (
-              <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "20px 24px", marginBottom: "24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "12px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>MUT vs WT Predicted Activity</span>
-                  <Badge variant={separation >= 0.15 ? "success" : separation >= 0.08 ? "warning" : "danger"}>Separation: {separation}</Badge>
+              <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px 28px", marginBottom: "24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                  <div>
+                    <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>MUT vs WT Predicted Activity</div>
+                    <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5, maxWidth: "500px" }}>
+                      Density curves for predicted cleavage activity on mutant (resistant) vs wildtype (susceptible) templates.
+                      Curve separation = panel-level discrimination power.
+                    </div>
+                  </div>
+                  <Badge variant={separation >= 0.15 ? "success" : separation >= 0.08 ? "warning" : "danger"}>
+                    {separation >= 0.15 ? "Good separation" : separation >= 0.08 ? "Moderate" : "Poor separation"}
+                  </Badge>
                 </div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <ComposedChart data={combined} margin={{ top: 5, right: 10, bottom: 20, left: 10 }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={combined} margin={{ top: 10, right: 15, bottom: 25, left: 15 }}>
                     <defs>
-                      <linearGradient id="mutFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={T.primary} stopOpacity={0.25} />
-                        <stop offset="100%" stopColor={T.primary} stopOpacity={0.03} />
+                      <linearGradient id="mutAreaFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity={0.03} />
                       </linearGradient>
-                      <linearGradient id="wtFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.02} />
+                      <linearGradient id="wtAreaFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.03} />
                       </linearGradient>
-                      <linearGradient id="overlapFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={T.danger} stopOpacity={0.2} />
+                      <linearGradient id="overlapAreaFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={T.danger} stopOpacity={0.25} />
                         <stop offset="100%" stopColor={T.danger} stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.borderLight }} tickLine={false} label={{ value: "Predicted activity", position: "insideBottom", offset: -10, fontSize: 10, fill: T.textTer }} />
+                    <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.border }} tickLine={false} label={{ value: "Predicted cleavage activity", position: "insideBottom", offset: -12, fontSize: 10, fill: T.textSec }} />
                     <YAxis hide domain={[0, "auto"]} />
-                    <Tooltip contentStyle={{ ...tooltipStyle, padding: "8px 12px" }} formatter={(v, name) => [v.toFixed(4), name === "mut" ? "Mutant" : name === "wt" ? "Wildtype" : "Overlap"]} labelFormatter={(l) => `Activity: ${l}`} />
-                    <ReferenceLine x={meanMut} stroke={T.primary} strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "top", fontSize: 9, fill: T.primary }} />
-                    <ReferenceLine x={meanWt} stroke="#9CA3AF" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "top", fontSize: 9, fill: "#9CA3AF" }} />
-                    {/* Area fills */}
-                    <Line type="monotone" dataKey="overlap" stroke="none" fill="url(#overlapFill)" fillOpacity={1} dot={false} isAnimationActive={false} name="Overlap" />
-                    <Line type="monotone" dataKey="mut" stroke={T.primary} strokeWidth={2.5} dot={false} isAnimationActive={false} name="Mutant" fill="url(#mutFill)" fillOpacity={1} />
-                    <Line type="monotone" dataKey="wt" stroke="#9CA3AF" strokeWidth={2} dot={false} isAnimationActive={false} name="Wildtype" fill="url(#wtFill)" fillOpacity={1} strokeDasharray="5 3" />
-                    <Legend wrapperStyle={{ fontSize: "11px" }} formatter={(v) => v === "mut" ? "Mutant (A_MUT)" : v === "wt" ? "Wildtype (A_WT)" : "Overlap zone"} />
-                  </ComposedChart>
+                    <Tooltip content={({ payload, label }) => {
+                      if (!payload?.length) return null;
+                      return (
+                        <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
+                          <div style={{ fontWeight: 600, fontSize: "11px", color: T.text, marginBottom: "4px" }}>Activity: {label}</div>
+                          {payload.map(p => p.dataKey !== "overlap" && (
+                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#2563EB" : "#D97706" }}>
+                              {p.dataKey === "mut" ? "Mutant" : "Wildtype"}: {p.value?.toFixed(4)}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }} />
+                    <ReferenceLine x={meanMut} stroke="#2563EB" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#2563EB", fontWeight: 700 }} />
+                    <ReferenceLine x={meanWt} stroke="#D97706" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#D97706", fontWeight: 700 }} />
+                    <Area type="monotone" dataKey="overlap" stroke="none" fill="url(#overlapAreaFill)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="mut" stroke="#2563EB" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="wt" stroke="#D97706" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
+                  </AreaChart>
                 </ResponsiveContainer>
-                <div style={{ display: "flex", justifyContent: "center", gap: "24px", marginTop: "6px" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>MEAN MUT</div>
-                    <div style={{ fontSize: "16px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{meanMut}</div>
+                {/* Custom legend + stats */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", flexWrap: "wrap", gap: "12px" }}>
+                  <div style={{ display: "flex", gap: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <div style={{ width: "16px", height: "3px", background: "#2563EB", borderRadius: "2px" }} />
+                      <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Mutant (A<sub>MUT</sub>)</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <div style={{ width: "16px", height: "3px", background: "#D97706", borderRadius: "2px", borderBottom: "1px dashed #D97706" }} />
+                      <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Wildtype (A<sub>WT</sub>)</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <div style={{ width: "10px", height: "10px", background: "rgba(220,38,38,0.15)", borderRadius: "2px" }} />
+                      <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Overlap zone ({overlapPct}%)</span>
+                    </div>
                   </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>MEAN WT</div>
-                    <div style={{ fontSize: "16px", fontWeight: 800, color: "#9CA3AF", fontFamily: MONO }}>{meanWt}</div>
+                  <div style={{ display: "flex", gap: "20px" }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ MUT</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#2563EB", fontFamily: MONO }}>{meanMut}</div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ WT</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#D97706", fontFamily: MONO }}>{meanWt}</div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: separation >= 0.15 ? T.success : T.warning, fontFamily: MONO }}>{separation}</div>
+                    </div>
                   </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>
-                    <div style={{ fontSize: "16px", fontWeight: 800, color: separation >= 0.15 ? T.success : T.warning, fontFamily: MONO }}>{separation}</div>
-                  </div>
+                </div>
+                {/* Interpretation */}
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
+                  <strong style={{ color: T.text }}>Interpretation:</strong> The blue curve (mutant) should sit to the right of the amber curve (wildtype).
+                  {separation >= 0.15 ? " Good separation — the panel reliably distinguishes resistant from susceptible samples." : separation >= 0.08 ? " Moderate separation — some overlap exists, meaning borderline samples may be ambiguous." : " Poor separation — the curves overlap heavily, indicating limited discrimination at the panel level."}
+                  {" "}The red-shaded overlap zone ({overlapPct}%) represents the false-positive risk region where MUT and WT signals are indistinguishable.
                 </div>
               </div>
             );
