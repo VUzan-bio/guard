@@ -297,6 +297,7 @@ function transformApiCandidate(c) {
       cnnScore: sc.cnn_score ?? null,
       cnnCalibrated: sc.cnn_calibrated ?? null,
       ensembleScore: sc.ensemble_score ?? null,
+      mlScores: sc.ml_scores || [],
       ot: 0, hasPrimers: c.has_primers, hasSM: c.has_sm || false,
       smSpacer: c.sm_enhanced_spacer || null, smPosition: c.sm_position || null,
       smOriginalBase: c.sm_original_base || null, smReplacementBase: c.sm_replacement_base || null,
@@ -318,6 +319,7 @@ function transformApiCandidate(c) {
     cnnScore: c.cnn_score ?? null,
     cnnCalibrated: c.cnn_calibrated ?? null,
     ensembleScore: c.ensemble_score ?? null,
+    mlScores: c.ml_scores || [],
     ot: c.offtarget_count, hasPrimers: c.has_primers, hasSM: c.has_sm,
     fwd: c.fwd_primer, rev: c.rev_primer, amplicon: c.amplicon_length,
     proximityDistance: c.proximity_distance || null,
@@ -465,7 +467,7 @@ const CandidateViewer = ({ r, onClose }) => {
           {[
             { l: "Ensemble", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
             { l: "Heuristic", v: r.score.toFixed(3), c: T.textSec },
-            ...(r.cnnCalibrated != null ? [{ l: "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
+            ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
             { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
             ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
             { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
@@ -1849,6 +1851,11 @@ const OverviewTab = ({ results }) => {
   const ensResults = results.filter(r => r.ensembleScore != null);
   const avgEnsemble = ensResults.length ? +(ensResults.reduce((a, r) => a + r.ensembleScore, 0) / ensResults.length).toFixed(3) : null;
 
+  // Detect scorer from ml_scores
+  const usesGuardNet = results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net"));
+  const mlModelLabel = usesGuardNet ? "GUARD-Net" : "SeqCNN";
+  const mlModelDetail = usesGuardNet ? "235K params · CNN + RNA-FM + RLPA" : "110K params · T=7.5";
+
   /* Adaptyv-style grouped stat section */
   const StatGroup = ({ title, items }) => (
     <div style={{ flex: 1, minWidth: mobile ? "100%" : 0 }}>
@@ -1913,9 +1920,9 @@ const OverviewTab = ({ results }) => {
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Scoring Model Comparison</div>
           <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            Each candidate is scored by three approaches. The heuristic uses hand-crafted biophysical features.
-            The CNN learns nucleotide preferences from 15K Cas12a measurements, then is temperature-calibrated (T=7.5) to spread saturated scores.
-            The ensemble blends both for improved ranking.
+            {usesGuardNet
+              ? "Each candidate is scored by three approaches. The heuristic uses hand-crafted biophysical features. GUARD-Net (CNN + RNA-FM + RLPA attention) learns nucleotide preferences, RNA structure, and R-loop propagation kinetics. The ensemble blends both for improved ranking."
+              : "Each candidate is scored by three approaches. The heuristic uses hand-crafted biophysical features. The CNN learns nucleotide preferences from 15K Cas12a measurements, then is temperature-calibrated (T=7.5) to spread saturated scores. The ensemble blends both for improved ranking."}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "16px" }}>
             <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
@@ -1924,14 +1931,14 @@ const OverviewTab = ({ results }) => {
               <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>5 features · fixed weights</div>
             </div>
             <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>SeqCNN (calibrated)</div>
+              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{mlModelLabel} (calibrated)</div>
               <div style={{ fontSize: "24px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{avgCNN}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>110K params · T=7.5</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>{mlModelDetail}</div>
             </div>
             <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px", border: `2px solid ${T.primary}33` }}>
               <div style={{ fontSize: "10px", fontWeight: 600, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Ensemble</div>
               <div style={{ fontSize: "24px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{avgEnsemble || "—"}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>val rho = 0.74 · primary score</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>{usesGuardNet ? "val ρ = 0.537 · primary score" : "val ρ = 0.74 · primary score"}</div>
             </div>
           </div>
         </div>
@@ -2213,7 +2220,7 @@ const CandidateAccordion = ({ r }) => {
         {[
           { l: "Ensemble", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
           { l: "Heuristic", v: r.score.toFixed(3), c: T.textSec },
-          ...(r.cnnCalibrated != null ? [{ l: "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
+          ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
           { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
           ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
           { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
@@ -3017,6 +3024,19 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
   const [sweepLoading, setSweepLoading] = useState(false);
   const [paretoLoading, setParetoLoading] = useState(false);
 
+  // Detect which scorer produced the results
+  const scorerInfo = useMemo(() => {
+    if (!results?.length) return { name: "Heuristic", level: 1 };
+    const first = results.find(r => r.mlScores?.length > 0);
+    if (first) {
+      const model = first.mlScores[0].model_name || first.mlScores[0].modelName;
+      if (model === "guard_net") return { name: "GUARD-Net", level: 3 };
+      if (model === "seq_cnn") return { name: "SeqCNN + Heuristic", level: 2 };
+    }
+    if (results.some(r => r.ensembleScore != null)) return { name: "SeqCNN + Heuristic", level: 2 };
+    return { name: "Heuristic", level: 1 };
+  }, [results]);
+
   // Compute diagnostics client-side from results prop + preset thresholds
   const computeLocalDiagnostics = useCallback((preset, res) => {
     if (!res || !res.length) return;
@@ -3194,8 +3214,18 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
           ))}
         </div>
         {presetObj && (
-          <div style={{ marginTop: "8px", fontSize: "11px", color: T.textSec }}>
-            Thresholds: efficiency ≥ {presetObj.efficiency_threshold}, discrimination ≥ {presetObj.discrimination_threshold}×
+          <div style={{ marginTop: "8px", fontSize: "11px", color: T.textSec, display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+            <span>Thresholds: efficiency ≥ {presetObj.efficiency_threshold}, discrimination ≥ {presetObj.discrimination_threshold}×</span>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: "5px",
+              padding: "2px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: 600,
+              background: scorerInfo.level >= 3 ? "rgba(16,185,129,0.1)" : scorerInfo.level >= 2 ? T.primaryLight : T.bgSub,
+              color: scorerInfo.level >= 3 ? T.success : scorerInfo.level >= 2 ? T.primary : T.textSec,
+              border: `1px solid ${scorerInfo.level >= 3 ? T.success + "33" : scorerInfo.level >= 2 ? T.primary + "33" : T.borderLight}`,
+            }}>
+              <Cpu size={10} />
+              Scored by: {scorerInfo.name} (Level {scorerInfo.level})
+            </span>
           </div>
         )}
       </div>
@@ -3226,6 +3256,27 @@ const DiagnosticsTab = ({ results, jobId, connected }) => {
               </div>
             ))}
           </div>
+
+          {/* B2: Understanding Discrimination Scores — collapsible explainer */}
+          <CollapsibleSection title="Understanding Discrimination Scores" defaultOpen={false}>
+            <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7 }}>
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>Mismatch position matters most</div>
+                Cas12a reads DNA directionally from PAM toward the spacer end. Mismatches near the PAM (seed positions 1–4) block R-loop formation almost completely, giving discrimination ratios of 10–50×. Mismatches far from the PAM (positions 15–20) are tolerated, giving ratios of 1–2×. Each mutation's position in the spacer determines its baseline discrimination.
+              </div>
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>Not all mismatches are equal</div>
+                A purine-to-pyrimidine change (e.g., A→C) disrupts the R-loop more than a purine-to-purine change (e.g., A→G). The geometry of the mismatch affects how much Cas12a distinguishes mutant from wildtype.
+              </div>
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>High GC content reduces discrimination</div>
+                <em>M. tuberculosis</em> has 65.8% GC content. GC-rich sequences around a mismatch stabilise the R-loop through additional hydrogen bonds, partially compensating for the mismatch. This is why some targets (EMB, PZA) show low predicted discrimination — their mutations sit in GC-rich regions at PAM-distal positions.
+              </div>
+              <div style={{ fontSize: "11px", color: T.textTer, fontStyle: "italic", borderTop: `1px solid ${T.borderLight}`, paddingTop: "10px" }}>
+                These are in silico predictions. Experimental validation on the electrochemical platform will provide measured discrimination ratios through the active learning loop.
+              </div>
+            </div>
+          </CollapsibleSection>
 
           {/* C: WHO Compliance Table */}
           {whoCompliance && whoCompliance.who_compliance && (
