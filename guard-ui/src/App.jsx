@@ -1608,198 +1608,116 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: EX.bg, fontFamily: FONT, color: EX.text }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: EX.bg, fontFamily: FONT, color: EX.text, padding: mobile ? "32px 20px" : "48px 48px" }}>
 
-      {/* ── HORIZONTAL ICON RAIL ── */}
-      <div style={{ padding: mobile ? "24px 16px 16px" : "40px 32px 24px" }}>
-        {mobile ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontFamily: MONO, fontSize: "14px", fontWeight: 500, color: EX.text }}>{step + 1}</span>
-            <span style={{ fontSize: "12px", color: EX.textSec }}>/</span>
-            <span style={{ fontFamily: MONO, fontSize: "14px", color: EX.textSec }}>{MODULES.length}</span>
-            <span style={{ fontSize: "13px", color: EX.textSec, marginLeft: "8px", fontWeight: 500 }}>{done ? "Complete" : activeModule.name}</span>
+      {!done ? (
+        /* ── RUNNING: step list that builds up like Claude Code ── */
+        <>
+          {/* Completed steps — stacked vertically, each appears as it finishes */}
+          {MODULES.slice(0, step).map((m) => {
+            const st = statMap[m.id];
+            const Icon = m.icon;
+            return (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 0", opacity: 0.5 }}>
+                <Icon size={15} color={EX.nodeDone} strokeWidth={1.5} />
+                <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{m.id}</span>
+                <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{m.name}</span>
+                {st && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
+              </div>
+            );
+          })}
+
+          {/* Active step — highlighted */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: "10px", padding: "6px 0",
+            ...cardStyle,
+          }}>
+            <div style={{ animation: "subtlePulse 2s ease-in-out infinite", display: "flex" }}>
+              {React.createElement(activeModule.icon, { size: 15, color: EX.nodeDone, strokeWidth: 1.8 })}
+            </div>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{activeModule.id}</span>
+            <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{activeModule.name}</span>
+            <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>{elapsed.toFixed(1)}s</span>
           </div>
-        ) : (
-          <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
-            {MODULES.map((m, i) => {
-              const st = i < step ? "done" : i === step && !done ? "active" : done ? "done" : "upcoming";
-              const nodeStat = statMap[m.id];
-              const Icon = m.icon;
-              return (
-                <React.Fragment key={m.id}>
-                  {i > 0 && (
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", paddingTop: "10px" }}>
-                      <div style={{ width: "100%", height: "1px", background: (i <= step || done) ? EX.lineDone : EX.line, transition: "background 0.3s ease" }} />
+        </>
+      ) : (
+        /* ── COMPLETE: all steps shown + summary ── */
+        <>
+          {/* All steps */}
+          {MODULES.map((m) => {
+            const st = statMap[m.id];
+            const Icon = m.icon;
+            const isLogExpanded = logExpandedId === m.id;
+            return (
+              <div key={m.id}>
+                <div
+                  onClick={() => st && setLogExpandedId(isLogExpanded ? null : m.id)}
+                  style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 0", cursor: st ? "pointer" : "default" }}
+                >
+                  <Icon size={15} color={EX.nodeDone} strokeWidth={1.5} />
+                  <span style={{ fontFamily: MONO, fontSize: "12px", color: EX.textSec }}>{m.id}</span>
+                  <span style={{ fontSize: "13px", fontWeight: 500, color: EX.text }}>{m.name}</span>
+                  {st && <span style={{ fontFamily: MONO, fontSize: "11px", color: EX.textTer, marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
+                </div>
+                {/* Expandable detail */}
+                <div style={{
+                  overflow: "hidden", maxHeight: isLogExpanded && st ? "80px" : "0px",
+                  opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.2s ease, opacity 0.15s ease",
+                }}>
+                  {st && (
+                    <div style={{ padding: "2px 0 8px 25px", fontSize: "12px", fontWeight: 400, color: EX.desc, lineHeight: 1.6 }}>
+                      {st.detail}
                     </div>
                   )}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
-                    <div style={{
-                      width: st === "active" ? 24 : 20, height: st === "active" ? 24 : 20,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.2s ease",
-                      ...(st === "active" ? { animation: "subtlePulse 2s ease-in-out infinite" } : {}),
-                    }}>
-                      <Icon
-                        size={st === "active" ? 18 : 14}
-                        color={st === "upcoming" ? EX.nodeUp : EX.nodeDone}
-                        strokeWidth={st === "upcoming" ? 1.2 : 1.8}
-                        style={{ transition: "all 0.2s ease" }}
-                      />
-                    </div>
-                    <span style={{ fontFamily: MONO, fontSize: "10px", fontWeight: 400, color: st === "active" ? EX.text : EX.textSec, marginTop: "4px", whiteSpace: "nowrap" }}>
-                      {m.id}
-                    </span>
-                    <span style={{ fontFamily: MONO, fontSize: "9px", fontWeight: 400, color: EX.textTer, marginTop: "1px", minHeight: "12px" }}>
-                      {st === "done" && nodeStat ? fmtDur(nodeStat.duration_ms) : st === "active" ? "..." : ""}
-                    </span>
-                  </div>
-                </React.Fragment>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── DETAIL AREA ── */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: mobile ? "0 16px 24px" : "0 32px 40px" }}>
-        {!done ? (
-          /* ── ACTIVE STEP DETAIL ── */
-          <div style={{ maxWidth: 600, width: "100%", ...cardStyle }}>
-            <div style={{ borderTop: `1px solid ${EX.line}`, padding: "28px 0" }}>
-              {/* Header: icon + module ID + name */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                {React.createElement(activeModule.icon, { size: 20, color: EX.text, strokeWidth: 1.5 })}
-                <span style={{ fontFamily: MONO, fontSize: "12px", fontWeight: 400, color: EX.textSec }}>{activeModule.id}</span>
-                <span style={{ fontSize: "12px", color: EX.textSec }}>·</span>
-                <span style={{ fontSize: "16px", fontWeight: 500, color: EX.text }}>{activeModule.name}</span>
-              </div>
-              {/* Description */}
-              <div style={{ fontSize: "14px", fontWeight: 400, color: EX.desc, lineHeight: 1.6, marginBottom: "20px" }}>
-                {activeModule.execDesc}
-              </div>
-              {/* Progress indicator */}
-              <div style={{ height: "2px", background: EX.line, borderRadius: "1px", marginBottom: "20px", overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: "1px", background: EX.text, animation: "indeterminateProgress 1.8s ease-in-out infinite" }} />
-              </div>
-              {/* Elapsed */}
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <span style={{ fontFamily: MONO, fontSize: "12px", fontWeight: 400, color: EX.textTer, fontVariantNumeric: "tabular-nums" }}>
-                  {elapsed.toFixed(1)}s
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* ── COMPLETION ── */
-          <div style={{ maxWidth: 600, width: "100%", ...cardStyle }}>
-            <div style={{ borderTop: `1px solid ${EX.line}`, padding: "32px 0" }}>
-              <div style={{ fontSize: mobile ? "22px" : "26px", fontWeight: 700, color: EX.text, fontFamily: HEADING, letterSpacing: "-0.02em" }}>
-                Pipeline Complete
-              </div>
-              <div style={{ fontFamily: MONO, fontSize: "14px", color: EX.textTer, marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
-                {totalDuration > 0 ? fmtDur(totalDuration) : `${elapsed.toFixed(1)}s`}
-              </div>
-
-              {/* Summary stats */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "24px", marginBottom: "28px" }}>
-                {[
-                  statMap["M1"] && `${statMap["M1"].candidates_out} mutations resolved`,
-                  m2Out > 0 && `${m2Out} candidates generated`,
-                  finalSize > 0 && `${finalSize} selected for panel`,
-                  statMap["M8"] && `${statMap["M8"].detail?.match(/(\d+) primers/)?.[0] || "Primers designed"}`,
-                ].filter(Boolean).map((line, i) => (
-                  <div key={i} style={{
-                    fontFamily: MONO, fontSize: "14px", fontWeight: 400, color: EX.text, lineHeight: 1.6,
-                    animation: `statFadeIn 0.3s ease-out ${i * 0.08}s both`,
-                  }}>
-                    {line}
-                  </div>
-                ))}
-              </div>
-
-              {/* View Results button — black */}
-              <button
-                onClick={() => goTo("results", { jobId })}
-                style={{
-                  display: "block", width: "fit-content", padding: "12px 32px", borderRadius: "8px",
-                  background: EX.text, color: "#ffffff", border: "none",
-                  fontSize: "14px", fontWeight: 600, fontFamily: FONT,
-                  cursor: "pointer", transition: "opacity 0.15s ease",
-                  marginBottom: "24px",
-                }}
-                onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
-                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-              >
-                View Results →
-              </button>
-
-              {/* Execution log toggle */}
-              <button
-                onClick={() => setShowLog(!showLog)}
-                style={{
-                  background: "none", border: "none", color: EX.textSec,
-                  fontSize: "12px", fontFamily: FONT, fontWeight: 400, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: "6px", padding: "4px 0",
-                }}
-              >
-                <ChevronRight size={12} style={{ transition: "transform 0.2s ease", transform: showLog ? "rotate(90deg)" : "rotate(0)" }} />
-                {showLog ? "Hide" : "Show"} execution log
-              </button>
-
-              {/* Execution log — vertical list */}
-              <div style={{
-                overflow: "hidden",
-                maxHeight: showLog ? "600px" : "0px",
-                opacity: showLog ? 1 : 0,
-                transition: "max-height 0.35s ease, opacity 0.25s ease",
-              }}>
-                <div style={{ marginTop: "12px" }}>
-                  {MODULES.map((m) => {
-                    const st = statMap[m.id];
-                    const isLogExpanded = logExpandedId === m.id;
-                    const Icon = m.icon;
-                    return (
-                      <div key={m.id}>
-                        <button
-                          onClick={() => st && setLogExpandedId(isLogExpanded ? null : m.id)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: "10px",
-                            width: "100%", padding: "7px 0", background: "none", border: "none",
-                            borderBottom: `1px solid ${EX.line}`, cursor: st ? "pointer" : "default",
-                            fontSize: "12px", textAlign: "left",
-                          }}
-                        >
-                          <Icon size={13} color={EX.textSec} strokeWidth={1.5} style={{ flexShrink: 0 }} />
-                          <span style={{ fontFamily: MONO, fontWeight: 400, color: EX.textSec, minWidth: 30, fontSize: "11px" }}>{m.id}</span>
-                          <span style={{ fontWeight: 400, color: EX.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px" }}>{m.name}</span>
-                          {st && <span style={{ fontFamily: MONO, fontWeight: 400, color: EX.textTer, flexShrink: 0, fontSize: "11px" }}>{fmtDur(st.duration_ms)}</span>}
-                          {st && <span style={{ fontWeight: 400, color: EX.textSec, flex: 2, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "11px", textAlign: "right" }}>{st.detail}</span>}
-                        </button>
-                        {/* Expanded detail */}
-                        <div style={{
-                          overflow: "hidden", maxHeight: isLogExpanded && st ? "120px" : "0px",
-                          opacity: isLogExpanded ? 1 : 0, transition: "max-height 0.25s ease, opacity 0.2s ease",
-                        }}>
-                          {st && (
-                            <div style={{ padding: "10px 0 10px 23px", fontSize: "13px", fontWeight: 400, color: EX.desc, lineHeight: 1.7 }}>
-                              {st.detail}
-                              {st.candidates_out != null && (
-                                <div style={{ fontFamily: MONO, fontSize: "12px", color: EX.text, marginTop: "4px" }}>
-                                  {st.candidates_out} candidates out
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
+            );
+          })}
+
+          {/* Divider */}
+          <div style={{ height: "1px", background: EX.line, margin: "20px 0" }} />
+
+          {/* Summary */}
+          <div style={{ ...cardStyle }}>
+            <div style={{ fontSize: mobile ? "20px" : "24px", fontWeight: 700, color: EX.text, fontFamily: HEADING, letterSpacing: "-0.02em" }}>
+              Pipeline Complete
             </div>
+            <div style={{ fontFamily: MONO, fontSize: "13px", color: EX.textTer, marginTop: "4px", fontVariantNumeric: "tabular-nums" }}>
+              {totalDuration > 0 ? fmtDur(totalDuration) : `${elapsed.toFixed(1)}s`}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "20px", marginBottom: "24px" }}>
+              {[
+                statMap["M1"] && `${statMap["M1"].candidates_out} mutations resolved`,
+                m2Out > 0 && `${m2Out} candidates generated`,
+                finalSize > 0 && `${finalSize} selected for panel`,
+                statMap["M8"] && `${statMap["M8"].detail?.match(/(\d+) primers/)?.[0] || "Primers designed"}`,
+              ].filter(Boolean).map((line, i) => (
+                <div key={i} style={{
+                  fontFamily: MONO, fontSize: "13px", fontWeight: 400, color: EX.text, lineHeight: 1.6,
+                  animation: `statFadeIn 0.3s ease-out ${i * 0.06}s both`,
+                }}>
+                  {line}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => goTo("results", { jobId })}
+              style={{
+                padding: "10px 28px", borderRadius: "6px",
+                background: EX.text, color: "#ffffff", border: "none",
+                fontSize: "13px", fontWeight: 600, fontFamily: FONT,
+                cursor: "pointer", transition: "opacity 0.15s ease",
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >
+              View Results →
+            </button>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };
