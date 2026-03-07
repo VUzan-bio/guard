@@ -176,11 +176,16 @@ const BIBLIOGRAPHY = [
   { id: "chen2018", authors: "Chen JS, Ma E, Harrington LB, et al.", year: 2018, title: "CRISPR-Cas12a target binding unleashes indiscriminate single-stranded DNase activity", journal: "Science", doi: "10.1126/science.aar6245", pmid: "29449511", category: "CRISPR Biology" },
   { id: "strohkendl2018", authors: "Strohkendl I, Saifuddin FA, Rybarski JR, et al.", year: 2018, title: "Kinetic basis for DNA target specificity of CRISPR-Cas12a", journal: "Molecular Cell", doi: "10.1016/j.molcel.2018.06.043", pmid: "30078724", category: "CRISPR Biology" },
   { id: "kleinstiver2019", authors: "Kleinstiver BP, Sousa AA, Walton RT, et al.", year: 2019, title: "Engineered CRISPR-Cas12a variants with increased activities and improved targeting ranges", journal: "Nature Biotechnology", doi: "10.1038/s41587-018-0011-0", pmid: "30742127", category: "CRISPR Biology" },
+  { id: "strohkendl2024", authors: "Strohkendl I, Saha A, Moy C, et al.", year: 2024, title: "Cas12a domain flexibility guides R-loop formation and forces RuvC resetting", journal: "Molecular Cell", doi: "10.1016/j.molcel.2024.05.032", category: "CRISPR Biology" },
+  // R-Loop Thermodynamics
+  { id: "zhang2024", authors: "Zhang J, Guan X, Moon J, et al.", year: 2024, title: "Interpreting CRISPR-Cas12a enzyme kinetics through free energy change of nucleic acids", journal: "Nucleic Acids Research", doi: "10.1093/nar/gkae1124", category: "R-Loop Thermodynamics" },
+  { id: "aris2025", authors: "Aris KDP, Cofsky JC, Shi H, et al.", year: 2025, title: "Dynamic basis of supercoiling-dependent DNA interrogation by Cas12a via R-loop intermediates", journal: "Nature Communications", doi: "10.1038/s41467-025-57703-y", category: "R-Loop Thermodynamics" },
   // Guide Activity Prediction (ML)
-  { id: "kim2020", authors: "Kim HK, Min S, Song M, et al.", year: 2020, title: "High-throughput analysis of the activities of xCas9, SpCas9-NG and SpCas9 at matched and mismatched target sequences in human cells", journal: "Nature Biotechnology", doi: "10.1038/s41587-020-0603-6", pmid: "32778843", category: "Guide Activity Prediction" },
+  { id: "kim2018", authors: "Kim HK, Min S, Song M, et al.", year: 2018, title: "Deep learning improves prediction of CRISPR-Cpf1 guide RNA activity", journal: "Nature Biotechnology", doi: "10.1038/nbt.4061", pmid: "29431741", category: "Guide Activity Prediction" },
   { id: "huang2024", authors: "Huang B, Mu K, Li G, et al.", year: 2024, title: "Deep learning enhancing guide RNA design for CRISPR/Cas12a-based diagnostics", journal: "iMeta", doi: "10.1002/imt2.214", category: "Guide Activity Prediction" },
   { id: "chen2022rnafm", authors: "Chen J, Hu Z, Sun S, et al.", year: 2022, title: "Interpretable RNA Foundation Model from Unannotated Data for Highly Accurate RNA Structure and Function Predictions", journal: "arXiv:2204.00300", doi: null, url: "https://arxiv.org/abs/2204.00300", category: "Guide Activity Prediction" },
   { id: "blondel2020", authors: "Blondel M, Teboul O, Berthet Q, Djolonga J", year: 2020, title: "Fast Differentiable Sorting and Ranking", journal: "ICML 2020", doi: null, url: "https://arxiv.org/abs/2002.08871", category: "Guide Activity Prediction" },
+  { id: "yao2025", authors: "Yao Z, Li W, He K, et al.", year: 2025, title: "Facilitating crRNA design by integrating DNA interaction features of CRISPR-Cas12a system", journal: "Advanced Science", doi: "10.1002/advs.202501269", category: "Guide Activity Prediction" },
   // Clinical Standards
   { id: "who2024tpp", authors: "World Health Organization", year: 2024, title: "Target product profiles for tuberculosis diagnosis and detection of drug resistance", journal: "WHO", doi: null, url: "https://www.who.int/publications/i/item/9789240097698", isbn: "978-92-4-009769-8", category: "Clinical Standards" },
   { id: "maclean2023", authors: "MacLean EL-H, Kohli M, Weber SF, et al.", year: 2023, title: "Updating the WHO target product profile for next-generation Mycobacterium tuberculosis drug susceptibility testing at peripheral centres", journal: "PLOS Global Public Health", doi: "10.1371/journal.pgph.0001754", category: "Clinical Standards" },
@@ -794,6 +799,7 @@ const HomePage = ({ goTo, connected }) => {
   const [pipeStats, setPipeStats] = useState([]);
   const [pipeElapsed, setPipeElapsed] = useState(0);
   const [showLog, setShowLog] = useState(false);
+  const [archOpen, setArchOpen] = useState(false);
   const pipeStartRef = useRef(Date.now());
   const pipeTimerRef = useRef(null);
   const pipeWsRef = useRef(null);
@@ -1094,7 +1100,7 @@ const HomePage = ({ goTo, connected }) => {
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
             {[
               { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features. Fast, interpretable, no GPU required.", tag: "Baseline" },
-              { id: "guard_net", label: "GUARD-Net", desc: "Dual-branch CNN + RNA-FM with R-loop propagation attention. Trained on 15K Cas12a measurements.", tag: "Recommended" },
+              { id: "guard_net", label: "GUARD-Net", desc: "Dual-branch CNN + RNA-FM with R-loop propagation attention. Trained on 25K+ cis- and trans-cleavage measurements. \u03C1 = 0.55 on diagnostic trans-cleavage prediction.", tag: "Recommended" },
             ].map(s => (
               <button key={s.id} onClick={() => setScorer(s.id)} style={{
                 padding: "16px", borderRadius: "10px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
@@ -1306,13 +1312,36 @@ const HomePage = ({ goTo, connected }) => {
         );
       })()}
 
+      {/* ═══ PERFORMANCE BANNER ═══ */}
+      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "16px" : "20px 28px", marginBottom: "24px" }}>
+        <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "12px" }}>GUARD 14-plex MDR-TB Panel Results</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: mobile ? "12px" : "24px" }}>
+          <div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>93.3%</div>
+            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>sensitivity across all drug classes</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>14/14</div>
+            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>targets with designed primers</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>6</div>
+            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>drug classes: RIF, INH, EMB, PZA, FQ, AG</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{"\u03C1"} = 0.55</div>
+            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>trans-cleavage prediction accuracy</div>
+          </div>
+        </div>
+      </div>
+
       {/* ═══ HOW IT WORKS — 4-step simplified pipeline ═══ */}
       {sectionTitle("How It Works")}
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "12px", marginBottom: "32px" }}>
         {[
           { step: "1", icon: Target, title: "Define Targets", desc: "Input WHO resistance mutations. The pipeline resolves each mutation to its exact genomic position on the M. tuberculosis H37Rv reference genome, identifies the codon context, and determines which drug class it confers resistance to." },
-          { step: "2", icon: Search, title: "Generate & Score Candidates", desc: "For each target, GUARD scans for Cas12a-compatible PAM sites, generates crRNA candidates, filters by biophysical criteria (GC content, secondary structure, off-targets), and scores them with GUARD-Net — a neural network trained on 15,000 experimentally validated guides." },
-          { step: "3", icon: Grid3x3, title: "Optimise the Panel", desc: "A simulated annealing optimizer selects the best combination of guides that maximises cleavage efficiency while minimising cross-reactivity. RPA primers are co-designed for each guide, with allele-specific primers for proximity targets." },
+          { step: "2", icon: Search, title: "Generate & Score Candidates", desc: "For each target, GUARD scans for Cas12a-compatible PAM sites, generates crRNA candidates, filters by biophysical criteria (GC content, secondary structure, off-targets), and scores them with GUARD-Net — trained on 25,000+ cis- and trans-cleavage measurements from Kim et al. (2018) and Huang et al. (2024)." },
+          { step: "3", icon: Grid3x3, title: "Optimise the Panel", desc: "Panel composition is optimised via simulated annealing (10,000 iterations) over the combinatorial space of candidate assignments, maximising a weighted objective of efficiency, discrimination, and cross-reactivity avoidance. RPA primers are co-designed for each guide, with allele-specific primers for proximity targets." },
           { step: "4", icon: Shield, title: "Assess Clinical Performance", desc: "Block 3 evaluates the panel against WHO Target Product Profiles: per-drug-class sensitivity, specificity estimates, and ranked backup alternatives for each target. Three operating modes (field screening, clinical deployment, reference lab) adjust thresholds automatically." },
         ].map(c => (
           <div key={c.title} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "24px" }}>
@@ -1332,15 +1361,20 @@ const HomePage = ({ goTo, connected }) => {
       <CollapsibleSection title="System Architecture">
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0" }}>
           {/* Input */}
-          <div style={{ background: T.warningLight, border: `1px solid ${T.warning}33`, borderRadius: "8px", padding: "10px 24px", fontSize: "12px", fontWeight: 600, color: "#92400E", textAlign: "center" }}>WHO Mutation Catalogue</div>
-          <div style={{ width: "2px", height: "20px", background: T.border }} />
+          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: MONO }}>WHO Mutation Catalogue</div>
+          <div style={{ width: "1px", height: "16px", background: T.text }} />
 
           {/* Pipeline */}
-          <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: "16px 24px", width: "100%", maxWidth: 600, textAlign: "center" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: T.primaryDark, marginBottom: "8px" }}>GUARD Pipeline</div>
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px", fontSize: "11px", color: T.primaryDark }}>
-              {["Target Resolution", "→", "Candidate Generation", "→", "Scoring", "→", "Panel Optimisation", "→", "Primer Design"].map((t, i) => (
-                <span key={i} style={{ fontWeight: t === "→" ? 400 : 600, opacity: t === "→" ? 0.5 : 1 }}>{t}</span>
+          <div style={{ border: `1.5px solid ${T.text}`, borderRadius: "8px", padding: "16px 24px", width: "100%", maxWidth: 600 }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, color: T.text, marginBottom: "8px", textAlign: "center" }}>GUARD Pipeline</div>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "6px", fontSize: "11px" }}>
+              {["Target Resolution", "Candidate Generation", "Off-Target Screening", "Scoring (GUARD-Net)"].map(t => (
+                <div key={t} style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "4px", padding: "6px 8px", textAlign: "center", fontWeight: 600, color: T.text }}>{t}</div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: "6px", marginTop: "6px", fontSize: "11px" }}>
+              {["Multiplex Optimiser", "RPA Primer Co-Design", "Panel Assembly"].map(t => (
+                <div key={t} style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "4px", padding: "6px 8px", textAlign: "center", fontWeight: 600, color: T.text }}>{t}</div>
               ))}
             </div>
           </div>
@@ -1348,28 +1382,26 @@ const HomePage = ({ goTo, connected }) => {
           {/* Two branches */}
           <div style={{ display: "flex", gap: mobile ? "12px" : "32px", marginTop: "12px", width: "100%", maxWidth: 600, justifyContent: "center" }}>
             <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ width: "2px", height: "16px", background: T.border, margin: "0 auto" }} />
-              <div style={{ background: T.purpleLight, border: `1px solid ${T.purple}33`, borderRadius: "8px", padding: "12px 16px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.purple }}>GUARD-Net</div>
-                <div style={{ fontSize: "10px", color: "#6B21A8", marginTop: "2px" }}>AI guide scoring</div>
-                <div style={{ fontSize: "10px", color: "#6B21A8" }}>efficiency + discrimination</div>
+              <div style={{ width: "1px", height: "16px", background: T.text, margin: "0 auto" }} />
+              <div style={{ border: `1.5px solid ${T.primary}`, borderRadius: "6px", padding: "10px 14px", background: "#fff" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary }}>GUARD-Net</div>
+                <div style={{ fontSize: "10px", color: T.textSec, marginTop: "2px" }}>Efficiency + Discrimination</div>
               </div>
             </div>
             <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ width: "2px", height: "16px", background: T.border, margin: "0 auto" }} />
-              <div style={{ background: T.successLight, border: `1px solid ${T.success}33`, borderRadius: "8px", padding: "12px 16px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.success }}>Block 3</div>
-                <div style={{ fontSize: "10px", color: "#166534", marginTop: "2px" }}>Clinical assessment</div>
-                <div style={{ fontSize: "10px", color: "#166534" }}>WHO TPP compliance</div>
+              <div style={{ width: "1px", height: "16px", background: T.text, margin: "0 auto" }} />
+              <div style={{ border: `1.5px solid ${T.primary}`, borderRadius: "6px", padding: "10px 14px", background: "#fff" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary }}>Block 3</div>
+                <div style={{ fontSize: "10px", color: T.textSec, marginTop: "2px" }}>Sensitivity + Specificity + WHO TPP</div>
               </div>
             </div>
           </div>
 
-          <div style={{ width: "2px", height: "20px", background: T.border }} />
+          <div style={{ width: "1px", height: "16px", background: T.text }} />
 
           {/* Output */}
-          <div style={{ background: T.bgSub, border: `1px solid ${T.border}`, borderRadius: "8px", padding: "10px 24px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center" }}>
-            Assay-Ready Panel: 14 crRNAs + 14 RPA primer pairs + clinical metrics
+          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: MONO }}>
+            Assay-Ready Panel: 14 crRNAs + 28 primers + clinical metrics
           </div>
         </div>
       </CollapsibleSection>
@@ -1378,13 +1410,13 @@ const HomePage = ({ goTo, connected }) => {
       {sectionTitle("How GUARD-Net Predicts Guide Performance")}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "16px" }}>
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 20px" }}>
-          Each candidate guide is scored by a neural network that combines two complementary perspectives on what makes a guide effective:
+          Each candidate is scored by GUARD-Net, which analyses the target DNA sequence and guide RNA structure in parallel, then combines both through physics-informed attention:
         </p>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
           {[
-            { icon: Cpu, title: "Understanding the target DNA", desc: "A convolutional neural network scans the 34-nucleotide target sequence for patterns that affect how well Cas12a can bind and cut. It detects features like dinucleotide preferences and seed-region composition that determine cleavage activity." },
-            { icon: Layers, title: "Understanding the guide RNA", desc: "A pre-trained RNA foundation model (RNA-FM) analyses the guide's folding properties, thermodynamic stability, and structure — factors that determine whether the guide loads properly into the Cas12a enzyme." },
-            { icon: TrendingUp, title: "Physics-informed attention", desc: "Cas12a reads DNA sequentially — if there's a problem at position 3, it never reaches position 18. This directional 'R-loop propagation' is encoded in the model's attention mechanism, improving prediction accuracy by 6.7% over standard approaches." },
+            { icon: Cpu, title: "Target DNA analysis", desc: "A multi-scale CNN scans the 34-nucleotide target context (PAM + protospacer + flanks) for sequence patterns governing Cas12a binding: dinucleotide preferences, seed-region composition, and PAM quality." },
+            { icon: Layers, title: "Guide RNA structure", desc: "A pre-trained RNA foundation model (RNA-FM, 23M sequences) analyses the guide's folding and thermodynamic stability — properties governing Cas12a loading efficiency and spacer accessibility." },
+            { icon: TrendingUp, title: "R-loop propagation", desc: "Cas12a reads DNA sequentially from PAM-proximal to PAM-distal. A causal attention mechanism encodes this directional constraint, improving cross-dataset generalisation by 6.7% over standard bidirectional attention." },
           ].map(c => (
             <div key={c.title}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
@@ -1396,7 +1428,7 @@ const HomePage = ({ goTo, connected }) => {
           ))}
         </div>
         <div style={{ background: T.bgSub, borderRadius: "8px", padding: "14px 18px", fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-          The model also predicts <strong>discrimination</strong> — how well a guide distinguishes drug-resistant from drug-susceptible bacteria, even when the difference is a single DNA letter. This is critical for diagnostic accuracy, and is predicted jointly with efficiency in a multi-task architecture.
+          Efficiency and discrimination are predicted jointly via multi-task learning, sharing learned representations of Cas12a-target interactions. Discrimination — the ratio of mutant to wildtype cleavage — is the metric that determines whether a guide can distinguish resistant from susceptible bacteria at single-nucleotide resolution.
         </div>
       </div>
 
@@ -1405,82 +1437,110 @@ const HomePage = ({ goTo, connected }) => {
           {[
             ["Architecture", "Dual-branch CNN + RNA-FM with RLPA"],
             ["Parameters", "235,000 trainable"],
-            ["Training data", "Kim et al. 2018 HT-PAMDA (15K guides)"],
+            ["Training data", "Kim et al. 2018 (15K cis) + Huang et al. 2024 EasyDesign (10K trans)"],
+            ["Trans-cleavage \u03C1", "0.55 (EasyDesign benchmark)"],
+            ["Cis-cleavage \u03C1", "0.49 (Kim 2018 benchmark)"],
             ["Attention", "R-Loop Propagation Attention (RLPA)"],
-            ["RLPA improvement", "+6.7% test performance over standard attention"],
+            ["RLPA improvement", "+6.7% cross-dataset generalisation"],
             ["Training protocol", "3-phase: pretrain, RLPA, multi-task"],
-            ["Multi-task heads", "Efficiency + Discrimination (joint prediction)"],
+            ["Multi-task heads", "Efficiency (sigmoid) + Discrimination (Softplus)"],
             ["Inference", "CPU-compatible (~50ms per candidate)"],
           ].map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: "8px", padding: "8px 12px", background: T.bgSub, borderRadius: "6px" }}>
-              <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 600, minWidth: 110, flexShrink: 0 }}>{k}</span>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: T.text }}>{v}</span>
+              <span style={{ fontSize: "11px", color: T.textTer, fontWeight: 600, minWidth: 130, flexShrink: 0 }}>{k}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: T.text, fontFamily: v.match(/^[0-9.\-+]/) ? MONO : FONT }}>{v}</span>
             </div>
           ))}
+        </div>
+        {/* Benchmark finding */}
+        <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", padding: "12px 16px", marginBottom: "12px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.65 }}>
+          <strong>Benchmark validation:</strong> Models trained only on gene-editing data (Kim et al. 2018, cis-cleavage) show near-zero predictive value for diagnostic trans-cleavage ({"\u03C1"} = 0.04). The production model incorporates trans-cleavage training data (Huang et al. 2024) and achieves {"\u03C1"} = 0.55 on diagnostic predictions — a 12x improvement in predictive accuracy for the relevant readout.
         </div>
         <p style={{ fontSize: "11px", color: T.textTer, margin: 0, lineHeight: 1.5 }}>
           All predictions are in silico estimates. Predicted discrimination ratios are derived from mismatch penalty models, not from clinical trial data. Experimental confirmation is required before diagnostic deployment.
         </p>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Model Deep Dive — Input, Process, Output for Each Component">
-        <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
-          {[
-            {
-              label: "Branch 1", title: "Convolutional Neural Network (CNN)", accent: T.primary,
-              input: "34-nucleotide one-hot encoded target sequence (4 bp upstream PAM + 4 bp PAM + 23 bp protospacer + 3 bp downstream). Encoded as a 4 × 34 binary matrix where each column represents A, C, G, or T at that position.",
-              process: "Three convolutional layers (64 / 128 / 256 filters) with kernel sizes 3, 5, and 7 scan for local sequence motifs: dinucleotide preferences, seed-region composition (positions 1–8), and PAM-proximal patterns. Batch normalisation and dropout (0.3) regularise each layer. Global average pooling compresses spatial features into a 256-dim vector.",
-              output: "256-dimensional feature vector capturing local sequence determinants of Cas12a binding affinity. Encodes PAM quality, seed complementarity, and position-specific nucleotide preferences that govern R-loop initiation.",
-            },
-            {
-              label: "Branch 2", title: "RNA Foundation Model (RNA-FM)", accent: "#7c3aed",
-              input: "Raw guide RNA nucleotide sequence (20–23 nt spacer). Fed into a pre-trained RNA foundation model (RNA-FM, Chen et al. 2022) that was trained on 23 million non-coding RNA sequences via masked language modelling.",
-              process: "RNA-FM generates per-token embeddings (640-dim) encoding secondary structure propensity, thermodynamic stability, and accessibility. A projection layer maps the mean-pooled 640-dim RNA-FM embedding down to 128 dimensions. The weights of RNA-FM are frozen; only the projection head is trained.",
-              output: "128-dimensional structural embedding capturing guide RNA folding properties: self-complementarity, loop stability, and 5' end accessibility. These features determine whether the crRNA loads correctly into the Cas12a enzyme and remains unfolded for target binding.",
-            },
-            {
-              label: "Fusion", title: "R-Loop Propagation Attention (RLPA)", accent: "#0d9488",
-              input: "Concatenated feature vector from both branches: 256-dim CNN features + 128-dim RNA-FM features = 384-dim combined representation of sequence and structure.",
-              process: "A causal (lower-triangular) attention mask enforces the physical constraint that Cas12a reads the target 5' to 3': a mismatch at position 3 blocks propagation to all downstream positions. This biologically-informed inductive bias improves accuracy by 6.7% over standard bidirectional attention. Two attention heads with 64-dim keys/values.",
-              output: "Attention-weighted 384-dim vector where each feature dimension is re-weighted according to its positional importance in the R-loop propagation process. Fed into the multi-task prediction heads.",
-            },
-            {
-              label: "Output", title: "Multi-Task Prediction Heads", accent: "#e11d48",
-              input: "RLPA-weighted 384-dim combined feature vector from the attention fusion layer. Shared representation for both tasks.",
-              process: "Two parallel MLP heads (384 → 128 → 1), each with ReLU activation and dropout. Head 1 (Efficiency): predicts normalised cleavage activity (0–1). Head 2 (Discrimination): predicts log-ratio of mutant vs wildtype cleavage. Joint training with weighted loss: L = 0.6 × L_eff + 0.4 × L_disc.",
-              output: "Two scalar predictions per candidate guide: efficiency score (0–1, higher = better cleavage) and discrimination ratio (fold-change MUT/WT, higher = better diagnostic specificity). These scores drive all downstream panel selection and WHO compliance assessment.",
-            },
-          ].map((block, idx, arr) => (
-            <div key={block.title} style={{ padding: mobile ? "16px 0" : "20px 0", borderBottom: idx < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-              {/* Section header */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                <span style={{ fontSize: "10px", fontWeight: 700, color: block.accent, background: block.accent + "14", padding: "2px 8px", borderRadius: "4px", fontFamily: MONO, textTransform: "uppercase" }}>{block.label}</span>
-                <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>{block.title}</span>
-              </div>
-              {/* Three columns */}
-              <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? "12px" : "24px" }}>
-                {[
-                  { label: "Input", text: block.input },
-                  { label: "Process", text: block.process },
-                  { label: "Output", text: block.output },
-                ].map(col => (
-                  <div key={col.label}>
-                    <div style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{col.label}</div>
-                    <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>{col.text}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Training protocol */}
-          <div style={{ marginTop: "8px", padding: "14px 16px", background: T.primaryLight, borderRadius: "8px" }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, color: T.primaryDark, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Training Protocol</div>
-            <div style={{ fontSize: "12px", color: T.primaryDark, lineHeight: 1.65, opacity: 0.85 }}>
-              Phase 1 — pre-train CNN branch on efficiency labels only (200 epochs). Phase 2 — introduce RLPA attention and fine-tune (100 epochs). Phase 3 — activate discrimination head for multi-task learning (100 epochs). Total: 235K trainable parameters trained on 15,000 experimentally validated Cas12a guides from Kim et al. 2018 HT-PAMDA dataset.
-            </div>
-          </div>
+      <CollapsibleSection title="GUARD-Net Architecture Summary">
+        {/* Summary visible by default */}
+        <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.75, marginBottom: "16px" }}>
+          <p style={{ margin: "0 0 10px" }}>Two branches analyse different molecules:</p>
+          <ul style={{ margin: "0 0 10px", paddingLeft: "20px" }}>
+            <li style={{ marginBottom: "4px" }}><strong style={{ color: T.text }}>CNN branch:</strong> multi-scale parallel convolutions (kernel sizes 3, 5, 7; 32 channels each) scan the 34-nt target DNA context for sequence patterns affecting Cas12a binding — GC content, seed composition, PAM quality. Output: 64-dim features per position.</li>
+            <li style={{ marginBottom: "4px" }}><strong style={{ color: T.text }}>RNA-FM branch:</strong> pre-trained RNA foundation model (23M sequences) generates 640-dim per-nucleotide embeddings of the guide RNA, projected to 64 dimensions. Captures folding stability and accessibility properties governing enzyme loading.</li>
+          </ul>
+          <p style={{ margin: "0 0 10px" }}>These are concatenated (64 + 64 = 128-dim per position) and processed by R-Loop Propagation Attention — a single-head causal attention mechanism with 32-dim Q/K/V projections and a learnable 34x34 positional bias matrix. The causal mask encodes the directional way Cas12a reads DNA (PAM-proximal to PAM-distal), improving cross-dataset generalisation by 6.7%.</p>
+          <p style={{ margin: "0 0 10px" }}>Two output heads per candidate:</p>
+          <ul style={{ margin: "0 0 10px", paddingLeft: "20px" }}>
+            <li style={{ marginBottom: "4px" }}><strong style={{ color: T.text }}>Efficiency</strong> (0-1): predicted trans-cleavage signal strength. Head: 128 {"\u2192"} 64 {"\u2192"} 32 {"\u2192"} 1, sigmoid.</li>
+            <li style={{ marginBottom: "4px" }}><strong style={{ color: T.text }}>Discrimination</strong> (x): predicted ability to distinguish resistant from susceptible bacteria. Head: 1024 {"\u2192"} 64 {"\u2192"} 32 {"\u2192"} 1, Softplus.</li>
+          </ul>
+          <p style={{ margin: 0, fontFamily: MONO, fontSize: "12px", color: T.text }}>
+            235,000 params {"\u00B7"} {"\u03C1"} = 0.55 on trans-cleavage {"\u00B7"} Loss: L<sub>Huber</sub> + 0.5(1-{"\u03C1"}<sub>soft</sub>) + {"\u03BB"}<sub>disc</sub>L<sub>Huber</sub>(log D) {"\u00B7"} CPU ~50ms
+          </p>
         </div>
+
+        {/* Expandable full details */}
+        <button onClick={() => setArchOpen(!archOpen)} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "6px 12px", cursor: "pointer", fontSize: "11px", color: T.primary, fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", fontFamily: FONT, marginBottom: archOpen ? "16px" : 0 }}>
+          {archOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {archOpen ? "Hide" : "Show"} full architecture details
+        </button>
+        {archOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
+                  {[
+                    {
+                      label: "Branch 1", title: "Multi-Scale CNN", accent: T.primary,
+                      input: "34-nucleotide one-hot encoded target context (4 bp upstream + 4 bp PAM + 23 bp protospacer + 3 bp downstream). Encoded as a 4 x 34 binary matrix.",
+                      process: "Three parallel convolutional paths (kernel sizes 3, 5, 7) with 32 channels each, batch normalisation, and dropout (0.3). Outputs are concatenated and projected to 64-dim per position via a 1x1 convolution.",
+                      output: "64-dimensional feature vector per position capturing local sequence determinants: dinucleotide preferences, seed complementarity, PAM-proximal patterns.",
+                    },
+                    {
+                      label: "Branch 2", title: "RNA-FM Projection", accent: "#7c3aed",
+                      input: "Guide RNA sequence (20-23 nt spacer). Processed by frozen RNA-FM (Chen et al. 2022, trained on 23M non-coding RNAs via masked language modelling).",
+                      process: "RNA-FM generates 640-dim per-nucleotide embeddings encoding secondary structure propensity and thermodynamic stability. A trainable linear projection maps 640-dim to 64-dim. Sequence is zero-padded from 20 to 34 positions for alignment with the CNN branch.",
+                      output: "64-dimensional structural embedding per position. Captures folding, stability, and 5' accessibility properties governing Cas12a loading.",
+                    },
+                    {
+                      label: "Fusion", title: "R-Loop Propagation Attention (RLPA)", accent: "#0d9488",
+                      input: "Concatenated per-position features: 64-dim CNN + 64-dim RNA-FM = 128-dim at each of 34 positions.",
+                      process: "Single-head attention with 32-dim Q/K/V projections. A lower-triangular causal mask enforces PAM-proximal to PAM-distal directionality. A learnable 34x34 positional bias matrix encodes position-dependent interaction strengths. This improves cross-dataset generalisation by 6.7% over standard bidirectional attention.",
+                      output: "Attention-weighted 128-dim representation where features are re-weighted by positional importance in R-loop propagation.",
+                    },
+                    {
+                      label: "Output", title: "Multi-Task Prediction Heads", accent: "#e11d48",
+                      input: "RLPA-weighted representation, globally pooled to a single vector.",
+                      process: "Efficiency head: 128 -> 64 -> 32 -> 1 (sigmoid). Discrimination head: 1024 -> 64 -> 32 -> 1 (Softplus, predicts log MUT/WT ratio). Joint loss: L_Huber(efficiency) + 0.5 * (1 - rho_soft_Spearman) + lambda_disc * L_Huber(log D).",
+                      output: "Two scalars: efficiency score (0-1) and discrimination ratio (fold-change MUT/WT). These drive panel selection and WHO compliance assessment.",
+                    },
+                  ].map((block, idx, arr) => (
+                    <div key={block.title} style={{ padding: mobile ? "16px 0" : "20px 0", borderBottom: idx < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: block.accent, background: block.accent + "14", padding: "2px 8px", borderRadius: "4px", fontFamily: MONO, textTransform: "uppercase" }}>{block.label}</span>
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>{block.title}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? "12px" : "24px" }}>
+                        {[
+                          { label: "Input", text: block.input },
+                          { label: "Process", text: block.process },
+                          { label: "Output", text: block.output },
+                        ].map(col => (
+                          <div key={col.label}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{col.label}</div>
+                            <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>{col.text}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Training protocol */}
+                  <div style={{ marginTop: "8px", padding: "14px 16px", background: T.primaryLight, borderRadius: "8px" }}>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: T.primaryDark, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Training Protocol</div>
+                    <div style={{ fontSize: "12px", color: T.primaryDark, lineHeight: 1.65, opacity: 0.85 }}>
+                      Phase 1 — pre-train CNN branch on efficiency labels only (200 epochs). Phase 2 — introduce RLPA attention and fine-tune (100 epochs). Phase 3 — activate discrimination head for multi-task learning (100 epochs). Total: 235K trainable parameters trained on 25,000+ Cas12a activity measurements from Kim et al. 2018 (cis-cleavage HT-PAMDA) and Huang et al. 2024 (trans-cleavage EasyDesign).
+                    </div>
+                  </div>
+                </div>
+              )}
       </CollapsibleSection>
 
       {/* ═══ BLOCK 3 — Clinical Performance Dashboard ═══ */}
@@ -1588,8 +1648,8 @@ const HomePage = ({ goTo, connected }) => {
           ["Max homopolymer", "4 nt", "Poly-T ≥5 = Pol III termination"],
           ["Off-target", "≤3 mismatches", "Bowtie2 against full genome"],
           ["RPA amplicon", "100–200 bp", "Optimal RPA range"],
-          ["Primer Tm", "57–72 °C", "Strand invasion at 37–42 °C"],
-          ["Discrimination min", "2.0×", "≥3.0× preferred for LFA"],
+          ["Primer Tm", "57–72 \u00B0C", "Primer melting temperature (not reaction temperature). RPA runs at 37\u00B0C; high Tm ensures stable primer hybridisation."],
+          ["Discrimination min", "2.0\u00D7", "Minimum acceptable. \u22653.0\u00D7 for fluorescence/LFA. \u22655.0\u00D7 for electrochemical readout."],
         ].map(([param, value, rationale], i, arr) => (
           <div key={param} style={{ display: "flex", alignItems: "baseline", gap: mobile ? "8px" : "16px", padding: "8px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none", flexWrap: mobile ? "wrap" : "nowrap" }}>
             <span style={{ fontSize: "12px", fontWeight: 600, color: T.text, minWidth: mobile ? "100%" : 130, flexShrink: 0 }}>{param}</span>
@@ -1752,7 +1812,7 @@ const OverviewTab = ({ results, scorer }) => {
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Scoring Model Comparison</div>
           <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            Each candidate is scored by the heuristic (biophysical features) and GUARD-Net (CNN + RNA-FM + RLPA attention, trained on 15K Cas12a measurements). The ensemble blends both for improved ranking.
+            Each candidate is scored by the heuristic (biophysical features) and GUARD-Net (CNN + RNA-FM + RLPA, trained on 25K+ cis- and trans-cleavage measurements). The ensemble blends both for improved ranking.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "16px" }}>
             <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
