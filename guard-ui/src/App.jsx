@@ -1578,6 +1578,34 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
 
   const pct = Math.min(100, Math.round(((step + (done ? 1 : 0)) / MODULES.length) * 100));
 
+  /* Track which module rows are expanded (Claude Code style) */
+  const [expanded, setExpanded] = useState({});
+  const toggleExpand = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  /* Auto-expand the active step, collapse previous when moving forward */
+  const prevStepRef = useRef(-1);
+  useEffect(() => {
+    if (step !== prevStepRef.current) {
+      const activeId = MODULES[step]?.id;
+      const prevId = MODULES[prevStepRef.current]?.id;
+      setExpanded(prev => ({
+        ...prev,
+        ...(prevId ? { [prevId]: false } : {}),
+        ...(activeId ? { [activeId]: true } : {}),
+      }));
+      prevStepRef.current = step;
+    }
+  }, [step]);
+
+  /* When done, expand all completed modules that have stats */
+  useEffect(() => {
+    if (revealDone) {
+      const all = {};
+      MODULES.forEach(m => { if (statMap[m.id]) all[m.id] = true; });
+      setExpanded(all);
+    }
+  }, [revealDone]);
+
   /* Empty state — no job launched */
   if (!jobId) {
     return (
@@ -1597,59 +1625,175 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
   }
 
   return (
-    <div style={{ padding: mobile ? "24px 16px" : "48px 40px", maxWidth: 1100, width: "100%" }}>
-      <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>Pipeline Execution</div>
-      <h2 style={{ fontSize: mobile ? "22px" : "28px", fontWeight: 800, color: T.text, margin: "0 0 8px", letterSpacing: "-0.02em", fontFamily: HEADING }}>
-        {done ? "Pipeline Complete" : "Running…"}
-      </h2>
-      <p style={{ fontSize: "13px", color: T.textSec, marginBottom: "32px" }}>Job: <span style={{ fontFamily: MONO }}>{jobId}</span></p>
-
-      {/* Progress bar */}
-      <div style={{ background: T.bgSub, borderRadius: "8px", height: "8px", marginBottom: "32px", overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: done ? T.success : T.primary, borderRadius: "8px", transition: "width 0.4s ease" }} />
+    <div style={{ padding: mobile ? "24px 16px" : "48px 40px", maxWidth: 900, width: "100%" }}>
+      {/* Header */}
+      <div style={{ marginBottom: "28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+          {done
+            ? <Check size={18} color={T.success} strokeWidth={2.5} />
+            : <Loader2 size={18} color={T.primary} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
+          }
+          <span style={{ fontSize: mobile ? "18px" : "22px", fontWeight: 800, color: T.text, fontFamily: HEADING, letterSpacing: "-0.02em" }}>
+            {done ? "Pipeline Complete" : "Running Pipeline"}
+          </span>
+          {!done && <span style={{ fontSize: "12px", color: T.textTer, fontFamily: MONO }}>{pct}%</span>}
+        </div>
+        <div style={{ fontSize: "12px", color: T.textTer, fontFamily: MONO, marginLeft: "28px" }}>
+          {jobId}{done && totalDuration > 0 ? ` · ${(totalDuration / 1000).toFixed(1)}s` : ""}
+        </div>
       </div>
 
-      {/* Module list with inline stats */}
-      <div style={{ marginBottom: "32px" }}>
+      {/* Module list — Claude Code style collapsible steps */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
         {MODULES.map((m, i) => {
           const status = i < step ? "done" : i === step && !done ? "active" : done ? "done" : "pending";
           const stat = statMap[m.id];
           const statsVisible = i < revealedStats && stat;
-          const barWidth = stat ? Math.max(0.5, (stat.candidates_out / maxCandidates) * 100) : 0;
+          const isExpanded = expanded[m.id] || false;
+          const barWidth = stat ? Math.max(2, (stat.candidates_out / maxCandidates) * 100) : 0;
+
+          /* Connector line color */
+          const lineColor = status === "done" ? T.success + "44" : status === "active" ? T.primary + "44" : T.border;
 
           return (
-            <div key={m.id} style={{ padding: mobile ? "8px 0" : "10px 0", borderBottom: `1px solid ${T.borderLight}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: mobile ? "8px" : "12px" }}>
+            <div key={m.id} style={{ position: "relative" }}>
+              {/* Vertical connector line (except last) */}
+              {i < MODULES.length - 1 && (
                 <div style={{
-                  width: mobile ? 24 : 28, height: mobile ? 24 : 28, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  position: "absolute", left: mobile ? 14 : 16, top: mobile ? 28 : 32,
+                  width: "2px", bottom: 0, background: lineColor,
+                  transition: "background 0.4s ease",
+                }} />
+              )}
+
+              {/* Clickable header row */}
+              <button
+                onClick={() => (status !== "pending") && toggleExpand(m.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: mobile ? "10px" : "14px",
+                  width: "100%", padding: mobile ? "8px 0" : "10px 0",
+                  background: "none", border: "none", cursor: status !== "pending" ? "pointer" : "default",
+                  fontFamily: FONT, textAlign: "left", position: "relative", zIndex: 1,
+                }}
+              >
+                {/* Status icon */}
+                <div style={{
+                  width: mobile ? 28 : 32, height: mobile ? 28 : 32, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   background: status === "done" ? T.successLight : status === "active" ? T.primaryLight : T.bgSub,
+                  border: `2px solid ${status === "done" ? T.success : status === "active" ? T.primary : T.border}`,
+                  transition: "all 0.3s ease",
+                  ...(status === "active" ? { boxShadow: `0 0 0 4px ${T.primary}22` } : {}),
                 }}>
-                  {status === "done" ? <Check size={mobile ? 12 : 14} color={T.success} /> : status === "active" ? <Loader2 size={mobile ? 12 : 14} color={T.primary} className="spin" /> : <m.icon size={mobile ? 12 : 14} color={T.textTer} />}
+                  {status === "done"
+                    ? <Check size={mobile ? 12 : 14} color={T.success} strokeWidth={2.5} />
+                    : status === "active"
+                      ? <Loader2 size={mobile ? 12 : 14} color={T.primary} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
+                      : <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.textTer, opacity: 0.4 }} />
+                  }
                 </div>
+
+                {/* Module name + ID */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: mobile ? "12px" : "13px", fontWeight: status === "active" ? 700 : 500, color: status === "pending" ? T.textTer : T.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    <span style={{ fontFamily: MONO, fontSize: "10px", color: T.primary, marginRight: "6px" }}>{m.id}</span>
-                    {m.name}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{
+                      fontFamily: MONO, fontSize: "10px", fontWeight: 600,
+                      color: status === "done" ? T.success : status === "active" ? T.primary : T.textTer,
+                      background: status === "done" ? T.successLight : status === "active" ? T.primaryLight : T.bgSub,
+                      padding: "1px 6px", borderRadius: "4px",
+                    }}>{m.id}</span>
+                    <span style={{
+                      fontSize: mobile ? "12px" : "13px", fontWeight: status === "active" ? 700 : 600,
+                      color: status === "pending" ? T.textTer : T.text,
+                      transition: "color 0.3s ease",
+                    }}>{m.name}</span>
                   </div>
+                  {/* Short description visible when collapsed and not pending */}
+                  {!isExpanded && status !== "pending" && (
+                    <div style={{ fontSize: "11px", color: T.textTer, marginTop: "2px" }}>{m.desc}</div>
+                  )}
+                </div>
+
+                {/* Duration badge (right side) */}
+                {statsVisible && (
+                  <span style={{
+                    fontFamily: MONO, fontSize: "10px", color: T.textTer, flexShrink: 0,
+                    background: T.bgSub, padding: "2px 8px", borderRadius: "4px",
+                  }}>
+                    {stat.duration_ms >= 1000 ? `${(stat.duration_ms / 1000).toFixed(1)}s` : `${stat.duration_ms}ms`}
+                  </span>
+                )}
+
+                {/* Expand chevron */}
+                {status !== "pending" && (
+                  <div style={{ flexShrink: 0, color: T.textTer, transition: "transform 0.2s ease", transform: isExpanded ? "rotate(90deg)" : "rotate(0)" }}>
+                    <ChevronRight size={14} />
+                  </div>
+                )}
+              </button>
+
+              {/* Expandable detail panel */}
+              <div style={{
+                overflow: "hidden",
+                maxHeight: isExpanded ? "300px" : "0px",
+                opacity: isExpanded ? 1 : 0,
+                transition: "max-height 0.35s ease, opacity 0.25s ease",
+                marginLeft: mobile ? 38 : 46,
+              }}>
+                <div style={{
+                  background: T.bgSub, borderRadius: "8px", padding: "12px 16px", marginBottom: "8px",
+                  borderLeft: `3px solid ${status === "active" ? T.primary : status === "done" ? T.success : T.border}`,
+                }}>
+                  {/* Description */}
+                  <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, marginBottom: statsVisible ? "10px" : 0 }}>
+                    {m.desc}
+                  </div>
+
+                  {/* Stats detail (after pipeline completes) */}
+                  {statsVisible && (
+                    <>
+                      <div style={{
+                        fontFamily: MONO, fontSize: "11px", color: T.text, lineHeight: 1.7,
+                        padding: "8px 0", borderTop: `1px solid ${T.borderLight}`,
+                      }}>
+                        {stat.detail}
+                      </div>
+
+                      {/* Candidates funnel bar */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                        <span style={{ fontSize: "10px", color: T.textTer, fontFamily: MONO, flexShrink: 0, minWidth: 48 }}>
+                          {stat.candidates_out.toLocaleString()}
+                        </span>
+                        <div style={{ flex: 1, height: 4, background: T.borderLight, borderRadius: 2, overflow: "hidden" }}>
+                          <div style={{
+                            width: `${barWidth}%`, height: "100%", borderRadius: 2,
+                            background: status === "done" ? T.success : T.primary,
+                            transition: "width 0.6s ease-out",
+                          }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Running indicator for active step */}
+                  {status === "active" && !stat && (
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: "8px", marginTop: "8px",
+                      padding: "6px 0",
+                    }}>
+                      <div style={{ display: "flex", gap: "3px" }}>
+                        {[0, 1, 2].map(d => (
+                          <div key={d} style={{
+                            width: 4, height: 4, borderRadius: "50%", background: T.primary,
+                            animation: `pulseDot 1.2s ease-in-out ${d * 0.2}s infinite`,
+                          }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize: "11px", color: T.textTer }}>Processing...</span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Inline stat line — reveals after pipeline completes */}
-              {statsVisible && (
-                <div style={{ animation: "statReveal 0.3s ease-out forwards", marginTop: 6, marginLeft: mobile ? 32 : 40 }}>
-                  <div style={{ fontFamily: MONO, fontSize: mobile ? "10px" : "11px", color: T.textSec, display: "flex", justifyContent: "space-between", alignItems: "baseline", lineHeight: 1.6, gap: 8 }}>
-                    <span style={{ minWidth: 0, wordBreak: "break-word" }}>{stat.detail}</span>
-                    <span style={{ color: T.textTer, flexShrink: 0, fontSize: "10px" }}>{stat.duration_ms}ms</span>
-                  </div>
-                  {/* Funnel bar */}
-                  <div style={{ width: "100%", height: 3, background: T.borderLight, borderRadius: 2, marginTop: 4, overflow: "hidden" }}>
-                    <div style={{
-                      width: `${barWidth}%`, height: "100%", background: T.primary, borderRadius: 2,
-                      transition: "width 0.6s ease-out", opacity: barWidth < 5 ? 1 : 0.6,
-                    }} />
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
@@ -1658,34 +1802,29 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
       {/* Summary strip — appears after all stats revealed */}
       {revealDone && (
         <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
-          padding: mobile ? "12px 0" : "16px 0", borderTop: `2px solid ${T.text}`,
-          animation: "statReveal 0.4s ease-out forwards",
+          marginTop: "24px", background: T.bgSub, borderRadius: "10px", padding: mobile ? "16px" : "20px 24px",
+          border: `1px solid ${T.success}33`, animation: "stepSlideIn 0.4s ease-out forwards",
         }}>
-          <div style={{ fontFamily: MONO, fontSize: mobile ? "11px" : "13px", color: T.text, fontWeight: 700 }}>
-            {positionsScanned > 0
-              ? <>{positionsScanned.toLocaleString()} positions {"→"} {pamHits.toLocaleString()} PAM hits {"→"} {m2Out.toLocaleString()} candidates {"→"} {finalSize} selected</>
-              : <>{m2Out.toLocaleString()} candidates {"→"} {finalSize} selected</>
-            }
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+            <Check size={16} color={T.success} strokeWidth={2.5} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: T.text }}>Pipeline Summary</span>
           </div>
-          <div style={{ fontFamily: MONO, fontSize: mobile ? "11px" : "12px", color: T.textTer }}>
-            {(totalDuration / 1000).toFixed(1)}s
+          <div style={{ fontFamily: MONO, fontSize: mobile ? "11px" : "12px", color: T.textSec, lineHeight: 1.8 }}>
+            {positionsScanned > 0 && <div>{positionsScanned.toLocaleString()} positions scanned</div>}
+            {pamHits > 0 && <div>{pamHits.toLocaleString()} PAM hits found</div>}
+            <div>{m2Out.toLocaleString()} candidates generated → {finalSize} selected for panel</div>
+            <div style={{ color: T.textTer, marginTop: "4px" }}>Completed in {(totalDuration / 1000).toFixed(1)}s</div>
           </div>
-        </div>
-      )}
-
-      {/* View Results button — appears after reveal completes */}
-      {revealDone && (
-        <div style={{ marginTop: mobile ? 16 : 24, animation: "statReveal 0.3s ease-out forwards" }}>
           <button
             onClick={() => goTo("results", { jobId })}
             style={{
-              background: T.primary, color: "#fff", border: "none", borderRadius: 8,
-              padding: mobile ? "10px 20px" : "12px 28px", fontSize: mobile ? "13px" : "14px", fontWeight: 700, cursor: "pointer",
-              fontFamily: FONT, letterSpacing: "-0.01em", width: mobile ? "100%" : "auto",
+              marginTop: "16px", background: T.primary, color: "#fff", border: "none", borderRadius: 8,
+              padding: mobile ? "10px 20px" : "12px 28px", fontSize: mobile ? "13px" : "14px", fontWeight: 700,
+              cursor: "pointer", fontFamily: FONT, letterSpacing: "-0.01em", width: mobile ? "100%" : "auto",
+              display: "flex", alignItems: "center", gap: "8px", justifyContent: "center",
             }}
           >
-            View Results {"→"}
+            View Results <ChevronRight size={16} />
           </button>
         </div>
       )}
@@ -3815,6 +3954,9 @@ const GUARDPlatform = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulseDot { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
+        @keyframes stepSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes statReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: spin 1s linear infinite; }
         *, *::before, *::after { box-sizing: border-box; }
         body { margin: 0; padding: 0; overflow: hidden; }
