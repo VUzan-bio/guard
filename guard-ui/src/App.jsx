@@ -1226,9 +1226,9 @@ const HomePage = ({ goTo, connected }) => {
           ))}
 
           {/* Training protocol */}
-          <div style={{ marginTop: "8px", padding: "14px 16px", background: T.bgSub, borderRadius: "8px", borderLeft: `3px solid ${T.primary}` }}>
-            <div style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Training Protocol</div>
-            <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>
+          <div style={{ marginTop: "8px", padding: "14px 16px", background: T.primaryLight, borderRadius: "8px" }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, color: T.primaryDark, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Training Protocol</div>
+            <div style={{ fontSize: "12px", color: T.primaryDark, lineHeight: 1.65, opacity: 0.85 }}>
               Phase 1 — pre-train CNN branch on efficiency labels only (200 epochs). Phase 2 — introduce RLPA attention and fine-tune (100 epochs). Phase 3 — activate discrimination head for multi-task learning (100 epochs). Total: 235K trainable parameters trained on 15,000 experimentally validated Cas12a guides from Kim et al. 2018 HT-PAMDA dataset.
             </div>
           </div>
@@ -1274,7 +1274,7 @@ const HomePage = ({ goTo, connected }) => {
           { label: "Insufficient", val: "< 2×", color: "#94a3b8", border: "#e2e8f0", desc: "Synthetic mismatch enhancement needed." },
         ].map(t => (
           <div key={t.label} style={{ background: T.bg, borderRadius: "8px", padding: "14px 16px", border: `1px solid ${t.border}` }}>
-            <div style={{ fontSize: "18px", fontWeight: 700, color: T.text, fontFamily: MONO, marginBottom: "4px" }}>{t.val}</div>
+            <div style={{ fontSize: "18px", fontWeight: 500, color: T.text, fontFamily: MONO, marginBottom: "4px" }}>{t.val}</div>
             <div style={{ fontSize: "12px", fontWeight: 600, color: t.color, marginBottom: "4px" }}>{t.label}</div>
             <div style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.5 }}>{t.desc}</div>
           </div>
