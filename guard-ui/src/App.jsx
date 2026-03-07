@@ -472,8 +472,8 @@ const CandidateViewer = ({ r, onClose }) => {
         {/* Key metrics */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: mobile ? "8px" : "0", background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "12px" : "16px", marginBottom: "24px" }}>
           {[
-            { l: "Ensemble", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
-            { l: "Heuristic", v: r.score.toFixed(3), c: T.textSec },
+            { l: r.ensembleScore != null ? "Ensemble" : "Score", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
+            ...(r.ensembleScore != null ? [{ l: "Heuristic", v: r.score.toFixed(3), c: T.textSec }] : []),
             ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
             { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
             ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
@@ -812,7 +812,7 @@ const HomePage = ({ goTo, connected }) => {
       if (err) { setError(err); setLaunching(false); return; }
       startInlinePipeline(data.job_id);
     } else {
-      startInlinePipeline("mock-" + Date.now());
+      startInlinePipeline("mock-" + scorer + "-" + Date.now());
     }
   };
 
@@ -3277,8 +3277,17 @@ const ResultsPage = ({ connected, jobId, goTo }) => {
         setLoading(false);
       });
     } else if (activeJob.startsWith("mock-")) {
-      /* Mock mode — use mock data when pipeline was launched offline */
-      setResults(RESULTS);
+      /* Mock mode — adapt mock data to scorer encoded in job ID */
+      const isHeuristic = activeJob.includes("-heuristic-");
+      if (isHeuristic) {
+        setResults(RESULTS.map(r => ({
+          ...r,
+          cnnScore: undefined, cnnCalibrated: undefined,
+          ensembleScore: undefined, mlScores: [],
+        })));
+      } else {
+        setResults(RESULTS);
+      }
     }
   }, [connected, activeJob]);
 
