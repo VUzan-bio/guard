@@ -3415,10 +3415,18 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       const topK = topKData[t.target_label];
                       const toggleExpand = () => {
                         setExpandedTargets(prev => ({ ...prev, [t.target_label]: !prev[t.target_label] }));
-                        if (!topKData[t.target_label] && connected && jobId) {
-                          getTopK(jobId, t.target_label, 5).then(({ data }) => {
-                            if (data) setTopKData(prev => ({ ...prev, [t.target_label]: data.alternatives || data }));
-                          });
+                        if (!topKData[t.target_label]) {
+                          if (!connected || !jobId) {
+                            setTopKData(prev => ({ ...prev, [t.target_label]: [] }));
+                          } else {
+                            const timeout = setTimeout(() => {
+                              setTopKData(prev => prev[t.target_label] === undefined ? { ...prev, [t.target_label]: [] } : prev);
+                            }, 5000);
+                            getTopK(jobId, t.target_label, 5).then(({ data, error }) => {
+                              clearTimeout(timeout);
+                              setTopKData(prev => ({ ...prev, [t.target_label]: (data?.alternatives || data) || [] }));
+                            });
+                          }
                         }
                       };
                       return (
@@ -3437,7 +3445,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                 {!topK ? (
                                   <div style={{ fontSize: "11px", color: T.textTer }}><Loader2 size={12} style={{ animation: "spin 1s linear infinite", display: "inline-block", marginRight: "6px" }} />Loading alternatives…</div>
                                 ) : topK.length === 0 ? (
-                                  <div style={{ fontSize: "11px", color: T.textTer }}>No alternative candidates available.</div>
+                                  <div style={{ fontSize: "11px", color: T.textTer }}>No alternatives available — API may be offline or this job has no stored candidates.</div>
                                 ) : (
                                   <div>
                                     {/* Dot strip */}
