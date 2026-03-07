@@ -808,12 +808,11 @@ const HomePage = ({ goTo, connected }) => {
       {/* Hero */}
       <div style={{ marginBottom: mobile ? "28px" : "48px" }}>
         <div style={{ maxWidth: "100%" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>GUARD Platform</div>
-          <h1 style={{ fontSize: mobile ? "22px" : "34px", fontWeight: 800, color: T.text, margin: "0 0 12px", lineHeight: 1.2, letterSpacing: "-0.03em", fontFamily: HEADING }}>
-            Design 14-plex drug resistance diagnostics in minutes, not months
+          <h1 style={{ fontSize: mobile ? "26px" : "38px", fontWeight: 800, color: T.text, margin: "0 0 8px", lineHeight: 1.15, letterSpacing: "-0.03em", fontFamily: HEADING }}>
+            GUARD
           </h1>
-          <p style={{ fontSize: "15px", color: T.textSec, lineHeight: 1.7, margin: "0 0 24px" }}>
-            GUARD automates the complete CRISPR-Cas12a guide RNA design process — from WHO mutation catalogue to assay-ready crRNA panel — with AI-powered scoring and clinical performance benchmarking against WHO Target Product Profiles.
+          <p style={{ fontSize: mobile ? "14px" : "16px", color: T.textSec, lineHeight: 1.7, margin: 0, maxWidth: 680 }}>
+            Computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels targeting drug-resistant <em>Mycobacterium tuberculosis</em>.
           </p>
         </div>
       </div>
@@ -1177,117 +1176,61 @@ const HomePage = ({ goTo, connected }) => {
       </CollapsibleSection>
 
       <CollapsibleSection title="Model Deep Dive — Input, Process, Output for Each Component">
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* CNN Branch */}
-          <div style={{ background: T.bgSub, borderRadius: "10px", padding: "16px 20px", border: `1px solid ${T.borderLight}` }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: T.primary, marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Cpu size={16} /> Branch 1: Convolutional Neural Network (CNN)
+        <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
+          {[
+            {
+              label: "Branch 1", title: "Convolutional Neural Network (CNN)", accent: T.primary,
+              input: "34-nucleotide one-hot encoded target sequence (4 bp upstream PAM + 4 bp PAM + 23 bp protospacer + 3 bp downstream). Encoded as a 4 × 34 binary matrix where each column represents A, C, G, or T at that position.",
+              process: "Three convolutional layers (64 / 128 / 256 filters) with kernel sizes 3, 5, and 7 scan for local sequence motifs: dinucleotide preferences, seed-region composition (positions 1–8), and PAM-proximal patterns. Batch normalisation and dropout (0.3) regularise each layer. Global average pooling compresses spatial features into a 256-dim vector.",
+              output: "256-dimensional feature vector capturing local sequence determinants of Cas12a binding affinity. Encodes PAM quality, seed complementarity, and position-specific nucleotide preferences that govern R-loop initiation.",
+            },
+            {
+              label: "Branch 2", title: "RNA Foundation Model (RNA-FM)", accent: "#7c3aed",
+              input: "Raw guide RNA nucleotide sequence (20–23 nt spacer). Fed into a pre-trained RNA foundation model (RNA-FM, Chen et al. 2022) that was trained on 23 million non-coding RNA sequences via masked language modelling.",
+              process: "RNA-FM generates per-token embeddings (640-dim) encoding secondary structure propensity, thermodynamic stability, and accessibility. A projection layer maps the mean-pooled 640-dim RNA-FM embedding down to 128 dimensions. The weights of RNA-FM are frozen; only the projection head is trained.",
+              output: "128-dimensional structural embedding capturing guide RNA folding properties: self-complementarity, loop stability, and 5' end accessibility. These features determine whether the crRNA loads correctly into the Cas12a enzyme and remains unfolded for target binding.",
+            },
+            {
+              label: "Fusion", title: "R-Loop Propagation Attention (RLPA)", accent: "#0d9488",
+              input: "Concatenated feature vector from both branches: 256-dim CNN features + 128-dim RNA-FM features = 384-dim combined representation of sequence and structure.",
+              process: "A causal (lower-triangular) attention mask enforces the physical constraint that Cas12a reads the target 5' to 3': a mismatch at position 3 blocks propagation to all downstream positions. This biologically-informed inductive bias improves accuracy by 6.7% over standard bidirectional attention. Two attention heads with 64-dim keys/values.",
+              output: "Attention-weighted 384-dim vector where each feature dimension is re-weighted according to its positional importance in the R-loop propagation process. Fed into the multi-task prediction heads.",
+            },
+            {
+              label: "Output", title: "Multi-Task Prediction Heads", accent: "#e11d48",
+              input: "RLPA-weighted 384-dim combined feature vector from the attention fusion layer. Shared representation for both tasks.",
+              process: "Two parallel MLP heads (384 → 128 → 1), each with ReLU activation and dropout. Head 1 (Efficiency): predicts normalised cleavage activity (0–1). Head 2 (Discrimination): predicts log-ratio of mutant vs wildtype cleavage. Joint training with weighted loss: L = 0.6 × L_eff + 0.4 × L_disc.",
+              output: "Two scalar predictions per candidate guide: efficiency score (0–1, higher = better cleavage) and discrimination ratio (fold-change MUT/WT, higher = better diagnostic specificity). These scores drive all downstream panel selection and WHO compliance assessment.",
+            },
+          ].map((block, idx, arr) => (
+            <div key={block.title} style={{ padding: mobile ? "16px 0" : "20px 0", borderBottom: idx < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+              {/* Section header */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: block.accent, background: block.accent + "14", padding: "2px 8px", borderRadius: "4px", fontFamily: MONO, textTransform: "uppercase" }}>{block.label}</span>
+                <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>{block.title}</span>
+              </div>
+              {/* Three columns */}
+              <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? "12px" : "24px" }}>
+                {[
+                  { label: "Input", text: block.input },
+                  { label: "Process", text: block.process },
+                  { label: "Output", text: block.output },
+                ].map(col => (
+                  <div key={col.label}>
+                    <div style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{col.label}</div>
+                    <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>{col.text}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Input</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  34-nucleotide one-hot encoded target sequence (4 bp upstream PAM + 4 bp PAM + 23 bp protospacer + 3 bp downstream). Encoded as a 4 x 34 binary matrix where each column represents A, C, G, or T at that position.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Process</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Three convolutional layers (64 / 128 / 256 filters) with kernel sizes 3, 5, and 7 scan for local sequence motifs: dinucleotide preferences, seed-region composition (positions 1-8), and PAM-proximal patterns. Batch normalisation and dropout (0.3) regularise each layer. Global average pooling compresses spatial features into a 256-dim vector.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Output</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  256-dimensional feature vector capturing local sequence determinants of Cas12a binding affinity. Encodes PAM quality, seed complementarity, and position-specific nucleotide preferences that govern R-loop initiation.
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
 
-          {/* RNA-FM Branch */}
-          <div style={{ background: T.bgSub, borderRadius: "10px", padding: "16px 20px", border: `1px solid ${T.borderLight}` }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: T.purple, marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Layers size={16} /> Branch 2: RNA Foundation Model (RNA-FM)
+          {/* Training protocol */}
+          <div style={{ marginTop: "8px", padding: "14px 16px", background: T.bgSub, borderRadius: "8px", borderLeft: `3px solid ${T.primary}` }}>
+            <div style={{ fontSize: "10px", fontWeight: 700, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Training Protocol</div>
+            <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>
+              Phase 1 — pre-train CNN branch on efficiency labels only (200 epochs). Phase 2 — introduce RLPA attention and fine-tune (100 epochs). Phase 3 — activate discrimination head for multi-task learning (100 epochs). Total: 235K trainable parameters trained on 15,000 experimentally validated Cas12a guides from Kim et al. 2018 HT-PAMDA dataset.
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Input</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Raw guide RNA nucleotide sequence (20-23 nt spacer). Fed into a pre-trained RNA foundation model (RNA-FM, Chen et al. 2022) that was trained on 23 million non-coding RNA sequences via masked language modelling.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Process</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  RNA-FM generates per-token embeddings (640-dim) encoding secondary structure propensity, thermodynamic stability, and accessibility. A projection layer maps the mean-pooled 640-dim RNA-FM embedding down to 128 dimensions. The weights of RNA-FM are frozen; only the projection head is trained.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Output</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  128-dimensional structural embedding capturing guide RNA folding properties: self-complementarity, loop stability, and 5' end accessibility. These features determine whether the crRNA loads correctly into the Cas12a enzyme and remains unfolded for target binding.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RLPA */}
-          <div style={{ background: T.bgSub, borderRadius: "10px", padding: "16px 20px", border: `1px solid ${T.borderLight}` }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "#059669", marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <TrendingUp size={16} /> Fusion: R-Loop Propagation Attention (RLPA)
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Input</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Concatenated feature vector from both branches: 256-dim CNN features + 128-dim RNA-FM features = 384-dim combined representation of sequence and structure.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Process</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  A causal (lower-triangular) attention mask enforces the physical constraint that Cas12a reads the target 5' to 3': a mismatch at position 3 blocks propagation to all downstream positions. This biologically-informed inductive bias improves accuracy by 6.7% over standard bidirectional attention. Two attention heads with 64-dim keys/values.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Output</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Attention-weighted 384-dim vector where each feature dimension is re-weighted according to its positional importance in the R-loop propagation process. Fed into the multi-task prediction heads.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Prediction Heads */}
-          <div style={{ background: T.bgSub, borderRadius: "10px", padding: "16px 20px", border: `1px solid ${T.borderLight}` }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: "#dc2626", marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Target size={16} /> Multi-Task Prediction Heads
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Input</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  RLPA-weighted 384-dim combined feature vector from the attention fusion layer. Shared representation for both tasks.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Process</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Two parallel MLP heads (384 {"\u2192"} 128 {"\u2192"} 1), each with ReLU activation and dropout. <strong>Head 1 (Efficiency):</strong> predicts normalised cleavage activity (0-1). <strong>Head 2 (Discrimination):</strong> predicts log-ratio of mutant vs wildtype cleavage. Joint training with weighted loss: L = 0.6 * L_eff + 0.4 * L_disc.
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: T.text, marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Output</div>
-                <div style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-                  Two scalar predictions per candidate guide: <strong>efficiency score</strong> (0-1, higher = better cleavage) and <strong>discrimination ratio</strong> (fold-change MUT/WT, higher = better diagnostic specificity). These scores drive all downstream panel selection and WHO compliance assessment.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ background: T.primaryLight, borderRadius: "8px", padding: "12px 16px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.6 }}>
-            <strong>Training protocol:</strong> Phase 1 — pre-train CNN branch on efficiency labels only (200 epochs). Phase 2 — introduce RLPA attention and fine-tune (100 epochs). Phase 3 — activate discrimination head for multi-task learning (100 epochs). Total: 235K trainable parameters trained on 15,000 experimentally validated Cas12a guides from Kim et al. 2018 HT-PAMDA dataset.
           </div>
         </div>
       </CollapsibleSection>
@@ -1320,20 +1263,20 @@ const HomePage = ({ goTo, connected }) => {
       {sectionTitle("Discrimination Analysis")}
       <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px 0" }}>
         Discrimination quantifies a crRNA's ability to distinguish the resistance allele from wildtype.
-        Reported as the ratio of mutant vs wildtype cleavage activity. Higher is better — it means the guide reacts strongly to resistant bacteria and weakly to susceptible ones.
+        Reported as the ratio of mutant vs wildtype cleavage activity. Higher is better.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
         {[
-          { label: "Excellent", val: "≥ 10×", color: "#16a34a", bg: "#f0fdf4", desc: "Single-plex clinical. Robust across sample types." },
-          { label: "Good", val: "≥ 3×", color: T.primary, bg: T.primaryLight, desc: "Multiplex panel. Fluorescence & lateral flow." },
-          { label: "Acceptable", val: "≥ 2×", color: "#d97706", bg: "#fffbeb", desc: "Requires confirmatory readout." },
-          { label: "Insufficient", val: "< 2×", color: "#dc2626", bg: "#fef2f2", desc: "Synthetic mismatch enhancement needed." },
+          { label: "Excellent", val: "≥ 10×", color: "#64748b", border: "#cbd5e1", desc: "Single-plex clinical. Robust across sample types." },
+          { label: "Good", val: "≥ 3×", color: "#64748b", border: "#cbd5e1", desc: "Multiplex panel. Fluorescence & lateral flow." },
+          { label: "Acceptable", val: "≥ 2×", color: "#94a3b8", border: "#e2e8f0", desc: "Requires confirmatory readout." },
+          { label: "Insufficient", val: "< 2×", color: "#94a3b8", border: "#e2e8f0", desc: "Synthetic mismatch enhancement needed." },
         ].map(t => (
-          <div key={t.label} style={{ background: t.bg, borderRadius: "8px", padding: "14px", border: `1px solid ${T.borderLight}` }}>
-            <div style={{ fontSize: "16px", fontWeight: 800, color: t.color, marginBottom: "2px" }}>{t.val}</div>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>{t.label}</div>
-            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>{t.desc}</div>
+          <div key={t.label} style={{ background: T.bg, borderRadius: "8px", padding: "14px 16px", border: `1px solid ${t.border}` }}>
+            <div style={{ fontSize: "18px", fontWeight: 700, color: T.text, fontFamily: MONO, marginBottom: "4px" }}>{t.val}</div>
+            <div style={{ fontSize: "12px", fontWeight: 600, color: t.color, marginBottom: "4px" }}>{t.label}</div>
+            <div style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.5 }}>{t.desc}</div>
           </div>
         ))}
       </div>
