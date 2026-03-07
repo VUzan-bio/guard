@@ -1835,11 +1835,22 @@ const OverviewTab = ({ results, scorer }) => {
               ))}
             </div>
             {/* Interpretation */}
-            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              <strong style={{ color: T.text }}>Interpretation:</strong> The peak location shows where most candidates cluster.
-              Scores above 0.7 are high-confidence; between 0.4–0.7 are viable but may need optimisation.
-              {sigma < 0.05 ? " The narrow spread (σ < 0.05) suggests the model assigns similar scores — consider a checkpoint with wider dynamic range." : sigma > 0.1 ? " The wide spread (σ > 0.1) indicates the model differentiates well between strong and weak candidates." : ""}
-            </div>
+            {(() => {
+              const sorted = [...scoresByDrug].sort((a, b) => a.score - b.score);
+              const worst = sorted[0];
+              const best = sorted[sorted.length - 1];
+              const belowMin = sorted.filter(s => s.score < 0.4);
+              const aboveTarget = sorted.filter(s => s.score >= 0.7);
+              const medianScore = sorted[Math.floor(sorted.length / 2)].score;
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> Panel scores range from <strong style={{ color: T.text }}>{worst.score.toFixed(3)}</strong> ({worst.label}) to <strong style={{ color: T.text }}>{best.score.toFixed(3)}</strong> ({best.label}) with a median of {medianScore.toFixed(3)} (μ = {mean}, σ = {sigma.toFixed(3)}).
+                  {aboveTarget.length > 0 ? ` ${aboveTarget.length}/${scores.length} candidates exceed the 0.7 high-confidence threshold.` : " No candidates reach the 0.7 high-confidence threshold — consider alternative spacer designs or SM enhancement."}
+                  {belowMin.length > 0 ? ` ${belowMin.length} candidate${belowMin.length > 1 ? "s" : ""} (${belowMin.map(s => s.label).slice(0, 3).join(", ")}${belowMin.length > 3 ? "…" : ""}) fall below the 0.4 viability threshold.` : " All candidates clear the 0.4 minimum viability threshold."}
+                  {sigma < 0.05 ? " The narrow spread (σ < 0.05) suggests the model assigns similar scores — consider a checkpoint with wider dynamic range or re-evaluate feature diversity." : sigma > 0.1 ? " The wide spread (σ > 0.1) confirms the model differentiates strongly between targets, which is desirable for panel optimisation." : ""}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -1899,10 +1910,19 @@ const OverviewTab = ({ results, scorer }) => {
               <div style={{ width: "90px" }} />
             </div>
             {/* Interpretation */}
-            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              <strong style={{ color: T.text }}>Interpretation:</strong> Drug classes sorted by average score. Wider bars indicate more variation between targets.
-              {weakest && weakest.avg < 0.6 ? ` ${weakest.drug} (avg ${weakest.avg}) is the weakest drug class — its targets may need alternative spacer designs or SM enhancement.` : " All drug classes show competitive scores."}
-            </div>
+            {(() => {
+              const strongest = drugData[0];
+              const spread = drugData.map(d => ({ drug: d.drug, range: +(d.max - d.min).toFixed(3) })).sort((a, b) => b.range - a.range);
+              const mostVariable = spread[0];
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> <strong style={{ color: T.text }}>{strongest.drug}</strong> leads with avg {strongest.avg} across {strongest.count} target{strongest.count > 1 ? "s" : ""}.
+                  {weakest && weakest.avg < 0.5 ? ` ${weakest.drug} (avg ${weakest.avg}, ${weakest.count} targets) is critically weak — consider alternative spacer designs, SM enhancement, or dropping low-value targets.` : weakest && weakest.avg < 0.6 ? ` ${weakest.drug} (avg ${weakest.avg}) trails other classes and may benefit from optimisation.` : " All drug classes maintain competitive average scores."}
+                  {mostVariable.range > 0.2 ? ` ${mostVariable.drug} shows the widest intra-class variation (range ${mostVariable.range}) — its targets vary significantly in spacer quality.` : ""}
+                  {drugData.length >= 3 ? ` Coverage spans ${drugData.length} drug classes, supporting multi-drug resistance profiling.` : ""}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -1967,11 +1987,21 @@ const OverviewTab = ({ results, scorer }) => {
               <span style={{ fontSize: "10px", color: T.success, fontWeight: 600 }}>0.7 target</span>
             </div>
             {/* Interpretation */}
-            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              <strong style={{ color: T.text }}>Interpretation:</strong> {aboveTarget}/{chartData.length} candidates exceed the 0.7 target score.
-              {belowThreshold > 0 ? ` ${belowThreshold} candidate${belowThreshold > 1 ? "s fall" : " falls"} below the 0.4 minimum threshold and may not be viable.` : " All candidates clear the 0.4 minimum threshold."}
-              {" "}Bars are ranked left-to-right from highest to lowest score.
-            </div>
+            {(() => {
+              const top3 = chartData.slice(0, 3);
+              const bottom3 = chartData.slice(-3);
+              const lowTargets = chartData.filter(d => d.score < 0.4);
+              const midTargets = chartData.filter(d => d.score >= 0.4 && d.score < 0.7);
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> Top performers: {top3.map(d => `${d.name} (${d.score.toFixed(3)})`).join(", ")}.
+                  {aboveTarget > 0 ? ` ${aboveTarget}/${chartData.length} candidates exceed the 0.7 target — these are deployment-ready.` : " No candidates reach the 0.7 target — the panel may need alternative spacer designs."}
+                  {lowTargets.length > 0 ? ` ${lowTargets.length} candidate${lowTargets.length > 1 ? "s" : ""} (${lowTargets.map(d => d.name).slice(0, 3).join(", ")}${lowTargets.length > 3 ? "…" : ""}) fall below 0.4 and should be flagged for redesign or removal.` : ""}
+                  {midTargets.length > 0 ? ` ${midTargets.length} candidate${midTargets.length > 1 ? "s sit" : " sits"} in the 0.4–0.7 optimisation zone — SM enhancement or alternative spacers may improve these.` : ""}
+                  {` Weakest: ${bottom3[bottom3.length - 1].name} at ${bottom3[bottom3.length - 1].score.toFixed(3)}.`}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -2084,11 +2114,22 @@ const OverviewTab = ({ results, scorer }) => {
               </div>
             </div>
             {/* Interpretation */}
-            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              <strong style={{ color: T.text }}>Interpretation:</strong> {inTopRight}/{scatterData.length} Direct candidates are in the diagnostic-ready quadrant (score ≥ 0.4, discrimination ≥ 3×).
-              Candidates in the bottom-right have good scores but need synthetic mismatch enhancement to improve discrimination.
-              The ideal candidate sits in the top-right corner: high efficiency and high discrimination.
-            </div>
+            {(() => {
+              const topRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3);
+              const bottomRight = scatterData.filter(d => d.score >= 0.4 && d.disc < 3);
+              const topLeft = scatterData.filter(d => d.score < 0.4 && d.disc >= 3);
+              const bestCandidate = [...scatterData].sort((a, b) => (b.score * b.disc) - (a.score * a.disc))[0];
+              const worstCandidate = [...scatterData].sort((a, b) => (a.score * a.disc) - (b.score * b.disc))[0];
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> {topRight.length}/{scatterData.length} candidates are diagnostic-ready (score ≥ 0.4, disc ≥ 3×).
+                  {bestCandidate ? ` Best overall: ${bestCandidate.label} (${bestCandidate.score.toFixed(3)}, ${bestCandidate.disc.toFixed(1)}×).` : ""}
+                  {bottomRight.length > 0 ? ` ${bottomRight.length} candidate${bottomRight.length > 1 ? "s have" : " has"} good scores but low discrimination (${bottomRight.slice(0, 2).map(d => d.label).join(", ")}${bottomRight.length > 2 ? "…" : ""}) — SM enhancement would move these into the diagnostic-ready quadrant.` : ""}
+                  {topLeft.length > 0 ? ` ${topLeft.length} candidate${topLeft.length > 1 ? "s" : ""} ${topLeft.length > 1 ? "have" : "has"} strong discrimination but weak scores — alternative spacers may help.` : ""}
+                  {worstCandidate && worstCandidate !== bestCandidate ? ` Weakest: ${worstCandidate.label} (${worstCandidate.score.toFixed(3)}, ${worstCandidate.disc.toFixed(1)}×).` : ""}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -2755,11 +2796,21 @@ const DiscriminationTab = ({ results }) => {
               <span style={{ fontSize: "10px", color: T.warning, fontWeight: 600 }}>3× diagnostic</span>
               <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600 }}>2× minimum</span>
             </div>
-            <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              <strong style={{ color: T.text }}>Interpretation:</strong> {diagGrade}/{directCands.length} Direct candidates reach diagnostic-grade discrimination (≥ 3×).
-              Discrimination depends primarily on mismatch position relative to PAM: seed-region mismatches (positions 1–4) give 10–50×,
-              while PAM-distal mismatches (15–20) give 1–2×. Candidates below 2× require synthetic mismatch enhancement.
-            </div>
+            {(() => {
+              const bestDisc = discChart[0];
+              const worstDisc = discChart[discChart.length - 1];
+              const below2 = discChart.filter(d => d.disc < 2);
+              const avgDisc = +(discChart.reduce((a, d) => a + d.disc, 0) / discChart.length).toFixed(1);
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> {diagGrade}/{directCands.length} candidates reach diagnostic-grade (≥ 3×), panel avg {avgDisc}×.
+                  {bestDisc ? ` Highest: ${bestDisc.name} at ${bestDisc.disc.toFixed(1)}× — likely a seed-region mismatch (positions 1–4).` : ""}
+                  {worstDisc ? ` Lowest: ${worstDisc.name} at ${worstDisc.disc.toFixed(1)}×${worstDisc.disc < 2 ? " — insufficient for any detection method, SM enhancement required." : worstDisc.disc < 3 ? " — acceptable but not diagnostic-grade." : "."}` : ""}
+                  {below2.length > 0 ? ` ${below2.length} candidate${below2.length > 1 ? "s" : ""} (${below2.map(d => d.name).slice(0, 3).join(", ")}${below2.length > 3 ? "…" : ""}) fall below the 2× minimum — these have PAM-distal mismatches and require synthetic mismatch engineering.` : " All candidates meet the 2× minimum detection threshold."}
+                  {excellent > 0 ? ` ${excellent} candidate${excellent > 1 ? "s" : ""} ${excellent > 1 ? "achieve" : "achieves"} excellent (≥ 10×) discrimination, suitable for lateral-flow deployment.` : ""}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -3425,11 +3476,23 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   </div>
                 </div>
                 {/* Interpretation */}
-                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-                  <strong style={{ color: T.text }}>Interpretation:</strong> The blue curve (mutant) should sit to the right of the amber curve (wildtype).
-                  {separation >= 0.15 ? " Good separation — the panel reliably distinguishes resistant from susceptible samples." : separation >= 0.08 ? " Moderate separation — some overlap exists, meaning borderline samples may be ambiguous." : " Poor separation — the curves overlap heavily, indicating limited discrimination at the panel level."}
-                  {" "}The red-shaded overlap zone ({overlapPct}%) represents the false-positive risk region where MUT and WT signals are indistinguishable.
-                </div>
+                {(() => {
+                  const mutSorted = [...mutScores].sort((a, b) => b - a);
+                  const wtSorted = [...wtScores].sort((a, b) => b - a);
+                  const bestMutIdx = mutScores.indexOf(mutSorted[0]);
+                  const bestMutLabel = results[bestMutIdx]?.label || "top target";
+                  const worstMutIdx = mutScores.indexOf(mutSorted[mutSorted.length - 1]);
+                  const worstMutLabel = results[worstMutIdx]?.label || "weakest target";
+                  const clinicalRisk = overlapPct > 30 ? "high" : overlapPct > 15 ? "moderate" : "low";
+                  return (
+                    <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                      <strong style={{ color: T.primary }}>Interpretation:</strong> Mutant mean activity ({meanMut}) vs wildtype ({meanWt}) gives a separation of <strong style={{ color: separation >= 0.15 ? T.success : T.warning }}>{separation}</strong>.
+                      {separation >= 0.15 ? " Good separation — the panel reliably distinguishes resistant from susceptible samples at the aggregate level." : separation >= 0.08 ? " Moderate separation — borderline samples may produce ambiguous calls; consider tightening the panel to high-discrimination targets only." : " Poor separation — the panel cannot reliably distinguish MUT from WT; review target selection and consider dropping low-discrimination candidates."}
+                      {` Overlap zone: ${overlapPct}% (${clinicalRisk} false-positive risk).`}
+                      {` Strongest MUT signal: ${bestMutLabel} (${mutSorted[0].toFixed(3)}). Weakest: ${worstMutLabel} (${mutSorted[mutSorted.length - 1].toFixed(3)}).`}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
