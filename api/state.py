@@ -73,6 +73,7 @@ class AppState:
         self._jobs: dict[str, PipelineJob] = {}
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(max_workers=2)
+        self._rehydrate_from_disk()
 
     def submit_job(self, job: PipelineJob) -> str:
         with self._lock:
@@ -94,6 +95,35 @@ class AppState:
 
     def shutdown(self) -> None:
         self._executor.shutdown(wait=False)
+
+    def _rehydrate_from_disk(self) -> None:
+        """Restore completed jobs from saved result files on startup."""
+        for result_path in self.results_dir.glob("*.json"):
+            job_id = result_path.stem
+            if job_id in self._jobs:
+                continue
+            try:
+                with open(result_path) as f:
+                    result = json.load(f)
+                # Build a stub PipelineJob for the completed run
+                job = PipelineJob.__new__(PipelineJob)
+                job.job_id = job_id
+                job.name = result.get("name", job_id[:12])
+                job.mode = PipelineMode.FULL if "members" in result else PipelineMode.BASIC
+                job.mutations = []
+                job.config_overrides = {}
+                job.status = JobStatus.COMPLETED
+                job.progress = 1.0
+                job.current_module = "Complete"
+                job.created_at = datetime.now(timezone.utc)
+                job.started_at = None
+                job.completed_at = None
+                job.error = None
+                job.result = result
+                self._jobs[job_id] = job
+                logger.info("Rehydrated job %s from disk", job_id)
+            except Exception as e:
+                logger.warning("Failed to rehydrate %s: %s", result_path.name, e)
 
     # ------------------------------------------------------------------
     # Pipeline execution (runs in thread pool)

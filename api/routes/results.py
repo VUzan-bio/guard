@@ -65,6 +65,11 @@ def _get_completed_result(job_id: str) -> dict[str, Any]:
     state = _get_state()
     job = state.get_job(job_id)
     if job is None:
+        # Job not in memory — try loading result directly from disk
+        result_path = state.results_dir / f"{job_id}.json"
+        if result_path.exists():
+            with open(result_path) as f:
+                return json.load(f)
         raise HTTPException(404, f"Job {job_id} not found")
     if job.status != JobStatus.COMPLETED:
         raise HTTPException(400, f"Job {job_id} status is {job.status.value}, not completed")
