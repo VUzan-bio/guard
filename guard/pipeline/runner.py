@@ -1152,6 +1152,12 @@ class GUARDPipeline:
                 ),
                 "discrimination_ratio": round(disc.ratio, 2) if disc else None,
                 "discrimination_passes": disc.passes_threshold if disc else None,
+                "discrimination": {
+                    "ratio": round(disc.ratio, 2),
+                    "mut_activity": round(disc.mut_activity, 4),
+                    "wt_activity": round(disc.wt_activity, 4),
+                    "model_name": disc.model_name,
+                } if disc else None,
                 "has_primers": member.primers is not None,
                 "is_complete": member.is_complete,
             }
