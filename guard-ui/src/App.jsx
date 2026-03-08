@@ -1693,8 +1693,8 @@ const HomePage = ({ goTo, connected }) => {
               text: "Discrimination ratios are predicted by a gradient-boosted model trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 15 thermodynamic features including R-loop cumulative \u0394G, mismatch \u0394\u0394G penalties (Sugimoto 2000), and position sensitivity. Cross-validated correlation r\u22480.46 (vs r\u22480.30 for heuristic baseline). Falls back to position-dependent heuristics when the trained model is unavailable.",
             },
             {
-              title: "Domain shift",
-              text: "The scoring model was trained on AsCas12a/LbCas12a data (Kim et al. 2018; Huang et al. 2024). Deployment uses enAsCas12a on RPA-amplified M. tuberculosis DNA \u2014 a domain shift in enzyme variant, target organism, and GC context. Active learning from initial experimental validation will calibrate predictions to the deployment domain.",
+              title: "Training data & domain shift",
+              text: "GUARD-Net is trained on two datasets: Kim et al. 2018 (indel frequencies \u2014 cis-cleavage, AsCas12a/LbCas12a) and EasyDesign (Huang et al. 2024, FAM-quencher reporter fluorescence \u2014 trans-cleavage, LbCas12a). The production checkpoint is validated against EasyDesign\u2019s trans-cleavage test set (\u03c1 = 0.55), so predictions are performance-validated against the diagnostic-relevant readout. The primary domain shift is enzyme variant (trained on LbCas12a, deployed on enAsCas12a), target organism (human \u2192 M. tuberculosis), and amplification context (purified DNA \u2192 RPA amplicons). Active learning from initial experimental validation will calibrate predictions to the deployment domain.",
             },
             {
               title: "AS-RPA specificity",
@@ -1879,7 +1879,7 @@ const OverviewTab = ({ results, scorer }) => {
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Scoring Model Comparison</div>
           <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            Two models independently predict each crRNA's trans-cleavage activity: a heuristic (biophysical features: seed position, GC, secondary structure) and GUARD-Net (CNN + RNA-FM + RLPA, trained on 25K+ activity measurements). The ensemble blends both to produce the final predicted activity score used for panel selection.
+            Two models independently predict each crRNA's cleavage activity: a heuristic (biophysical features: seed position, GC, secondary structure) and GUARD-Net (CNN + RNA-FM + RLPA, trained on 25K+ cis- and trans-cleavage measurements, validated on diagnostic trans-cleavage at \u03c1 = 0.55). The ensemble blends both to produce the final predicted activity score used for panel selection.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "16px" }}>
             <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
