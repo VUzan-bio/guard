@@ -324,20 +324,27 @@ class GUARDNetScorer(Scorer):
             else:
                 state_dict = checkpoint
 
-            # Handle partial loading (e.g. loading RLPA checkpoint into
-            # multitask model — disc_head keys will be missing)
+            # Handle partial loading: filter out unexpected keys (e.g.
+            # domain_head from training) and allow missing keys (e.g.
+            # disc_head when loading RLPA checkpoint into multitask model)
             model_keys = set(self.model.state_dict().keys())
             ckpt_keys = set(state_dict.keys())
             missing = model_keys - ckpt_keys
+            unexpected = ckpt_keys - model_keys
+            if unexpected:
+                logger.info(
+                    "GUARD-Net: filtering %d unexpected keys from checkpoint: %s",
+                    len(unexpected),
+                    list(unexpected)[:5],
+                )
+                state_dict = {k: v for k, v in state_dict.items() if k in model_keys}
             if missing:
                 logger.info(
                     "GUARD-Net: %d keys missing from checkpoint (expected for partial load): %s",
                     len(missing),
                     list(missing)[:5],
                 )
-                self.model.load_state_dict(state_dict, strict=False)
-            else:
-                self.model.load_state_dict(state_dict)
+            self.model.load_state_dict(state_dict, strict=False)
 
             self.model.to(self._device)
             self.model.eval()
