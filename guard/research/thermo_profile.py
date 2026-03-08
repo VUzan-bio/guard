@@ -264,7 +264,9 @@ def get_thermo_profile(
     hybrid_dg = compute_hybrid_dg(crrna)
     target_unwinding = compute_target_unwinding_cost(protospacer)
     spacer_unfolding = compute_spacer_unfolding_cost(crrna)
-    net_dg = round(hybrid_dg - target_unwinding - spacer_unfolding, 2)
+    # Net nucleic acid dG: hybrid_dg is negative (gain), costs are positive
+    # ΔG_total = ΔG_hybrid + ΔG_unwind + ΔG_unfold
+    net_dg = round(hybrid_dg + target_unwinding + spacer_unfolding, 2)
 
     # Scalar features
     melting_tm = compute_melting_temperature(crrna)
@@ -283,10 +285,16 @@ def get_thermo_profile(
         },
         "per_position_dg": per_pos,
         "energy_budget": {
-            "spacer_unfolding_cost": spacer_unfolding,
-            "target_unwinding_cost": target_unwinding,
+            "spacer_unfolding_cost": round(spacer_unfolding, 2),
+            "target_unwinding_cost": round(target_unwinding, 2),
             "hybrid_formation_dg": round(hybrid_dg, 2),
             "net_dg": net_dg,
+            "note": (
+                "Protein-mediated stabilisation not included. Cas12a provides "
+                "additional binding energy (~10\u201330 kcal/mol from PAM recognition, "
+                "REC domain contacts, and conformational coupling) that makes "
+                "R-loop formation favourable in vivo."
+            ),
         },
         "scalars": {
             "net_dg": net_dg,

@@ -4672,14 +4672,15 @@ const ResearchPage = ({ connected }) => {
               </div>
 
               {/* Metrics row */}
-              <div style={{ display: "grid", gridTemplateColumns: mobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: "8px", marginBottom: "20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: mobile ? "repeat(3, 1fr)" : "repeat(7, 1fr)", gap: "8px", marginBottom: "20px" }}>
                 {[
-                  { label: "Net dG", value: `${sc.net_dg} kcal/mol`, tip: "Sum of unfolding costs minus hybrid gain" },
-                  { label: "Seed dG (1-8)", value: `${sc.seed_dg} kcal/mol`, tip: "Free energy of seed region hybridization" },
-                  { label: "Tm (hybrid)", value: `${sc.melting_tm}\u00B0C`, tip: "Melting temperature of RNA:DNA hybrid" },
-                  { label: "Unwinding cost", value: `+${(sc.target_unwinding || 0) + (sc.spacer_unfolding || 0)} kcal/mol`, tip: "Total cost: spacer unfolding + target unwinding" },
+                  { label: "Hybrid dG", value: `${(eb.hybrid_formation_dg || 0).toFixed(2)} kcal/mol`, tip: "RNA:DNA hybrid formation energy (what the cumulative profile shows)" },
+                  { label: "Net dG (nucleic acid)", value: `${(eb.net_dg || 0).toFixed(2)} kcal/mol`, tip: "hybrid + unwinding + unfolding; excludes protein stabilisation" },
+                  { label: "Seed dG (1-8)", value: `${(sc.seed_dg || 0).toFixed(2)} kcal/mol`, tip: "Free energy of seed region hybridization" },
+                  { label: "Tm (hybrid)", value: `${(sc.melting_tm || 0).toFixed(1)}\u00B0C`, tip: "Melting temperature of RNA:DNA hybrid" },
+                  { label: "Unwinding cost", value: `+${((sc.target_unwinding || 0) + (sc.spacer_unfolding || 0)).toFixed(2)} kcal/mol`, tip: "Total cost: spacer unfolding + target unwinding" },
                   { label: "GC content", value: `${sc.gc_content || 0}%`, tip: "GC percentage of spacer" },
-                  { label: "SNP barrier", value: sc.snp_barrier != null ? `+${sc.snp_barrier} kcal/mol` : "N/A", tip: "Energy penalty at mismatch position (discrimination basis)" },
+                  { label: "SNP barrier", value: sc.snp_barrier != null ? `+${Number(sc.snp_barrier).toFixed(2)} kcal/mol` : "N/A", tip: "Energy penalty at mismatch position (discrimination basis)" },
                 ].map(m => (
                   <div key={m.label} style={{ background: RS.cardBg, border: `1px solid ${RS.border}`, borderRadius: "6px", padding: "10px 12px" }} title={m.tip}>
                     <div style={{ fontSize: "9px", color: RS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</div>
@@ -4735,7 +4736,7 @@ const ResearchPage = ({ connected }) => {
                 {/* Discrimination annotation */}
                 {wp && thermoShowWT && sc.snp_barrier != null && (
                   <div style={{ marginTop: "12px", padding: "10px 14px", background: RS.seedBg, borderRadius: "6px", fontSize: "11px", color: RS.text, lineHeight: 1.6 }}>
-                    <strong>Thermodynamic discrimination:</strong> The mismatch at position {snpPos} creates a +{sc.snp_barrier} kcal/mol barrier in the wildtype R-loop.
+                    <strong>Thermodynamic discrimination:</strong> The mismatch at position {snpPos} creates a +{Number(sc.snp_barrier).toFixed(2)} kcal/mol barrier in the wildtype R-loop.
                     {snpPos <= 4 ? " At this seed position, the barrier occurs early in R-loop propagation, likely causing complete R-loop collapse (Strohkendl et al., 2018)." : snpPos <= 8 ? " Within the seed region, this barrier significantly impedes R-loop extension." : " At this PAM-distal position, the barrier occurs after substantial R-loop formation and may be partially tolerated."}
                   </div>
                 )}
@@ -4781,7 +4782,7 @@ const ResearchPage = ({ connected }) => {
                             width: `${pct}%`, height: "100%", background: item.color, opacity: 0.2, borderRadius: "4px",
                           }} />
                           <div style={{ position: "absolute", top: 0, left: item.type === "gain" ? 0 : undefined, right: item.type === "cost" ? 0 : undefined, width: `${pct}%`, height: "100%", display: "flex", alignItems: "center", justifyContent: item.type === "gain" ? "flex-end" : "flex-start", padding: "0 8px" }}>
-                            <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: MONO, color: item.color }}>{item.value > 0 ? "+" : ""}{item.value.toFixed(1)}</span>
+                            <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: MONO, color: item.color }}>{item.value > 0 ? "+" : ""}{item.value.toFixed(2)}</span>
                           </div>
                         </div>
                         <div style={{ width: "60px", fontSize: "10px", color: RS.muted, flexShrink: 0 }}>{item.type === "cost" ? "cost" : "gain"}</div>
@@ -4790,14 +4791,20 @@ const ResearchPage = ({ connected }) => {
                   })}
                   {/* Net line */}
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", borderTop: `1px solid ${RS.border}`, paddingTop: "8px", marginTop: "4px" }}>
-                    <div style={{ width: "180px", fontSize: "12px", fontWeight: 700, color: RS.text, textAlign: "right" }}>Net dG</div>
+                    <div style={{ width: "180px", fontSize: "12px", fontWeight: 700, color: RS.text, textAlign: "right" }}>Net dG (nucleic acid)</div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: MONO, color: netDg < 0 ? RS.positive : RS.negative }}>{netDg.toFixed(1)} kcal/mol</span>
-                      <span style={{ fontSize: "11px", color: RS.muted, marginLeft: "8px" }}>{netDg < -15 ? "strongly favourable" : netDg < -5 ? "moderately favourable" : "weakly favourable"}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: MONO, color: netDg < 0 ? RS.positive : RS.negative }}>{netDg.toFixed(2)} kcal/mol</span>
+                      <span style={{ fontSize: "11px", color: RS.muted, marginLeft: "8px" }}>{netDg < -15 ? "strongly favourable" : netDg < -5 ? "moderately favourable" : netDg < 0 ? "weakly favourable" : "unfavourable without protein"}</span>
                     </div>
                     <div style={{ width: "60px" }} />
                   </div>
                 </div>
+                {/* Protein stabilisation note */}
+                {netDg >= 0 && (
+                  <div style={{ marginTop: "12px", padding: "10px 14px", background: RS.seedBg, borderRadius: "6px", fontSize: "11px", color: RS.text, lineHeight: 1.6 }}>
+                    <strong>Note:</strong> The positive net dG indicates that nucleic acid thermodynamics alone do not favour R-loop formation at this target. Cas12a protein provides 10{"\u2013"}30 kcal/mol of additional stabilisation through PAM recognition, REC domain contacts, and conformational coupling (Strohkendl et al. 2024; CRISPRzip, Offerhaus et al. 2025). The hybrid dG ({(eb.hybrid_formation_dg || 0).toFixed(2)} kcal/mol) remains the best available predictor of relative guide performance across candidates, as the protein contribution is approximately constant.
+                  </div>
+                )}
                 {/* References */}
                 <div style={{ marginTop: "12px", fontSize: "10px", color: "#a3a3a3", fontStyle: "italic" }}>
                   {(thermoData.references || []).join(" | ")}
