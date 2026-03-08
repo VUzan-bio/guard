@@ -113,9 +113,11 @@ class GUARDNetScorer(Scorer):
             if cache_path.exists():
                 self._load_rnafm_cache(cache_path)
             else:
-                self._use_rnafm = False
+                # Keep _use_rnafm True — the model architecture expects
+                # 128-dim fused input (64 CNN + 64 RNA-FM projection).
+                # Zero embeddings degrade gracefully.
                 logger.info(
-                    "RNA-FM cache dir %s not found — using CNN-only mode",
+                    "RNA-FM cache dir %s not found — using zero embeddings (model needs RNA-FM dim)",
                     cache_path,
                 )
 

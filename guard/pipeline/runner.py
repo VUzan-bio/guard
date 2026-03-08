@@ -508,26 +508,29 @@ class GUARDPipeline:
         all_ensemble: list[float] = []
         if cnn_available:
             t0_ml = time.perf_counter_ns()
-            is_calibrated = self.ml_scorer.calibrated
-            cal_T = self.ml_scorer.temperature
-            cal_alpha = self.ml_scorer.alpha
-            for label, scored_list in scored_by_target.items():
-                for sc in scored_list:
-                    raw_pred = self.ml_scorer._predict(sc.candidate)
-                    sc.cnn_score = round(raw_pred, 4)
-                    ml_name = "guard_net" if hasattr(self.ml_scorer, '_predict_single') else "seq_cnn"
-                    sc.ml_scores = [MLScore(model_name=ml_name, predicted_efficiency=raw_pred)]
-                    all_cnn_raw.append(raw_pred)
-
-                    # Temperature-calibrated CNN score
-                    cal_pred = self.ml_scorer.calibrated_score(raw_pred)
-                    sc.cnn_calibrated = round(cal_pred, 4)
-                    all_cnn_cal.append(cal_pred)
-
-                    # Ensemble score
-                    ens = self.ml_scorer.ensemble_score(sc.heuristic.composite, cal_pred)
-                    sc.ensemble_score = round(ens, 4)
-                    all_ensemble.append(ens)
+            ml_name = "guard_net" if hasattr(self.ml_scorer, '_predict_single') else "seq_cnn"
+            # Batch all candidates for efficient inference
+            all_sc = []
+            for scored_list in scored_by_target.values():
+                all_sc.extend(scored_list)
+            if hasattr(self.ml_scorer, '_encode_context'):
+                # GUARDNetScorer: batch encode + predict
+                contexts = [self.ml_scorer._encode_context(sc.candidate) for sc in all_sc]
+                rnafm_embs = [self.ml_scorer._get_rnafm_embedding(sc.candidate) for sc in all_sc]
+                raw_preds = self.ml_scorer._predict_batch(contexts, rnafm_embs)
+            else:
+                # SeqCNN: individual predictions
+                raw_preds = [self.ml_scorer._predict(sc.candidate) for sc in all_sc]
+            for sc, raw_pred in zip(all_sc, raw_preds):
+                sc.cnn_score = round(raw_pred, 4)
+                sc.ml_scores = [MLScore(model_name=ml_name, predicted_efficiency=raw_pred)]
+                all_cnn_raw.append(raw_pred)
+                cal_pred = self.ml_scorer.calibrated_score(raw_pred)
+                sc.cnn_calibrated = round(cal_pred, 4)
+                all_cnn_cal.append(cal_pred)
+                ens = self.ml_scorer.ensemble_score(sc.heuristic.composite, cal_pred)
+                sc.ensemble_score = round(ens, 4)
+                all_ensemble.append(ens)
 
             ml_dur = (time.perf_counter_ns() - t0_ml) // 1_000_000
             ml_rho = self.ml_scorer.validation_rho or 0.0
