@@ -1818,7 +1818,7 @@ const OverviewTab = ({ results, scorer }) => {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px 24px", fontSize: "12px" }}>
             <div><strong>Score</strong> (0–1) — predicted Cas12a trans-cleavage activity. A score of 0.8 means the crRNA is expected to trigger strong collateral cleavage of the fluorescent reporter, producing a bright signal in ~10 min. Below 0.4, the guide may not generate a detectable signal within a clinically useful timeframe. {usesGuardNet ? "Computed as an ensemble of GUARD-Net (trained on 25K+ activity measurements) and heuristic biophysical features." : "Computed from position-weighted biophysical features."}</div>
-            <div><strong>Discrimination</strong> (×) — fold-difference in cleavage activity between the mutant (resistant) and wildtype (susceptible) template. A 5× ratio means the guide cleaves 5× faster on the mutant — so the assay signal from a resistant sample is 5× stronger than from a susceptible sample. ≥ 3× is diagnostic-grade.</div>
+            <div><strong>Discrimination</strong> (×) — fold-difference in cleavage activity between the mutant (resistant) and wildtype (susceptible) template. A 5× ratio means the guide cleaves 5× faster on the mutant — so the assay signal from a resistant sample is 5× stronger than from a susceptible sample. ≥ 3× is diagnostic-grade. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Predicted by a gradient-boosted model trained on 6,136 EasyDesign pairs using 15 thermodynamic features." : "Predicted by heuristic position × destabilisation model."}</div>
             <div><strong>RPA Primers</strong> — isothermal amplification primers (37°C, no thermal cycler). RPA amplifies the target region in 15–20 min, then Cas12a detects the amplified product. A candidate without primers cannot be used as a complete assay.</div>
             <div><strong>Drug class</strong> — which antibiotic the mutation confers resistance to (e.g. RIF = rifampicin, INH = isoniazid). A 14-plex panel covers all 6 WHO priority drug classes for MDR/XDR-TB.</div>
           </div>
@@ -1841,6 +1841,7 @@ const OverviewTab = ({ results, scorer }) => {
         <StatGroup title="Discrimination" items={[
           { l: "Avg. ratio", v: `${avgDisc}×` },
           { l: "Diagnostic-grade", v: highDisc, sub: "≥ 3× threshold" },
+          { l: "Model", v: directResults.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Learned" : "Heuristic", sub: directResults.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "XGBoost · 15 features" : "position × destab" },
         ]} />
         <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "auto", background: T.border, flexShrink: 0 }} />
         <StatGroup title="Predicted Activity" items={[
@@ -3080,7 +3081,7 @@ const DiscriminationTab = ({ results }) => {
               const avgDisc = +(discChart.reduce((a, d) => a + d.disc, 0) / discChart.length).toFixed(1);
               return (
                 <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
-                  <strong style={{ color: T.primary }}>Interpretation:</strong> {diagGrade}/{directCands.length} candidates reach diagnostic-grade (≥ 3×), panel avg {avgDisc}×.
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> {diagGrade}/{directCands.length} candidates reach diagnostic-grade (≥ 3×), panel avg {avgDisc}×{directCands.some(r => (r.discrimination?.model_name || "").includes("learned")) ? " (learned model)" : " (heuristic)"}.
                   {bestDisc ? ` Highest: ${bestDisc.name} at ${bestDisc.disc.toFixed(1)}× — likely a seed-region mismatch (positions 1–4).` : ""}
                   {worstDisc ? ` Lowest: ${worstDisc.name} at ${worstDisc.disc.toFixed(1)}×${worstDisc.disc < 2 ? " — insufficient for any detection method, SM enhancement required." : worstDisc.disc < 3 ? " — acceptable but not diagnostic-grade." : "."}` : ""}
                   {below2.length > 0 ? ` ${below2.length} candidate${below2.length > 1 ? "s" : ""} (${below2.map(d => d.name).slice(0, 3).join(", ")}${below2.length > 3 ? "…" : ""}) fall below the 2× minimum — these have PAM-distal mismatches and require synthetic mismatch engineering.` : " All candidates meet the 2× minimum detection threshold."}
@@ -3098,7 +3099,7 @@ const DiscriminationTab = ({ results }) => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
           <thead>
             <tr style={{ background: T.bgSub }}>
-              {["Rank", "Target", "Drug", "Discrimination", "Score", "Status"].map(h => (
+              {["Rank", "Target", "Drug", "Discrimination", "Model", "Score", "Status"].map(h => (
                 <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, borderBottom: `1px solid ${T.border}` }}>{h}</th>
               ))}
             </tr>
@@ -3110,6 +3111,9 @@ const DiscriminationTab = ({ results }) => {
                 <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px" }}>{r.label}</td>
                 <td style={{ padding: "10px 14px" }}><DrugBadge drug={r.drug} /></td>
                 <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger }}>{typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×</td>
+                <td style={{ padding: "10px 14px", fontSize: "10px", color: (r.discrimination?.model_name || "").includes("learned") ? T.success : T.textTer }}>
+                  {(r.discrimination?.model_name || "").includes("learned") ? "Learned" : "Heuristic"}
+                </td>
                 <td style={{ padding: "10px 14px", fontFamily: MONO }}>{r.score.toFixed(3)}</td>
                 <td style={{ padding: "10px 14px" }}>
                   <Badge variant={r.disc >= 3 ? "success" : r.disc >= 2 ? "warning" : "danger"}>
@@ -3194,7 +3198,7 @@ const PrimersTab = ({ results }) => {
           <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: 0 }}>
             Symmetric flanking primers for <strong>DIRECT detection</strong> candidates. The crRNA spacer overlaps the mutation site,
             so allele discrimination comes from Cas12a mismatch intolerance — not from primers. Primers simply amplify the region
-            containing the crRNA binding site.
+            containing the crRNA binding site. Discrimination ratios are {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "predicted by a learned model (LightGBM, 15 thermodynamic features)" : "estimated by position × destabilisation heuristic"}.
           </p>
         </div>
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "20px" }}>
@@ -3242,7 +3246,7 @@ const PrimersTab = ({ results }) => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: 700 }}>
           <thead>
             <tr style={{ background: T.bgSub }}>
-              {["Target", "Type", "Forward Primer", "Reverse Primer", "Amplicon", "SM"].map((h) => (
+              {["Target", "Type", "Disc", "Forward Primer", "Reverse Primer", "Amplicon", "SM"].map((h) => (
                 <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, borderBottom: `1px solid ${T.border}` }}>{h}</th>
               ))}
             </tr>
@@ -3255,6 +3259,9 @@ const PrimersTab = ({ results }) => {
                   <Badge variant={r.strategy === "Direct" ? "success" : "purple"}>
                     {r.strategy === "Direct" ? "Standard" : "AS-RPA"}
                   </Badge>
+                </td>
+                <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px", color: r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger }}>
+                  {r.strategy === "Proximity" ? "AS-RPA" : r.disc > 0 ? `${r.disc.toFixed(1)}×` : "—"}
                 </td>
                 <td style={{ padding: "10px 14px" }}><Seq s={r.fwd} /></td>
                 <td style={{ padding: "10px 14px" }}><Seq s={r.rev} /></td>
@@ -3292,7 +3299,7 @@ const MultiplexTab = ({ results }) => {
           <p style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
             <strong>Cross-reactivity</strong> is the risk that one crRNA accidentally binds to another target's amplicon or primer,
             producing a false signal. The optimizer uses simulated annealing to pick the combination of guides that
-            minimizes cross-talk while maximizing discrimination across the full panel.
+            minimizes cross-talk while maximizing discrimination across the full panel. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Discrimination ratios are from the learned model (LightGBM, 15 thermodynamic features, trained on 6,136 EasyDesign pairs)." : ""}
           </p>
         </div>
       </div>
@@ -3305,6 +3312,8 @@ const MultiplexTab = ({ results }) => {
             const drugResults = results.filter((r) => r.drug === d);
             const cnt = drugResults.length;
             const primerCnt = drugResults.filter(r => r.hasPrimers).length;
+            const directDrug = drugResults.filter(r => r.strategy === "Direct" && r.disc > 0 && r.disc < 900);
+            const avgDiscDrug = directDrug.length ? +(directDrug.reduce((a, r) => a + r.disc, 0) / directDrug.length).toFixed(1) : null;
             return (
               <div key={d} style={{ padding: "16px", borderRadius: "10px", border: `1px solid ${T.border}`, background: T.bgSub, textAlign: "center" }}>
                 <DrugBadge drug={d} />
@@ -3313,6 +3322,11 @@ const MultiplexTab = ({ results }) => {
                 <div style={{ fontSize: "10px", color: primerCnt === cnt ? T.success : T.warning, fontWeight: 600, marginTop: "4px" }}>
                   {primerCnt}/{cnt} with primers
                 </div>
+                {avgDiscDrug != null && (
+                  <div style={{ fontSize: "10px", color: avgDiscDrug >= 3 ? T.success : avgDiscDrug >= 2 ? T.warning : T.danger, fontWeight: 600, marginTop: "2px" }}>
+                    avg disc {avgDiscDrug}×
+                  </div>
+                )}
               </div>
             );
           })}
@@ -3332,6 +3346,18 @@ const MultiplexTab = ({ results }) => {
             <div style={{ fontSize: "20px", fontWeight: 800, fontFamily: MONO, color: T.primary }}>{withPrimers}</div>
             <div style={{ fontSize: "11px", color: T.textSec }}>Assay-ready</div>
           </div>
+          {(() => {
+            const directAll = results.filter(r => r.strategy === "Direct" && r.disc > 0 && r.disc < 900);
+            const panelAvgDisc = directAll.length ? +(directAll.reduce((a, r) => a + r.disc, 0) / directAll.length).toFixed(1) : 0;
+            const diagGrade = directAll.filter(r => r.disc >= 3).length;
+            return (
+              <div style={{ flex: 1, background: T.bgSub, borderRadius: "8px", padding: "12px", border: `1px solid ${T.borderLight}`, textAlign: "center" }}>
+                <div style={{ fontSize: "20px", fontWeight: 800, fontFamily: MONO, color: panelAvgDisc >= 3 ? T.success : T.warning }}>{panelAvgDisc}×</div>
+                <div style={{ fontSize: "11px", color: T.textSec }}>Avg. discrimination</div>
+                <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{diagGrade}/{directAll.length} diagnostic-grade</div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -3774,7 +3800,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <div>
                     <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>MUT vs WT Predicted Activity</div>
                     <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5, maxWidth: "540px" }}>
-                      How strongly will each crRNA cleave the mutant (resistant) vs wildtype (susceptible) template? Greater separation between curves means the panel can better distinguish drug-resistant from drug-susceptible TB. Overlap represents the diagnostic grey zone where false results are most likely.
+                      How strongly will each crRNA cleave the mutant (resistant) vs wildtype (susceptible) template? Greater separation between curves means the panel can better distinguish drug-resistant from drug-susceptible TB. Overlap represents the diagnostic grey zone where false results are most likely. WT activity is derived from the {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "learned discrimination model" : "heuristic discrimination"} (A_WT = A_MUT / disc ratio).
                     </div>
                   </div>
                   <Badge variant={separation >= 0.15 ? "success" : separation >= 0.08 ? "warning" : "danger"}>
@@ -3887,6 +3913,13 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                 <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>High GC content reduces discrimination</div>
                 <em>M. tuberculosis</em> has 65.8% GC content. GC-rich sequences around a mismatch stabilise the R-loop through additional hydrogen bonds, partially compensating for the mismatch. This is why some targets (EMB, PZA) show low predicted discrimination — their mutations sit in GC-rich regions at PAM-distal positions.
               </div>
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, marginBottom: "4px" }}>Prediction model</div>
+                {results.some(r => (r.discrimination?.model_name || "").includes("learned"))
+                  ? "Discrimination ratios are predicted by a gradient-boosted model (LightGBM) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 15 thermodynamic features including R-loop cumulative ΔG, mismatch ΔΔG penalties, and position sensitivity. 3-fold CV: RMSE = 0.540, r = 0.459 (vs heuristic RMSE = 0.641, r = 0.298)."
+                  : "Discrimination ratios are predicted by a heuristic model using position sensitivity × mismatch destabilisation scores. A trained model (XGBoost on 15 thermodynamic features) is available but was not loaded for this run."
+                }
+              </div>
               <div style={{ fontSize: "11px", color: T.textTer, fontStyle: "italic", borderTop: `1px solid ${T.borderLight}`, paddingTop: "10px" }}>
                 These are in silico predictions. Experimental validation on the electrochemical platform will provide measured discrimination ratios through the active learning loop.
               </div>
@@ -3913,7 +3946,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                 </Badge>
               </div>
               <div style={{ padding: "12px 18px", fontSize: "11px", color: T.textSec, lineHeight: 1.6, borderBottom: `1px solid ${T.borderLight}`, background: T.bg }}>
-                WHO Target Product Profile (TPP) 2024 defines minimum sensitivity and specificity thresholds per drug class for diagnostic deployment. Sensitivity = fraction of resistance-conferring mutations detected (pass/fail per drug class). Specificity = estimated from discrimination ratios (Direct: 1−1/disc, Proximity: AS-RPA 0.95); ≥98% required — marked "Pending" when below threshold as experimental validation is needed.
+                WHO Target Product Profile (TPP) 2024 defines minimum sensitivity and specificity thresholds per drug class for diagnostic deployment. Sensitivity = fraction of resistance-conferring mutations detected (pass/fail per drug class). Specificity = estimated from discrimination ratios (Direct: 1−1/disc, Proximity: AS-RPA 0.95); ≥98% required — marked "Pending" when below threshold as experimental validation is needed. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Discrimination ratios used here are from the learned model (LightGBM, 15 thermodynamic features)." : "Discrimination ratios used here are from the heuristic model."}
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT, fontSize: "12px" }}>
