@@ -1489,7 +1489,7 @@ const HomePage = ({ goTo, connected }) => {
                   {[
                     {
                       label: "Branch 1", title: "Multi-Scale CNN", accent: T.primary,
-                      input: "34-nucleotide one-hot encoded target context (4 bp upstream + 4 bp PAM + 23 bp protospacer + 3 bp downstream). Encoded as a 4 x 34 binary matrix.",
+                      input: "34-nucleotide one-hot encoded target context (4 nt PAM + 20 nt protospacer + 10 nt flanking downstream). Encoded as a 4 × 34 binary matrix.",
                       process: "Three parallel convolutional paths (kernel sizes 3, 5, 7) with 32 channels each, batch normalisation, and dropout (0.3). Outputs are concatenated and projected to 64-dim per position via a 1x1 convolution.",
                       output: "64-dimensional feature vector per position capturing local sequence determinants: dinucleotide preferences, seed complementarity, PAM-proximal patterns.",
                     },
@@ -4574,23 +4574,25 @@ const ScoringPage = ({ connected }) => {
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px" }}>
           Dual-branch neural network combining a target-DNA CNN with RNA Foundation Model (RNA-FM) embeddings for crRNA secondary structure.
           R-Loop Propagation Attention (RLPA) encodes the biophysics of Cas12a's directional R-loop formation into the architecture.
-          Trained on 15,000 high-throughput Cas12a measurements (Kim et al., 2018). Ensemble with heuristic serves as primary ranking score.
+          Trained on 25,000+ cis- and trans-cleavage measurements from Kim et al. (2018) and Huang et al. (2024). Ensemble with heuristic serves as primary ranking score.
         </p>
 
         {/* Architecture branches */}
-        <div style={{ fontSize: "12px", fontWeight: 700, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Model Branches</div>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Branch Ablation (Kim 2018 cross-library)</div>
         <div style={{ background: T.bgSub, borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
           {[
-            { name: "CNN branch (target DNA)", weight: 0.45 },
-            { name: "RNA-FM branch (crRNA structure)", weight: 0.30 },
-            { name: "RLPA attention (R-loop kinetics)", weight: 0.25 },
+            { name: "CNN only (baseline)", rho: "0.496", delta: null },
+            { name: "+ RNA-FM embeddings", rho: "0.501", delta: "+0.005" },
+            { name: "+ RLPA attention", rho: "0.534", delta: "+0.033" },
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
-              <div style={{ width: 220, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
-              <div style={{ flex: 1, height: 8, background: T.bg, borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: `${f.weight * 100}%`, height: "100%", background: T.primary, borderRadius: 4 }} />
-              </div>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: T.primary, width: 50, textAlign: "right" }}>{(f.weight * 100).toFixed(0)}%</span>
+              <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
+              <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: MONO, color: T.text, width: 55, textAlign: "right" }}>{f.rho}</span>
+              {f.delta ? (
+                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: MONO, color: T.success, width: 55, textAlign: "right" }}>{f.delta}</span>
+              ) : (
+                <span style={{ width: 55, textAlign: "right", fontSize: "11px", color: T.textTer }}>baseline</span>
+              )}
             </div>
           ))}
         </div>
@@ -4602,9 +4604,10 @@ const ScoringPage = ({ connected }) => {
             ["Architecture", "CNN + RNA-FM → RLPA Attention → Fusion → Dense"],
             ["CNN input", "One-hot 34nt (PAM + spacer + context)"],
             ["RNA-FM input", "Pre-cached 640-dim embeddings (20 positions)"],
-            ["Training data", "15,000 guides (Kim et al., 2018)"],
+            ["Training data", "25K+ guides (Kim 2018 + Huang 2024)"],
             ["Parameters", "235K"],
-            ["Val ρ", "0.537 (Spearman, with RLPA + RNA-FM)"],
+            ["Val ρ (cis)", "0.49 (Spearman, Kim 2018 cross-library)"],
+            ["Val ρ (trans)", "0.55 (Spearman, Huang 2024 EasyDesign)"],
             ["Attention", "RLPA — causal mask encoding PAM→distal R-loop propagation"],
             ["Loss", "Huber + differentiable Spearman"],
           ].map(([k, v], i, arr) => (
