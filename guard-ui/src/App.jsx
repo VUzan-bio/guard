@@ -3182,6 +3182,21 @@ const MultiplexTab = ({ results }) => {
 /* ═══════════════════════════════════════════════════════════════════
    DIAGNOSTICS TAB — Block 3 Sensitivity-Specificity Optimization
    ═══════════════════════════════════════════════════════════════════ */
+class DiagnosticsErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("DiagnosticsTab crash:", error, info); }
+  render() {
+    if (this.state.error) return (
+      <div style={{ padding: "24px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", margin: "16px 0" }}>
+        <div style={{ fontWeight: 700, color: "#991B1B", marginBottom: "8px" }}>Diagnostics failed to render</div>
+        <div style={{ fontSize: "12px", color: "#7F1D1D", fontFamily: "monospace" }}>{this.state.error.message}</div>
+        <button onClick={() => this.setState({ error: null })} style={{ marginTop: "12px", padding: "6px 16px", border: "1px solid #FECACA", borderRadius: "6px", cursor: "pointer", background: "white", fontSize: "12px" }}>Retry</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
   const mobile = useIsMobile();
 
@@ -3212,45 +3227,56 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
 
   // Compute diagnostics client-side from results prop + preset thresholds
   const computeLocalDiagnostics = useCallback((preset, res) => {
-    if (!res || !res.length) return;
-    const p = presets.find(x => x.name === preset) || { efficiency_threshold: 0.4, discrimination_threshold: 3.0 };
-    const effT = p.efficiency_threshold;
-    const discT = p.discrimination_threshold;
+    try {
+      if (!res || !res.length) return;
+      const p = presets.find(x => x.name === preset) || { efficiency_threshold: 0.4, discrimination_threshold: 3.0 };
+      const effT = p.efficiency_threshold || 0.4;
+      const discT = p.discrimination_threshold || 3.0;
 
-    const perTarget = res.map(r => {
-      const eff = r.ensembleScore || r.score;
-      const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
-      const ready = r.hasPrimers && eff >= effT && (r.strategy === "Proximity" || disc >= discT);
-      return { target_label: r.label, drug: r.drug, efficiency: eff, discrimination: disc, is_assay_ready: ready, has_primers: r.hasPrimers, strategy: r.strategy };
-    });
+      const perTarget = res.map(r => {
+        const eff = r.ensembleScore ?? r.score ?? 0;
+        const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
+        const ready = r.hasPrimers && eff >= effT && (r.strategy === "Proximity" || disc >= discT);
+        return { target_label: r.label || "unknown", drug: r.drug || "", efficiency: eff, discrimination: disc, is_assay_ready: ready, has_primers: !!r.hasPrimers, strategy: r.strategy || "Direct" };
+      });
 
-    // Exclude species control (IS6110) from resistance metrics
-    const resistanceTargets = perTarget.filter(t => t.drug !== "OTHER");
-    const assayReady = resistanceTargets.filter(t => t.is_assay_ready).length;
-    const directTargets = resistanceTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
-    const meanDisc = directTargets.length ? directTargets.reduce((a, t) => a + t.discrimination, 0) / directTargets.length : 0;
-    const specificity = directTargets.length ? directTargets.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directTargets.length : 0;
-    const sensitivity = resistanceTargets.length ? assayReady / resistanceTargets.length : 0;
+      // Exclude species control (IS6110) from resistance metrics
+      const resistanceTargets = perTarget.filter(t => t.drug !== "OTHER");
+      const assayReady = resistanceTargets.filter(t => t.is_assay_ready).length;
+      const directTargets = resistanceTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+      const meanDisc = directTargets.length ? directTargets.reduce((a, t) => a + t.discrimination, 0) / directTargets.length : 0;
+      const specificity = directTargets.length ? directTargets.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directTargets.length : 0;
+      const sensitivity = resistanceTargets.length ? assayReady / resistanceTargets.length : 0;
 
-    setDiagnostics({
-      sensitivity, specificity, coverage: assayReady, total_targets: resistanceTargets.length,
-      assay_ready: assayReady, mean_efficiency: +(res.reduce((a, r) => a + (r.ensembleScore || r.score), 0) / res.length).toFixed(3),
-      mean_discrimination: +meanDisc.toFixed(1), per_target: perTarget,
-    });
+      const meanEff = res.length > 0 ? res.reduce((a, r) => a + (r.ensembleScore ?? r.score ?? 0), 0) / res.length : 0;
 
-    // WHO compliance by drug class (exclude species control)
-    const drugs = [...new Set(res.map(r => r.drug))].filter(d => d !== "OTHER");
-    const whoComp = {};
-    for (const drug of drugs) {
-      const drugTargets = perTarget.filter(t => t.drug === drug);
-      const covered = drugTargets.filter(t => t.is_assay_ready).length;
-      const drugDirect = drugTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
-      const drugSens = drugTargets.length ? covered / drugTargets.length : 0;
-      const drugSpec = drugDirect.length ? drugDirect.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / drugDirect.length : 0;
-      const tppSens = drug === "RIF" ? 0.95 : ["INH", "FQ"].includes(drug) ? 0.90 : 0.80;
-      whoComp[drug] = { sensitivity: +drugSens.toFixed(3), specificity: +drugSpec.toFixed(3), meets_tpp: drugSens >= tppSens && drugSpec >= 0.98, targets_covered: covered, targets_total: drugTargets.length };
+      setDiagnostics({
+        sensitivity, specificity, coverage: assayReady, total_targets: resistanceTargets.length,
+        assay_ready: assayReady, mean_efficiency: +meanEff.toFixed(3),
+        mean_discrimination: +meanDisc.toFixed(1), per_target: perTarget,
+      });
+
+      // WHO compliance by drug class (exclude species control)
+      const drugs = [...new Set(res.map(r => r.drug))].filter(d => d && d !== "OTHER");
+      const whoComp = {};
+      for (const drug of drugs) {
+        const drugTargets = perTarget.filter(t => t.drug === drug);
+        const covered = drugTargets.filter(t => t.is_assay_ready).length;
+        const drugDirect = drugTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+        const drugSens = drugTargets.length ? covered / drugTargets.length : 0;
+        const drugSpec = drugDirect.length ? drugDirect.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / drugDirect.length : 0;
+        const tppSens = drug === "RIF" ? 0.95 : ["INH", "FQ"].includes(drug) ? 0.90 : 0.80;
+        whoComp[drug] = { sensitivity: +drugSens.toFixed(3), specificity: +drugSpec.toFixed(3), meets_tpp: drugSens >= tppSens && drugSpec >= 0.98, targets_covered: covered, targets_total: drugTargets.length };
+      }
+      setWhoCompliance({ preset, panel_sensitivity: +sensitivity.toFixed(3), panel_specificity: +specificity.toFixed(3), who_compliance: whoComp });
+    } catch (err) {
+      console.error("computeLocalDiagnostics error:", err);
+      // Set minimal diagnostics so the page isn't blank
+      setDiagnostics({
+        sensitivity: 0, specificity: 0, coverage: 0, total_targets: res?.length || 0,
+        assay_ready: 0, mean_efficiency: 0, mean_discrimination: 0, per_target: [],
+      });
     }
-    setWhoCompliance({ preset, panel_sensitivity: +sensitivity.toFixed(3), panel_specificity: +specificity.toFixed(3), who_compliance: whoComp });
   }, [presets]);
 
   // Load presets on mount — try API first, fall back to hardcoded
@@ -3267,25 +3293,31 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
   // Load diagnostics + WHO compliance — try API, fall back to client-side computation
   useEffect(() => {
     if (!results || !results.length) return;
+    let cancelled = false;
     setLoadingDiag(true);
     if (connected && jobId) {
       Promise.all([
         getDiagnostics(jobId, activePreset),
         getWHOCompliance(jobId, activePreset),
       ]).then(([diagRes, whoRes]) => {
+        if (cancelled) return;
         if (diagRes.data && whoRes.data) {
           setDiagnostics(diagRes.data);
           setWhoCompliance(whoRes.data);
         } else {
-          // API failed (job not cached) — compute locally from results
           computeLocalDiagnostics(activePreset, results);
         }
+        setLoadingDiag(false);
+      }).catch(() => {
+        if (cancelled) return;
+        computeLocalDiagnostics(activePreset, results);
         setLoadingDiag(false);
       });
     } else {
       computeLocalDiagnostics(activePreset, results);
       setLoadingDiag(false);
     }
+    return () => { cancelled = true; };
   }, [jobId, activePreset, connected, results, computeLocalDiagnostics]);
 
   // Run sweep — try API, fall back to client-side
@@ -3410,6 +3442,14 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
         </div>
       )}
 
+      {!loadingDiag && !diagnostics && (
+        <div style={{ textAlign: "center", padding: "32px", color: T.textTer }}>
+          <AlertTriangle size={20} color={T.warning} style={{ marginBottom: "8px" }} />
+          <div style={{ fontSize: "13px", marginBottom: "8px" }}>Diagnostics data could not be computed.</div>
+          <button onClick={() => { setLoadingDiag(true); setTimeout(() => { computeLocalDiagnostics(activePreset, results); setLoadingDiag(false); }, 50); }} style={{ padding: "6px 16px", border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", background: T.bg, fontSize: "12px", fontFamily: FONT }}>Retry</button>
+        </div>
+      )}
+
       {!loadingDiag && diagnostics && (
         <>
           {/* B: Summary Cards */}
@@ -3431,7 +3471,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           </div>
 
           {/* MUT vs WT Activity Distribution */}
-          {!mobile && (() => {
+          {!mobile && (() => { try {
             const mutScores = results.map(r => r.ensembleScore || r.score);
             const wtScores = results.map(r => {
               const eff = r.ensembleScore || r.score;
@@ -3555,7 +3595,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                 })()}
               </div>
             );
-          })()}
+          } catch (e) { console.error("MUT vs WT chart error:", e); return null; } })()}
 
           {/* B2: Understanding Discrimination Scores — collapsible explainer */}
           <CollapsibleSection title="Understanding Discrimination Scores" defaultOpen={false}>
@@ -3975,7 +4015,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
           {tab === "discrimination" && <DiscriminationTab results={results} />}
           {tab === "primers" && <PrimersTab results={results} />}
           {tab === "multiplex" && <MultiplexTab results={results} />}
-          {tab === "diagnostics" && <DiagnosticsTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} />}
+          {tab === "diagnostics" && <DiagnosticsErrorBoundary><DiagnosticsTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} /></DiagnosticsErrorBoundary>}
         </>
       )}
 
