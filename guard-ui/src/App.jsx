@@ -3302,8 +3302,54 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       ]).then(([diagRes, whoRes]) => {
         if (cancelled) return;
         if (diagRes.data && whoRes.data) {
-          setDiagnostics(diagRes.data);
-          setWhoCompliance(whoRes.data);
+          // Normalize API response: API returns panel_sensitivity/panel_specificity
+          // but the render expects sensitivity/specificity at the top level
+          const d = diagRes.data;
+          const perTarget = (d.per_target || []).map(t => ({
+            target_label: t.label || t.target_label,
+            drug: t.drug_class || t.drug || "",
+            efficiency: t.score ?? t.efficiency ?? 0,
+            discrimination: t.discrimination ?? 0,
+            is_assay_ready: t.assay_ready ?? t.is_assay_ready ?? false,
+            has_primers: t.has_primers ?? true,
+            strategy: (t.strategy || t.detection_strategy || "direct") === "direct" ? "Direct" : "Proximity",
+          }));
+          const resistanceTargets = perTarget.filter(t => t.drug !== "species_control" && t.drug !== "OTHER");
+          const assayReady = resistanceTargets.filter(t => t.is_assay_ready).length;
+          setDiagnostics({
+            sensitivity: d.sensitivity ?? d.panel_sensitivity ?? 0,
+            specificity: d.specificity ?? d.panel_specificity ?? 0,
+            coverage: assayReady,
+            total_targets: resistanceTargets.length,
+            assay_ready: assayReady,
+            mean_efficiency: d.mean_efficiency ?? 0,
+            mean_discrimination: d.mean_discrimination ?? 0,
+            per_target: perTarget,
+          });
+          // Normalize WHO compliance: API returns meets_minimal/meets_optimal,
+          // frontend expects meets_tpp, specificity, targets_covered, targets_total
+          const w = whoRes.data;
+          const normalizedWho = {};
+          if (w.who_compliance) {
+            for (const [drug, entry] of Object.entries(w.who_compliance)) {
+              // Map drug class names to short codes used by DrugBadge
+              const drugKey = drug.toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI");
+              const drugTargets = perTarget.filter(t => t.drug === drug || t.drug === drugKey);
+              normalizedWho[drugKey] = {
+                sensitivity: entry.sensitivity ?? 0,
+                specificity: entry.specificity ?? 0,
+                meets_tpp: entry.meets_tpp ?? entry.meets_minimal ?? false,
+                targets_covered: entry.targets_covered ?? entry.n_covered ?? drugTargets.filter(t => t.is_assay_ready).length,
+                targets_total: entry.targets_total ?? entry.n_targets ?? drugTargets.length,
+              };
+            }
+          }
+          setWhoCompliance({
+            preset: w.preset,
+            panel_sensitivity: w.panel_sensitivity ?? 0,
+            panel_specificity: w.panel_specificity ?? 0,
+            who_compliance: normalizedWho,
+          });
         } else {
           computeLocalDiagnostics(activePreset, results);
         }
