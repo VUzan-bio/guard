@@ -74,6 +74,7 @@ from guard.primers.coselection import CoselectionValidator
 from guard.scoring.base import Scorer
 from guard.scoring.discrimination import HeuristicDiscriminationScorer
 from guard.scoring.heuristic import HeuristicScorer
+from guard.scoring.learned_discrimination import LearnedDiscriminationScorer
 from guard.scoring.sequence_ml import SequenceMLScorer
 from guard.targets.resolver import TargetResolver
 
@@ -192,11 +193,27 @@ class GUARDPipeline:
         # Module 5.5: Mismatch generator
         self.mismatch_gen = MismatchGenerator()
 
-        # Module 6.5: Discrimination scorer
-        self.disc_scorer = HeuristicDiscriminationScorer(
-            cas_variant=cas_variant,
-            min_ratio=config.scoring.discrimination_min_ratio,
-        )
+        # Module 6.5: Discrimination scorer (learned model preferred, heuristic fallback)
+        disc_method = getattr(config.scoring, "discrimination_method", "auto")
+        disc_model_path = getattr(config.scoring, "discrimination_model_path", None)
+
+        if disc_method == "heuristic":
+            self.disc_scorer = HeuristicDiscriminationScorer(
+                cas_variant=cas_variant,
+                min_ratio=config.scoring.discrimination_min_ratio,
+            )
+        else:
+            # "auto" or "learned": try learned model, fallback to heuristic
+            self.disc_scorer = LearnedDiscriminationScorer(
+                model_path=disc_model_path,
+                cas_variant=cas_variant,
+                min_ratio=config.scoring.discrimination_min_ratio,
+            )
+            if hasattr(self.disc_scorer, '_model_loaded'):
+                logger.info(
+                    "Discrimination scorer: %s",
+                    "learned model" if self.disc_scorer._model_loaded else "heuristic fallback",
+                )
 
         # Module 7: Multiplex optimizer
         self.optimizer = MultiplexOptimizer(OptimizationConfig(

@@ -1667,7 +1667,7 @@ const HomePage = ({ goTo, connected }) => {
           {[
             {
               title: "Discrimination prediction",
-              text: "Uses position-dependent heuristics (Strohkendl et al. 2018), not learned mismatch-specific models. Two SNPs at the same spacer position but with different mismatch chemistry (e.g. G\u2192A vs G\u2192T) receive identical discrimination scores. Paired MUT/WT experimental measurements will enable mismatch-specific discrimination modelling.",
+              text: "Discrimination ratios are predicted by a gradient-boosted model trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 15 thermodynamic features including R-loop cumulative \u0394G, mismatch \u0394\u0394G penalties (Sugimoto 2000), and position sensitivity. Cross-validated correlation r\u22480.46 (vs r\u22480.30 for heuristic baseline). Falls back to position-dependent heuristics when the trained model is unavailable.",
             },
             {
               title: "Domain shift",
@@ -2430,19 +2430,35 @@ const generateInterpretation = (r) => {
   else lines.push(`Non-canonical PAM (${r.pam}) \u2014 reduced binding affinity compared to TTTV. This is the best available PAM site in the GC-rich M. tuberculosis genomic context around this mutation.`);
 
   // Discrimination
+  const discModelName = r.discrimination?.model_name || "";
+  const isLearnedDisc = discModelName.includes("learned");
+  const discSource = isLearnedDisc ? "learned model (XGBoost, 15 thermodynamic features)" : "heuristic model (position \u00D7 destabilisation)";
   if (r.strategy === "Proximity") {
     lines.push(`Proximity detection \u2014 the resistance SNP falls outside the crRNA spacer${r.proximityDistance ? ` (${r.proximityDistance} bp away)` : ""}. Allele discrimination relies on AS-RPA primers (10\u2013100\u00D7 selectivity), not Cas12a mismatch intolerance. The Cas12a disc ratio (~${disc.toFixed(1)}\u00D7) is not relevant for this strategy.`);
   } else if (snpPos) {
+    // Mismatch chemistry context
+    let mmChem = "";
+    if (snpChange) {
+      const bases = snpChange.split("\u2192");
+      if (bases.length === 2) {
+        const purines = new Set(["A", "G"]);
+        const b1 = bases[0].toUpperCase(), b2 = bases[1].toUpperCase();
+        if (purines.has(b1) && purines.has(b2)) mmChem = " (purine\u2192purine, severely destabilising)";
+        else if (!purines.has(b1) && !purines.has(b2)) mmChem = " (pyrimidine\u2192pyrimidine, moderately destabilising)";
+        else if ((b1 === "G" && b2 === "T") || (b1 === "T" && b2 === "G")) mmChem = " (G:T wobble, tolerated by Cas12a)";
+        else mmChem = " (transversion)";
+      }
+    }
     if (snpPos <= 8) {
-      if (disc >= 5) lines.push(`SNP at seed position ${snpPos} (${snpChange}) provides strong discrimination (${disc.toFixed(1)}\u00D7). The mismatch in the PAM-proximal seed region (pos 1\u20138) causes near-complete R-loop collapse on the wildtype template, ensuring high specificity.`);
-      else if (disc >= 3) lines.push(`SNP at seed position ${snpPos} (${snpChange}) provides diagnostic-grade discrimination (${disc.toFixed(1)}\u00D7). Seed region mismatches are highly destabilising for Cas12a binding.`);
-      else lines.push(`SNP at seed position ${snpPos} (${snpChange}) gives limited discrimination (${disc.toFixed(1)}\u00D7) despite being in the seed region. The surrounding sequence context may stabilise partial R-loop formation. Synthetic mismatch enhancement may improve this.`);
+      if (disc >= 5) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides strong discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). The mismatch in the PAM-proximal seed region (pos 1\u20138) causes near-complete R-loop collapse on the wildtype template, ensuring high specificity.`);
+      else if (disc >= 3) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides diagnostic-grade discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). Seed region mismatches are highly destabilising for Cas12a binding.`);
+      else lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}) despite being in the seed region. The surrounding sequence context or mismatch chemistry may stabilise partial R-loop formation. Synthetic mismatch enhancement may improve this.`);
     } else {
-      if (disc >= 3) lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}) provides ${disc.toFixed(1)}\u00D7 discrimination. Although outside the seed, the mismatch is sufficient for diagnostic-grade allele differentiation.`);
-      else lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}) gives limited discrimination (${disc.toFixed(1)}\u00D7). PAM-distal mismatches are better tolerated by Cas12a \u2014 synthetic mismatch in the seed region could boost specificity.`);
+      if (disc >= 3) lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) provides ${disc.toFixed(1)}\u00D7 discrimination (${discSource}). Although outside the seed, the mismatch is sufficient for diagnostic-grade allele differentiation.`);
+      else lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). PAM-distal mismatches are better tolerated by Cas12a \u2014 synthetic mismatch in the seed region could boost specificity.`);
     }
   } else if (r.strategy === "Direct" && !wt) {
-    lines.push(`Direct detection strategy. Discrimination ratio: ${disc.toFixed(1)}\u00D7. WT spacer data unavailable for positional analysis.`);
+    lines.push(`Direct detection strategy. Discrimination ratio: ${disc.toFixed(1)}\u00D7 (${discSource}). WT spacer data unavailable for positional analysis.`);
   }
 
   // Synthetic mismatch
@@ -2998,6 +3014,13 @@ const DiscriminationTab = ({ results }) => {
               <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
                 {directCands.length} candidates using crRNA mismatch discrimination. Sorted highest to lowest.
                 The ratio indicates how many times stronger the signal is on resistant vs susceptible DNA.
+              </div>
+              <div style={{ fontSize: "10px", color: T.textTer, marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: directCands.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "#22c55e" : T.warning }} />
+                {directCands.some(r => (r.discrimination?.model_name || "").includes("learned"))
+                  ? "Predicted by learned model (XGBoost on 15 thermodynamic features, trained on 6,136 EasyDesign pairs)"
+                  : "Predicted by heuristic model (position sensitivity \u00D7 mismatch destabilisation)"
+                }
               </div>
             </div>
             <ResponsiveContainer width="100%" height={340}>
@@ -4685,6 +4708,55 @@ const ScoringPage = ({ connected }) => {
               <div style={{ fontSize: "16px", fontWeight: 700, color: T.text, fontFamily: MONO }}>{s.value}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Discrimination model ── */}
+      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
+          <TrendingUp size={20} color={T.primary} />
+          <span style={{ fontSize: "16px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Discrimination Prediction</span>
+          <span style={{ background: "#dcfce7", color: "#166534", padding: "3px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: 600 }}>Trained</span>
+        </div>
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px" }}>
+          Gradient-boosted model (LightGBM) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a).
+          Predicts the discrimination ratio (\u0394log-k between perfect-match and single-mismatch targets) from 15 thermodynamic features encoding mismatch position, chemistry, R-loop energetics, and sequence context.
+        </p>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Performance (3-fold stratified CV, guide-level split)</div>
+        <div style={{ background: T.bgSub, borderRadius: "10px", overflow: "hidden", marginBottom: "16px" }}>
+          {[
+            { name: "Heuristic baseline", rmse: "0.641", corr: "0.298", delta: null },
+            { name: "Learned model (XGBoost)", rmse: "0.540", corr: "0.459", delta: "\u221215% RMSE" },
+          ].map((f, i, arr) => (
+            <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
+              <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
+              <span style={{ fontSize: "12px", fontFamily: MONO, color: T.textSec, width: 80, textAlign: "right" }}>RMSE {f.rmse}</span>
+              <span style={{ fontSize: "12px", fontFamily: MONO, color: T.text, fontWeight: 700, width: 55, textAlign: "right" }}>r={f.corr}</span>
+              {f.delta ? (
+                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: MONO, color: T.success, width: 75, textAlign: "right" }}>{f.delta}</span>
+              ) : (
+                <span style={{ width: 75, textAlign: "right", fontSize: "11px", color: T.textTer }}>baseline</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "12px", fontWeight: 700, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Top Features (by importance)</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: "8px", marginBottom: "12px" }}>
+          {[
+            { label: "Seed \u0394G", desc: "R-loop stability at seed" },
+            { label: "Total hybrid \u0394G", desc: "Full RNA:DNA energy" },
+            { label: "Cumulative \u0394G", desc: "Energy at mismatch pos" },
+            { label: "Energy ratio", desc: "|cum. \u0394G| / \u0394\u0394G" },
+            { label: "GC content", desc: "Spacer GC fraction" },
+          ].map(f => (
+            <div key={f.label} style={{ background: T.bgSub, borderRadius: "8px", padding: "10px", textAlign: "center" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary }}>{f.label}</div>
+              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.6 }}>
+          Training data: EasyDesign (Huang et al. 2024). Features: R-loop \u0394G profiles (Sugimoto 1995 NN params), mismatch \u0394\u0394G penalties (Sugimoto 2000), position sensitivity (Strohkendl 2018). Guide-level CV split prevents data leakage.
         </div>
       </div>
 

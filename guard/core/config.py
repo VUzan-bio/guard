@@ -60,6 +60,8 @@ class ScoringConfig(BaseModel):
     jepa_head_path: Optional[Path] = None
     jepa_mode: str = "efficiency"
     discrimination_min_ratio: float = 2.0
+    discrimination_method: str = "auto"  # "auto", "learned", "heuristic"
+    discrimination_model_path: Optional[Path] = None  # path to disc_xgb.pkl
 
 
 class MultiplexConfig(BaseModel):
