@@ -27,7 +27,7 @@ WORKDIR /app
 
 # Only bowtie2 at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bowtie2 && \
+    bowtie2 libgomp1 && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
