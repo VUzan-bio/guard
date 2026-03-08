@@ -694,7 +694,7 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
       <div style={{ padding: isCollapsed ? "16px 0" : "16px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: isCollapsed ? "center" : "space-between", gap: "8px" }}>
         {!isCollapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <img src="/guard-wordmark.png" alt="GUARD" style={{ height: "24px", objectFit: "contain" }} />
+            <img src="/guard-wordmark.png" alt="GUARD" style={{ height: "32px", objectFit: "contain" }} />
             {!connected && (
               <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: "3px" }}>
                 <WifiOff size={10} /> API disconnected
@@ -702,12 +702,16 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
             )}
           </div>
         )}
-        {isCollapsed && <img src="/favicon-g.png" alt="GUARD" style={{ height: "22px", width: "22px", objectFit: "contain" }} />}
+        {isCollapsed && (
+          <button onClick={() => setCollapsed(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", borderRadius: "6px" }} title="Expand sidebar">
+            <PanelLeft size={18} color={T.textSec} />
+          </button>
+        )}
         {mobile ? (
           <button onClick={() => setMobileOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", marginLeft: "auto" }}><X size={20} color={T.textSec} /></button>
-        ) : (
-          <button onClick={() => setCollapsed(!collapsed)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", borderRadius: "6px" }} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            {isCollapsed ? <PanelLeft size={18} color={T.textSec} /> : <PanelLeftClose size={18} color={T.textSec} />}
+        ) : !isCollapsed && (
+          <button onClick={() => setCollapsed(!collapsed)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", borderRadius: "6px" }} title="Collapse sidebar">
+            <PanelLeftClose size={18} color={T.textSec} />
           </button>
         )}
       </div>
