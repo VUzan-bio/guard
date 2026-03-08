@@ -2075,7 +2075,7 @@ const OverviewTab = ({ results, scorer }) => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
           <thead>
             <tr>
-              {["Drug", "Candidates", "Avg Score", "Avg Disc", "Primers"].map((h) => (
+              {["Drug", "Candidates", "Avg Score", "Avg Disc (Direct)", "Primers"].map((h) => (
                 <th key={h} style={{ padding: "10px 24px", textAlign: "left", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}` }}>{h}</th>
               ))}
             </tr>
@@ -2089,7 +2089,15 @@ const OverviewTab = ({ results, scorer }) => {
                   <td style={{ padding: "12px 24px" }}><DrugBadge drug={d.drug} /></td>
                   <td style={{ padding: "12px 24px", fontFamily: MONO, fontWeight: 600 }}>{d.count}</td>
                   <td style={{ padding: "12px 24px", fontFamily: MONO, color: d.avgScore > 0.75 ? T.success : d.avgScore > 0.6 ? T.text : T.warning }}>{d.avgScore}</td>
-                  <td style={{ padding: "12px 24px", fontFamily: MONO }}>{(rows.reduce((a, r) => a + r.disc, 0) / rows.length).toFixed(1)}×</td>
+                  {(() => {
+                    const directRows = rows.filter(r => r.strategy === "Direct" && r.disc > 0 && r.disc < 900);
+                    const proxCount = rows.filter(r => r.strategy === "Proximity").length;
+                    if (directRows.length > 0) {
+                      const avg = (directRows.reduce((a, r) => a + r.disc, 0) / directRows.length).toFixed(1);
+                      return <td style={{ padding: "12px 24px", fontFamily: MONO }}>{avg}×{proxCount > 0 && <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "4px" }}>+{proxCount} AS-RPA</span>}</td>;
+                    }
+                    return <td style={{ padding: "12px 24px", fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA only</td>;
+                  })()}
                   <td style={{ padding: "12px 24px" }}>
                     <span style={{ fontFamily: MONO, fontWeight: 600 }}>{primerCount}/{d.count}</span>
                     {primerCount < d.count && <span style={{ marginLeft: "6px", fontSize: "10px", color: T.warning, fontWeight: 600 }}>{d.count - primerCount} missing</span>}
