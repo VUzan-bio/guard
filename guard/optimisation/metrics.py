@@ -50,6 +50,21 @@ TARGET_DRUG_CLASS = {
 }
 
 
+def _resolve_drug_class(label: str) -> str:
+    """Resolve drug class for a target label, with gene-prefix fallback."""
+    if label in TARGET_DRUG_CLASS:
+        return TARGET_DRUG_CLASS[label]
+    # Gene-prefix fallback for labels not in the explicit map
+    gene = label.split("_")[0] if "_" in label else label
+    GENE_TO_DRUG = {
+        "rpoB": "rifampicin", "katG": "isoniazid", "inhA": "isoniazid",
+        "embB": "ethambutol", "pncA": "pyrazinamide", "gyrA": "fluoroquinolone",
+        "gyrB": "fluoroquinolone", "rrs": "aminoglycoside", "eis": "aminoglycoside",
+        "IS6110": "species_control",
+    }
+    return GENE_TO_DRUG.get(gene, "unknown")
+
+
 @dataclass
 class TargetMetrics:
     """Per-target metrics for one resistance mutation."""
@@ -98,7 +113,7 @@ class DiagnosticMetrics:
     def _compute_drug_class_metrics(self) -> list[DrugClassMetrics]:
         by_class: dict[str, list[TargetMetrics]] = defaultdict(list)
         for t in self.target_metrics:
-            if t.drug_class != "species_control":
+            if t.drug_class not in ("species_control", "unknown"):
                 by_class[t.drug_class].append(t)
 
         results = []
@@ -106,7 +121,9 @@ class DiagnosticMetrics:
             targets = by_class[drug_class]
             n_targets = len(targets)
             n_covered = sum(1 for t in targets if t.is_assay_ready)
-            covered_discs = [t.best_disc for t in targets if t.is_assay_ready]
+            # avg_disc from all Direct targets with disc > 0 (not just assay-ready)
+            all_discs = [t.best_disc for t in targets
+                         if t.detection_strategy != "proximity" and t.best_disc > 0]
 
             who_req = WHO_TPP_SENSITIVITY.get(
                 drug_class, {"minimal": 0.80, "optimal": 0.95}
@@ -118,7 +135,7 @@ class DiagnosticMetrics:
                 n_targets=n_targets,
                 n_covered=n_covered,
                 sensitivity=sensitivity,
-                avg_disc=float(np.mean(covered_discs)) if covered_discs else 0.0,
+                avg_disc=float(np.mean(all_discs)) if all_discs else 0.0,
                 who_minimal=who_req["minimal"],
                 who_optimal=who_req["optimal"],
                 meets_minimal=sensitivity >= who_req["minimal"],
@@ -129,7 +146,8 @@ class DiagnosticMetrics:
     @property
     def sensitivity(self) -> float:
         """Panel-level: fraction of resistance targets that are assay-ready."""
-        resistance = [t for t in self.target_metrics if t.drug_class != "species_control"]
+        resistance = [t for t in self.target_metrics
+                      if t.drug_class not in ("species_control", "unknown")]
         if not resistance:
             return 0.0
         return sum(1 for t in resistance if t.is_assay_ready) / len(resistance)
@@ -137,15 +155,28 @@ class DiagnosticMetrics:
     @property
     def specificity(self) -> float:
         """Panel-level: predicted ability to avoid false positives.
-        Proxy: mean(1 - 1/disc) across assay-ready resistance targets.
-        disc=3x->0.67, disc=5x->0.80, disc=10x->0.90, disc=20x->0.95"""
+
+        Two discrimination paths:
+        - Direct candidates: Cas12a mismatch discrimination → 1 - 1/disc
+        - Proximity candidates: AS-RPA primer specificity → assume 0.95 (conservative)
+
+        Computed across all assay-ready resistance targets (not just Direct).
+        """
         ready = [
             t for t in self.target_metrics
             if t.is_assay_ready and t.drug_class != "species_control"
         ]
         if not ready:
             return 0.0
-        return float(np.mean([1.0 - 1.0 / max(t.best_disc, 1.01) for t in ready]))
+        specs = []
+        for t in ready:
+            if t.detection_strategy == "proximity":
+                # AS-RPA primers provide allele-specific discrimination
+                # Conservative estimate: 0.95 specificity (10-100× primer discrimination)
+                specs.append(0.95)
+            else:
+                specs.append(1.0 - 1.0 / max(t.best_disc, 1.01))
+        return float(np.mean(specs))
 
     @property
     def drug_class_coverage(self) -> float:
@@ -158,16 +189,36 @@ class DiagnosticMetrics:
 
     @property
     def who_compliance(self) -> dict:
-        """Check compliance with WHO TPP 2024 per drug class."""
-        return {
-            d.drug_class: {
+        """Check compliance with WHO TPP 2024 per drug class.
+
+        Includes per-drug specificity using the same dual-path logic
+        (Cas12a disc for Direct, AS-RPA estimate for Proximity).
+        """
+        result = {}
+        for d in self.drug_class_metrics:
+            # Per-drug specificity: use all targets in this class with strategies
+            class_targets = [
+                t for t in self.target_metrics if t.drug_class == d.drug_class
+            ]
+            specs = []
+            for t in class_targets:
+                if t.detection_strategy == "proximity":
+                    specs.append(0.95)
+                elif t.best_disc > 0:
+                    specs.append(1.0 - 1.0 / max(t.best_disc, 1.01))
+            drug_spec = float(np.mean(specs)) if specs else 0.0
+
+            result[d.drug_class] = {
                 "sensitivity": round(d.sensitivity, 3),
+                "specificity": round(drug_spec, 3),
                 "meets_minimal": d.meets_minimal,
                 "meets_optimal": d.meets_optimal,
+                "meets_tpp": d.meets_minimal and drug_spec >= WHO_TPP_SPECIFICITY["minimal"],
                 "required_minimal": d.who_minimal,
+                "n_covered": d.n_covered,
+                "n_targets": d.n_targets,
             }
-            for d in self.drug_class_metrics
-        }
+        return result
 
     @property
     def cost(self) -> dict:
@@ -261,7 +312,7 @@ def compute_diagnostic_metrics(
         candidates = candidates_by_target.get(label, [])
         member = member_by_label.get(label)
 
-        drug_class = TARGET_DRUG_CLASS.get(label, "unknown")
+        drug_class = _resolve_drug_class(label)
 
         # Best score and discrimination from the selected member
         if member:
@@ -280,9 +331,14 @@ def compute_diagnostic_metrics(
             1 for c in candidates if c.composite_score >= efficiency_threshold
         )
 
+        # Proximity candidates get discrimination from AS-RPA primers,
+        # not from Cas12a mismatch — exempt them from the Cas12a disc threshold.
+        # Their disc value (typically ~0.9×) reflects Cas12a-only discrimination
+        # which is irrelevant since the allele-specific primer provides 10-100× specificity.
+        is_proximity = strategy == "proximity"
         is_covered = (
             best_score >= efficiency_threshold
-            and best_disc >= discrimination_threshold
+            and (is_proximity or best_disc >= discrimination_threshold)
         )
         is_assay_ready = is_covered and has_primers
 

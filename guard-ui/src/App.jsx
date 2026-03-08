@@ -3245,7 +3245,10 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       const assayReady = resistanceTargets.filter(t => t.is_assay_ready).length;
       const directTargets = resistanceTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
       const meanDisc = directTargets.length ? directTargets.reduce((a, t) => a + t.discrimination, 0) / directTargets.length : 0;
-      const specificity = directTargets.length ? directTargets.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directTargets.length : 0;
+      // Panel specificity: Direct targets use Cas12a disc, Proximity use AS-RPA estimate (0.95)
+      const readyResistance = resistanceTargets.filter(t => t.is_assay_ready);
+      const specValues = readyResistance.map(t => t.strategy === "Proximity" ? 0.95 : Math.max(0, 1 - 1 / Math.max(t.discrimination, 1.01)));
+      const specificity = specValues.length ? specValues.reduce((a, v) => a + v, 0) / specValues.length : 0;
       const sensitivity = resistanceTargets.length ? assayReady / resistanceTargets.length : 0;
 
       const meanEff = res.length > 0 ? res.reduce((a, r) => a + (r.ensembleScore ?? r.score ?? 0), 0) / res.length : 0;
@@ -3262,9 +3265,13 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       for (const drug of drugs) {
         const drugTargets = perTarget.filter(t => t.drug === drug);
         const covered = drugTargets.filter(t => t.is_assay_ready).length;
-        const drugDirect = drugTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+        // Per-drug specificity: dual path — Cas12a disc for Direct, AS-RPA for Proximity
+        const drugSpecs = drugTargets.map(t => {
+          if (t.strategy === "Proximity") return 0.95;
+          return t.discrimination > 0 ? Math.max(0, 1 - 1 / Math.max(t.discrimination, 1.01)) : 0;
+        }).filter(v => v > 0);
         const drugSens = drugTargets.length ? covered / drugTargets.length : 0;
-        const drugSpec = drugDirect.length ? drugDirect.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / drugDirect.length : 0;
+        const drugSpec = drugSpecs.length ? drugSpecs.reduce((a, v) => a + v, 0) / drugSpecs.length : 0;
         const tppSens = drug === "RIF" ? 0.95 : ["INH", "FQ"].includes(drug) ? 0.90 : 0.80;
         whoComp[drug] = { sensitivity: +drugSens.toFixed(3), specificity: +drugSpec.toFixed(3), meets_tpp: drugSens >= tppSens && drugSpec >= 0.98, targets_covered: covered, targets_total: drugTargets.length };
       }
@@ -3329,29 +3336,19 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           // Normalize WHO compliance: API returns meets_minimal/meets_optimal,
           // frontend expects meets_tpp, specificity, targets_covered, targets_total
           const w = whoRes.data;
-          const DRUG_MAP = { rifampicin: "RIF", isoniazid: "INH", fluoroquinolone: "FQ", ethambutol: "EMB", pyrazinamide: "PZA", aminoglycoside: "AMI" };
-          const WHO_SENS = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AMI: 0.80 };
+          const DRUG_MAP = { rifampicin: "RIF", isoniazid: "INH", fluoroquinolone: "FQ", ethambutol: "EMB", pyrazinamide: "PZA", aminoglycoside: "AG" };
           const normalizedWho = {};
           if (w.who_compliance) {
             for (const [drug, entry] of Object.entries(w.who_compliance)) {
-              // Skip species control
+              // Skip species control and unknown
               if (drug === "species_control" || drug === "unknown") continue;
               const drugKey = DRUG_MAP[drug] || drug.toUpperCase();
-              const drugTargets = perTarget.filter(t => {
-                const tDrug = DRUG_MAP[(t.drug || "").toLowerCase()] || (t.drug || "").toUpperCase();
-                return tDrug === drugKey;
-              });
-              const readyTargets = drugTargets.filter(t => t.is_assay_ready);
-              const directReady = readyTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
-              const drugSpec = directReady.length ? directReady.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directReady.length : 0;
-              const tppSens = WHO_SENS[drugKey] || 0.80;
-              const sens = entry.sensitivity ?? (drugTargets.length ? readyTargets.length / drugTargets.length : 0);
               normalizedWho[drugKey] = {
-                sensitivity: sens,
-                specificity: drugSpec,
-                meets_tpp: sens >= tppSens && drugSpec >= 0.98,
-                targets_covered: entry.n_covered ?? readyTargets.length,
-                targets_total: entry.n_targets ?? drugTargets.length,
+                sensitivity: entry.sensitivity ?? 0,
+                specificity: entry.specificity ?? 0,
+                meets_tpp: entry.meets_tpp ?? entry.meets_minimal ?? false,
+                targets_covered: entry.n_covered ?? 0,
+                targets_total: entry.n_targets ?? 0,
               };
             }
           }
@@ -3679,7 +3676,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           {whoCompliance && whoCompliance.who_compliance && (() => {
             // Filter out species_control/UNKNOWN from WHO table — it's not a resistance drug class
             const whoEntries = Object.entries(whoCompliance.who_compliance).filter(([drug]) => !["UNKNOWN", "OTHER", "SPECIES_CONTROL", "species_control"].includes(drug));
-            const WHO_TPP_SENS = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AMI: 0.80 };
+            const WHO_TPP_SENS = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AG: 0.80 };
             const passing = whoEntries.filter(([, d]) => d.meets_tpp).length;
             return (
             <div style={{ marginBottom: "24px", border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
@@ -3707,7 +3704,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       const tppTarget = WHO_TPP_SENS[drug] || 0.80;
                       // Compute avg discrimination for this drug class from diagnostics per_target
                       const drugTargets = (diagnostics.per_target || []).filter(t => {
-                        const tDrug = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI");
+                        const tDrug = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AG");
                         return tDrug === drug;
                       });
                       const discTargets = drugTargets.filter(t => t.discrimination > 0 && t.strategy === "Direct");
@@ -3782,7 +3779,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       const disc = typeof t.discrimination === "number" ? t.discrimination : 0;
                       const effColor = eff >= 0.7 ? T.success : eff >= 0.5 ? T.warning : T.danger;
                       const discColor = disc >= 3 ? T.success : disc >= 2 ? T.warning : T.danger;
-                      const drugDisplay = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI").replace("SPECIES_CONTROL", "CTRL");
+                      const drugDisplay = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AG").replace("SPECIES_CONTROL", "CTRL");
                       const stratDisplay = (t.strategy || "").charAt(0).toUpperCase() + (t.strategy || "").slice(1);
                       const toggleExpand = () => {
                         setExpandedTargets(prev => ({ ...prev, [t.target_label]: !prev[t.target_label] }));
