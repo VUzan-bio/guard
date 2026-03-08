@@ -116,6 +116,7 @@ def _build_target_result(member: dict[str, Any]) -> TargetResult:
         cnn_calibrated=selected.get("cnn_calibrated"),
         ensemble_score=selected.get("ensemble_score"),
         discrimination_ratio=disc_ratio,
+        discrimination=disc,
         ml_scores=selected.get("ml_scores", []),
         rank=selected.get("rank"),
     ) if candidate.get("candidate_id") else None

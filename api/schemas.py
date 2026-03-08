@@ -88,6 +88,7 @@ class CandidateSummary(BaseModel):
     cnn_calibrated: Optional[float] = None
     ensemble_score: Optional[float] = None
     discrimination_ratio: Optional[float] = None
+    discrimination: Optional[dict] = None
     ml_scores: list[dict] = Field(default_factory=list)
     rank: Optional[int] = None
 
