@@ -3840,106 +3840,42 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                     <div style={{ fontSize: "11px", color: T.textTer, padding: "8px 0", fontStyle: "italic" }}>No alternative candidates available for this target.</div>
                                   ) : (
                                     <div>
-                                      <div style={{ fontSize: "10px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Top {Math.min(topK.length, 5)} Alternative Candidates</div>
-                                      {/* Score range strip */}
-                                      <div style={{ position: "relative", height: "32px", background: T.bg, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${T.borderLight}`, padding: "0 8px" }}>
-                                        {/* Gradient background showing score quality zones */}
-                                        <div style={{ position: "absolute", inset: 0, borderRadius: "6px", overflow: "hidden", opacity: 0.15 }}>
-                                          <div style={{ position: "absolute", left: "60%", right: "20%", top: 0, bottom: 0, background: `linear-gradient(90deg, ${T.warning}, ${T.success})` }} />
-                                          <div style={{ position: "absolute", left: "80%", right: 0, top: 0, bottom: 0, background: T.success }} />
-                                        </div>
-                                        {topK.slice(0, 5).map((alt, i) => {
-                                          const s = alt.efficiency ?? alt.score ?? alt.composite_score ?? 0;
-                                          const leftPct = Math.max(2, Math.min(s * 100, 98));
-                                          return (
-                                            <div key={i} style={{ position: "absolute", top: "50%", left: `${leftPct}%`, transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 5 - i }}>
-                                              <div style={{ width: i === 0 ? "14px" : "10px", height: i === 0 ? "14px" : "10px", borderRadius: "50%", background: i === 0 ? T.text : T.bg, border: i === 0 ? "none" : `2px solid ${T.textTer}`, boxShadow: i === 0 ? "0 1px 3px rgba(0,0,0,0.2)" : "none" }} />
-                                              <div style={{ fontSize: "8px", fontFamily: MONO, fontWeight: 700, color: i === 0 ? T.text : T.textTer, marginTop: "1px" }}>#{i + 1}</div>
-                                            </div>
-                                          );
-                                        })}
-                                        {/* Scale labels */}
-                                        {[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map(v => (
-                                          <div key={v} style={{ position: "absolute", bottom: "-12px", left: `${v * 100}%`, fontSize: "7px", color: T.textTer, fontFamily: MONO, transform: "translateX(-50%)" }}>{v}</div>
-                                        ))}
-                                      </div>
-                                      {/* Alternative cards */}
-                                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "16px" }}>
-                                        {topK.slice(0, 5).map((alt, i) => {
-                                          const s = alt.efficiency ?? alt.score ?? alt.composite_score ?? 0;
-                                          const disc = alt.discrimination_ratio ?? alt.discrimination ?? 0;
-                                          const spacer = alt.spacer_seq || alt.spacer || "";
-                                          const notes = alt.tradeoff_summary || alt.tradeoff_note || alt.notes || "";
-                                          const tradeoffs = alt.tradeoffs || [];
-                                          const deltaEff = alt.delta_efficiency;
-                                          const deltaDisc = alt.delta_discrimination;
-                                          const isSelected = i === 0;
-                                          const sColor = s >= 0.7 ? T.success : s >= 0.5 ? T.warning : T.danger;
-                                          const dColor = disc >= 3 ? T.success : disc >= 2 ? T.warning : T.danger;
-                                          return (
-                                            <div key={i} style={{
-                                              display: "flex", alignItems: "stretch", gap: "0",
-                                              background: T.bg, border: `1px solid ${isSelected ? T.primary + "44" : T.borderLight}`,
-                                              borderRadius: "8px", overflow: "hidden", transition: "border-color 0.15s",
-                                            }}>
-                                              {/* Rank badge */}
-                                              <div style={{ width: "36px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: isSelected ? T.primary : T.bgSub, color: isSelected ? "#fff" : T.textTer, flexShrink: 0 }}>
-                                                <div style={{ fontSize: "13px", fontWeight: 800, fontFamily: MONO }}>#{i + 1}</div>
-                                                {isSelected && <div style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.05em", marginTop: "1px" }}>SEL</div>}
-                                              </div>
-                                              {/* Main content */}
-                                              <div style={{ flex: 1, padding: "10px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                                                {/* Metrics row */}
-                                                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                                                  <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>Score</span>
-                                                    <span style={{ fontFamily: MONO, fontWeight: 800, fontSize: "13px", color: sColor }}>{s.toFixed(3)}</span>
-                                                    {deltaEff != null && !isSelected && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
-                                                  </div>
-                                                  <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>Disc</span>
-                                                    <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: dColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
-                                                    {deltaDisc != null && !isSelected && disc > 0 && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: deltaDisc >= 0 ? T.success : T.danger }}>{deltaDisc >= 0 ? "+" : ""}{deltaDisc.toFixed(1)}</span>}
-                                                  </div>
-                                                  {alt.offtarget_count != null && <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>OT</span>
-                                                    <span style={{ fontFamily: MONO, fontSize: "11px", color: alt.offtarget_count === 0 ? T.success : T.warning }}>{alt.offtarget_count}</span>
-                                                  </div>}
-                                                </div>
-                                                {/* Spacer sequence */}
-                                                {spacer && (
-                                                  <div style={{ fontFamily: MONO, fontSize: "10px", color: T.textTer, letterSpacing: "0.5px", marginTop: "2px" }}>
-                                                    {spacer.slice(0, 8)}<span style={{ color: T.textSec }}>{spacer.slice(8, 16)}</span>{spacer.slice(16)}
-                                                  </div>
-                                                )}
-                                                {/* Tradeoff annotation */}
-                                                {notes && !isSelected && (
-                                                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", flexWrap: "wrap" }}>
-                                                    {tradeoffs.filter(tr => tr !== "comparable").map(tr => {
-                                                      const tagColors = {
-                                                        higher_discrimination: { bg: "rgba(16,185,129,0.1)", color: T.success },
-                                                        higher_efficiency: { bg: "rgba(37,99,235,0.1)", color: T.primary },
-                                                        fewer_offtargets: { bg: "rgba(139,92,246,0.1)", color: T.purple },
-                                                        different_pam: { bg: "rgba(245,158,11,0.1)", color: T.warning },
-                                                      };
-                                                      const tc = tagColors[tr] || { bg: T.bgSub, color: T.textTer };
-                                                      const labels = {
-                                                        higher_discrimination: "Higher disc",
-                                                        higher_efficiency: "Higher score",
-                                                        fewer_offtargets: "Fewer OT",
-                                                        different_pam: "Alt. PAM site",
-                                                      };
-                                                      return <span key={tr} style={{ fontSize: "9px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", background: tc.bg, color: tc.color }}>{labels[tr] || tr}</span>;
-                                                    })}
-                                                    <span style={{ fontSize: "10px", color: T.textTer, fontStyle: "italic" }}>{notes}</span>
-                                                  </div>
-                                                )}
-                                                {isSelected && <div style={{ fontSize: "10px", color: T.primary, fontWeight: 600, marginTop: "1px" }}>Currently selected — best composite score</div>}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
+                                      {/* Clean ranked table */}
+                                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", fontFamily: FONT }}>
+                                        <thead>
+                                          <tr>
+                                            {["Rank", "Score", "Disc", "OT", "Spacer (20-nt)", "Tradeoff vs selected"].map(h => (
+                                              <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, color: T.textTer, fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.borderLight}` }}>{h}</th>
+                                            ))}
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {topK.slice(0, 5).map((alt, i) => {
+                                            const s = alt.efficiency ?? alt.score ?? alt.composite_score ?? 0;
+                                            const aDisc = alt.discrimination_ratio ?? alt.discrimination ?? 0;
+                                            const spacer = alt.spacer_seq || alt.spacer || "";
+                                            const notes = alt.tradeoff_summary || alt.tradeoff_note || "";
+                                            const deltaEff = alt.delta_efficiency;
+                                            const isSelected = i === 0;
+                                            const sColor = s >= 0.7 ? T.success : s >= 0.5 ? T.warning : T.danger;
+                                            return (
+                                              <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: isSelected ? T.primaryLight : "transparent" }}>
+                                                <td style={{ padding: "7px 10px", fontFamily: MONO, fontWeight: 700, color: isSelected ? T.primary : T.textSec }}>{isSelected ? "#1 ●" : `#${i + 1}`}</td>
+                                                <td style={{ padding: "7px 10px" }}>
+                                                  <span style={{ fontFamily: MONO, fontWeight: 700, color: sColor }}>{s.toFixed(3)}</span>
+                                                  {deltaEff != null && !isSelected && <span style={{ fontSize: "9px", fontFamily: MONO, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger, marginLeft: "4px" }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
+                                                </td>
+                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: T.textSec }}>{aDisc > 0 ? `${aDisc.toFixed(1)}×` : "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: alt.offtarget_count === 0 ? T.success : alt.offtarget_count != null ? T.warning : T.textTer }}>{alt.offtarget_count ?? "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: MONO, fontSize: "10px", color: T.textTer, letterSpacing: "0.3px" }}>{spacer ? `${spacer.slice(0, 10)} ${spacer.slice(10, 20)}` : "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontSize: "10px", color: T.textTer, fontStyle: isSelected ? "normal" : "italic" }}>
+                                                  {isSelected ? <span style={{ fontWeight: 600, color: T.primary, fontStyle: "normal" }}>Selected candidate</span> : (notes || "comparable")}
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
                                     </div>
                                   )}
                                 </div>
