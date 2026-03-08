@@ -2859,7 +2859,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                             <div><span style={{ fontFamily: MONO, fontWeight: 600 }}>#{alt.rank}</span> <Seq s={alt.spacer_seq?.slice(0, 16)} /></div>
                             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                               <span style={{ fontFamily: MONO }}>{alt.score}</span>
-                              <span style={{ fontFamily: MONO }}>{alt.discrimination}×</span>
+                              <span style={{ fontFamily: MONO }}>{r.strategy === "Proximity" ? <span style={{ fontSize: "10px", color: T.purple }}>AS-RPA</span> : `${alt.discrimination}×`}</span>
                               {alt.has_primers ? <Badge variant="success">P</Badge> : <Badge variant="danger">—</Badge>}
                             </div>
                           </div>
@@ -2933,7 +2933,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                                     <td style={{ padding: "7px 12px", fontFamily: MONO, fontWeight: 700, color: T.textSec }}>#{alt.rank}</td>
                                     <td style={{ padding: "7px 12px" }}><Seq s={alt.spacer_seq?.slice(0, 20)} /></td>
                                     <td style={{ padding: "7px 12px", fontFamily: MONO, fontWeight: 600 }}>{alt.score}</td>
-                                    <td style={{ padding: "7px 12px", fontFamily: MONO, fontWeight: 600 }}>{alt.discrimination}×</td>
+                                    <td style={{ padding: "7px 12px", fontFamily: MONO, fontWeight: 600 }}>{r.strategy === "Proximity" ? <span style={{ fontSize: "10px", color: T.purple }}>AS-RPA</span> : `${alt.discrimination}×`}</td>
                                     <td style={{ padding: "7px 12px" }}>{alt.has_primers ? <Badge variant="success">Yes</Badge> : <Badge variant="danger">No</Badge>}</td>
                                     <td style={{ padding: "7px 12px", fontSize: "10px", color: T.textSec }}>{alt.tradeoff || "—"}</td>
                                   </tr>
@@ -4286,6 +4286,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                             const deltaEff = alt.delta_efficiency;
                                             const isSelected = i === 0;
                                             const sColor = s >= 0.7 ? T.success : s >= 0.5 ? T.warning : T.danger;
+                                            const isProximity = t.strategy === "Proximity";
                                             return (
                                               <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: isSelected ? T.primaryLight : "transparent" }}>
                                                 <td style={{ padding: "7px 10px", fontFamily: MONO, fontWeight: 700, color: isSelected ? T.primary : T.textSec }}>{isSelected ? "#1 ●" : `#${i + 1}`}</td>
@@ -4293,7 +4294,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                                   <span style={{ fontFamily: MONO, fontWeight: 700, color: sColor }}>{s.toFixed(3)}</span>
                                                   {deltaEff != null && !isSelected && <span style={{ fontSize: "9px", fontFamily: MONO, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger, marginLeft: "4px" }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
                                                 </td>
-                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: T.textSec }}>{aDisc > 0 ? `${aDisc.toFixed(1)}×` : "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: T.textSec }}>{isProximity ? <span style={{ fontSize: "10px", color: T.purple }}>AS-RPA</span> : aDisc > 0 ? `${aDisc.toFixed(1)}×` : "—"}</td>
                                                 <td style={{ padding: "7px 10px", fontFamily: MONO, color: alt.offtarget_count === 0 ? T.success : alt.offtarget_count != null ? T.warning : T.textTer }}>{alt.offtarget_count ?? "—"}</td>
                                                 <td style={{ padding: "7px 10px", fontFamily: MONO, fontSize: "10px", color: T.textTer, letterSpacing: "0.3px" }}>{spacer ? `${spacer.slice(0, 10)} ${spacer.slice(10, 20)}` : "—"}</td>
                                                 <td style={{ padding: "7px 10px", fontSize: "10px", color: T.textTer, fontStyle: isSelected ? "normal" : "italic" }}>
