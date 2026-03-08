@@ -512,7 +512,7 @@ const CandidateViewer = ({ r, onClose }) => {
             { l: r.ensembleScore != null ? "Ensemble" : "Score", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
             ...(r.ensembleScore != null ? [{ l: "Heuristic", v: r.score.toFixed(3), c: T.textSec }] : []),
             ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
-            { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? `${r.asrpaDiscrimination.disc_ratio >= 1000 ? "≥1000" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}` : "AS-RPA") : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
+            { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? (r.asrpaDiscrimination.block_class === "none" ? "1× (no mismatch)" : `${r.asrpaDiscrimination.disc_ratio >= 100 ? "≥100" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}`) : "AS-RPA") : r.gene === "IS6110" ? "N/A (control)" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? (r.asrpaDiscrimination?.block_class === "none" ? T.danger : T.purple) : r.gene === "IS6110" ? T.textTer : discColor },
             ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
             { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
             { l: "Off-targets", v: r.ot, c: r.ot === 0 ? T.success : T.warning },
@@ -2519,7 +2519,7 @@ const CandidateAccordion = ({ r, onShowAlternatives }) => {
           { l: "Ensemble", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
           { l: "Heuristic", v: r.score.toFixed(3), c: T.textSec },
           ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
-          { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? `${r.asrpaDiscrimination.disc_ratio >= 1000 ? "≥1000" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}` : "AS-RPA") : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
+          { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? (r.asrpaDiscrimination.block_class === "none" ? "1× (no mismatch)" : `${r.asrpaDiscrimination.disc_ratio >= 100 ? "≥100" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}`) : "AS-RPA") : r.gene === "IS6110" ? "N/A (control)" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? (r.asrpaDiscrimination?.block_class === "none" ? T.danger : T.purple) : r.gene === "IS6110" ? T.textTer : discColor },
           ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
           { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
           { l: "Off-targets", v: r.ot, c: r.ot === 0 ? T.success : T.warning },
@@ -2833,7 +2833,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                     <div>
                       <span style={{ color: T.textTer }}>Disc </span>
                       <span style={{ fontFamily: MONO, fontWeight: 700, color: discColor }}>
-                        {r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`}
+                        {r.strategy === "Proximity" ? "AS-RPA" : r.gene === "IS6110" ? "N/A" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`}
                       </span>
                     </div>
                     <div>
@@ -3160,23 +3160,34 @@ const DiscriminationTab = ({ results }) => {
                     <td style={{ padding: "10px 14px", fontFamily: MONO, color: T.purple }}>{r.proximityDistance ? `${r.proximityDistance} bp` : "—"}</td>
                     <td style={{ padding: "10px 14px", fontFamily: MONO }}>{r.score.toFixed(3)}</td>
                     <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700 }}>{d?.terminal_mismatch || "—"}</td>
-                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: d ? (d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
-                      {d ? (d.disc_ratio >= 1000 ? "≥1000×" : `${d.disc_ratio.toFixed(0)}×`) : "—"}
+                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: d ? (d.block_class === "none" ? T.danger : d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
+                      {d ? (d.block_class === "none" ? "1× (WC)" : d.disc_ratio >= 100 ? "≥100×" : `${d.disc_ratio.toFixed(0)}×`) : "—"}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
-                      {d ? <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span> : "—"}
+                      {d ? (d.block_class === "none"
+                        ? <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: "#FEE2E2", color: T.danger, textTransform: "uppercase" }}>NO DISC</span>
+                        : <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span>
+                      ) : "—"}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
-                      <Badge variant={r.hasPrimers ? "success" : "danger"}>{r.hasPrimers ? "AS-RPA" : "No primers"}</Badge>
+                      {d?.block_class === "none"
+                        ? <Badge variant="danger">Not viable</Badge>
+                        : <Badge variant={r.hasPrimers ? "success" : "danger"}>{r.hasPrimers ? "AS-RPA" : "No primers"}</Badge>}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          {proximityCands.some(r => r.asrpaDiscrimination?.block_class === "none") && (
+            <div style={{ padding: "12px 20px", fontSize: "11px", color: T.danger, background: "#FEF2F2", borderTop: `1px solid #FECACA` }}>
+              <strong>Panel gap:</strong> {proximityCands.filter(r => r.asrpaDiscrimination?.block_class === "none").map(r => r.label).join(", ")} — primer 3′ base forms a Watson-Crick pair with the WT template (no mismatch = no discrimination).
+              These targets require primer strand reversal, alternative SNP base selection, or a different discrimination strategy.
+            </div>
+          )}
           {proximityCands.some(r => r.asrpaDiscrimination) && (
             <div style={{ padding: "12px 20px", fontSize: "10px", color: T.textTer, fontStyle: "italic", borderTop: `1px solid ${T.purple}15` }}>
-              Thermodynamic estimates — not experimentally validated. Ratios from Boltzmann conversion exp(ΔΔG/RT) at 37 °C, capped at 1000×.
+              Thermodynamic estimates — not experimentally validated. Ratios from Boltzmann conversion exp(ΔΔG/RT) at 37 °C, capped at 100× (empirical AS-RPA discrimination typically 10–100×; Ye et al. 2019).
             </div>
           )}
         </div>
@@ -3303,7 +3314,7 @@ const MultiplexTab = ({ results, panelData }) => {
   const controlIncluded = results.some((r) => r.gene === "IS6110");
   const directCount = results.filter(r => r.strategy === "Direct").length;
   const proximityCount = results.filter(r => r.strategy === "Proximity").length;
-  const withPrimers = results.filter(r => r.hasPrimers).length;
+  const withPrimers = results.filter(r => r.hasPrimers && !(r.asrpaDiscrimination?.block_class === "none")).length;
   const dimerMatrix = panelData?.primer_dimer_matrix || null;
   const dimerLabels = panelData?.primer_dimer_labels || null;
   const dimerReport = panelData?.primer_dimer_report || null;
@@ -3322,7 +3333,7 @@ const MultiplexTab = ({ results, panelData }) => {
           <p style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
             <strong>Cross-reactivity</strong> is the risk that one crRNA accidentally binds to another target's amplicon or primer,
             producing a false signal. The optimizer uses simulated annealing to pick the combination of guides that
-            minimizes cross-talk while maximizing discrimination across the full panel. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Discrimination ratios are from the learned model (LightGBM, 15 thermodynamic features, trained on 6,136 EasyDesign pairs)." : ""}
+            minimizes cross-talk while maximizing discrimination across the full panel. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Discrimination ratios are predicted by the learned model (LightGBM, 15 thermodynamic features) and used during optimization — the panel is selected with these predictions, not relabeled post-hoc." : ""}
           </p>
         </div>
       </div>
@@ -3417,11 +3428,13 @@ const MultiplexTab = ({ results, panelData }) => {
 
       {/* Primer Dimer ΔG Heatmap */}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Primer Dimer Analysis</div>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Primer Dimer Analysis <span style={{ fontSize: "10px", fontWeight: 500, color: T.textTer, marginLeft: "8px" }}>POST-OPTIMIZATION</span></div>
         <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
-          Thermodynamic primer-dimer prediction using SantaLucia nearest-neighbour parameters.
+          Thermodynamic primer-dimer prediction using SantaLucia nearest-neighbour parameters (2004).
           The heatmap shows <strong>3′-anchored ΔG</strong> (kcal/mol) for each primer pair — extensible dimers that can produce
           amplification artifacts in multiplex RPA. Red cells indicate high-risk dimers (ΔG &lt; −6.0), yellow moderate risk (ΔG &lt; −4.0).
+          This analysis runs <strong>after</strong> panel selection — dimer penalties are not yet integrated into the simulated annealing
+          optimizer. Flagged pairs should be validated empirically or addressed by redesigning one primer in the pair.
         </p>
         {dimerMatrix && dimerLabels ? (
           <>
@@ -3511,7 +3524,7 @@ const MultiplexTab = ({ results, panelData }) => {
                       <td style={{ padding: "8px 12px", fontWeight: 600 }}>{r.label}</td>
                       <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700 }}>{d.terminal_mismatch}</td>
                       <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO }}>{d.ddg_kcal.toFixed(1)} kcal/mol</td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700, color: d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger }}>{d.disc_ratio >= 1000 ? "≥1000" : d.disc_ratio.toFixed(0)}×</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700, color: d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger }}>{d.disc_ratio >= 100 ? "≥100" : d.disc_ratio.toFixed(0)}×</td>
                       <td style={{ padding: "8px 12px", textAlign: "center" }}>
                         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span>
                       </td>
@@ -3602,8 +3615,9 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       const perTarget = res.map(r => {
         const eff = r.ensembleScore ?? r.score ?? 0;
         const disc = r.disc != null && r.disc < 900 ? r.disc : 0;
-        const ready = r.hasPrimers && eff >= effT && (r.strategy === "Proximity" || disc >= discT);
-        return { target_label: r.label || "unknown", drug: r.drug || "", efficiency: eff, discrimination: disc, is_assay_ready: ready, has_primers: !!r.hasPrimers, strategy: r.strategy || "Direct" };
+        const asrpaViable = r.strategy !== "Proximity" || !r.asrpaDiscrimination || r.asrpaDiscrimination.block_class !== "none";
+        const ready = r.hasPrimers && eff >= effT && asrpaViable && (r.strategy === "Proximity" || disc >= discT);
+        return { target_label: r.label || "unknown", drug: r.drug || "", efficiency: eff, discrimination: disc, is_assay_ready: ready, has_primers: !!r.hasPrimers, strategy: r.strategy || "Direct", asrpaViable };
       });
 
       // Exclude species control (IS6110) from resistance metrics
@@ -4228,7 +4242,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                 const ad = orig?.asrpaDiscrimination;
                                 if (ad) {
                                   const c = ad.block_class === "strong" ? T.success : ad.block_class === "moderate" ? T.warning : T.danger;
-                                  return <span style={{ fontSize: "10px", fontWeight: 700, color: c }} title={`AS-RPA ${ad.terminal_mismatch} — ${ad.block_class}`}>{ad.disc_ratio >= 1000 ? "≥1000" : ad.disc_ratio.toFixed(0)}× <span style={{ fontWeight: 500, color: T.purple }}>AS-RPA</span></span>;
+                                  return <span style={{ fontSize: "10px", fontWeight: 700, color: c }} title={`AS-RPA ${ad.terminal_mismatch} — ${ad.block_class}`}>{ad.disc_ratio >= 100 ? "≥100" : ad.disc_ratio.toFixed(0)}× <span style={{ fontWeight: 500, color: T.purple }}>AS-RPA</span></span>;
                                 }
                                 return <span style={{ fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA</span>;
                               })() : (

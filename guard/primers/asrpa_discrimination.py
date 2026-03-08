@@ -36,7 +36,8 @@ _PENULTIMATE_MM_BONUS = 2.5  # kcal/mol additional penalty from deliberate
                               # penultimate mismatch (Ayyadevara et al., 2000)
 
 _RATIO_FLOOR = 1.0
-_RATIO_CAP = 1000.0
+_RATIO_CAP = 100.0  # Empirical AS-RPA discrimination is typically 10-100× (Ye et al. 2019)
+                     # Boltzmann overestimates at high ΔΔG due to kinetic effects in RPA
 
 # ---------------------------------------------------------------------------
 # Terminal mismatch penalty table (primer 3' base : WT template base)

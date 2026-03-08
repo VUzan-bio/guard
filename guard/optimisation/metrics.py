@@ -339,20 +339,27 @@ def compute_diagnostic_metrics(
         )
 
         # Proximity candidates get discrimination from AS-RPA primers,
-        # not from Cas12a mismatch — exempt them from the Cas12a disc threshold.
-        # Their disc value (typically ~0.9×) reflects Cas12a-only discrimination
-        # which is irrelevant since the allele-specific primer provides 10-100× specificity.
+        # not from Cas12a mismatch — exempt them from the Cas12a disc threshold
+        # UNLESS the AS-RPA discrimination was computed and shows block_class "none"
+        # (WC pair = primer matches both alleles = no discrimination).
         is_proximity = strategy == "proximity"
-        is_covered = (
-            best_score >= efficiency_threshold
-            and (is_proximity or best_disc >= discrimination_threshold)
-        )
-        is_assay_ready = is_covered and has_primers
 
         # Extract computed AS-RPA specificity if available
         asrpa_spec = None
+        asrpa_viable = True  # assume viable unless proven otherwise
         if is_proximity and member and hasattr(member, "asrpa_discrimination") and member.asrpa_discrimination:
             asrpa_spec = member.asrpa_discrimination.get("estimated_specificity")
+            if member.asrpa_discrimination.get("block_class") == "none":
+                asrpa_viable = False  # WC pair — no allele-specific discrimination
+
+        is_covered = (
+            best_score >= efficiency_threshold
+            and (
+                (is_proximity and asrpa_viable)
+                or (not is_proximity and best_disc >= discrimination_threshold)
+            )
+        )
+        is_assay_ready = is_covered and has_primers
 
         target_metrics_list.append(TargetMetrics(
             label=label,
