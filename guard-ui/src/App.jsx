@@ -3329,18 +3329,29 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           // Normalize WHO compliance: API returns meets_minimal/meets_optimal,
           // frontend expects meets_tpp, specificity, targets_covered, targets_total
           const w = whoRes.data;
+          const DRUG_MAP = { rifampicin: "RIF", isoniazid: "INH", fluoroquinolone: "FQ", ethambutol: "EMB", pyrazinamide: "PZA", aminoglycoside: "AMI" };
+          const WHO_SENS = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AMI: 0.80 };
           const normalizedWho = {};
           if (w.who_compliance) {
             for (const [drug, entry] of Object.entries(w.who_compliance)) {
-              // Map drug class names to short codes used by DrugBadge
-              const drugKey = drug.toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI");
-              const drugTargets = perTarget.filter(t => t.drug === drug || t.drug === drugKey);
+              // Skip species control
+              if (drug === "species_control" || drug === "unknown") continue;
+              const drugKey = DRUG_MAP[drug] || drug.toUpperCase();
+              const drugTargets = perTarget.filter(t => {
+                const tDrug = DRUG_MAP[(t.drug || "").toLowerCase()] || (t.drug || "").toUpperCase();
+                return tDrug === drugKey;
+              });
+              const readyTargets = drugTargets.filter(t => t.is_assay_ready);
+              const directReady = readyTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
+              const drugSpec = directReady.length ? directReady.reduce((a, t) => a + Math.max(0, 1 - 1 / t.discrimination), 0) / directReady.length : 0;
+              const tppSens = WHO_SENS[drugKey] || 0.80;
+              const sens = entry.sensitivity ?? (drugTargets.length ? readyTargets.length / drugTargets.length : 0);
               normalizedWho[drugKey] = {
-                sensitivity: entry.sensitivity ?? 0,
-                specificity: entry.specificity ?? 0,
-                meets_tpp: entry.meets_tpp ?? entry.meets_minimal ?? false,
-                targets_covered: entry.targets_covered ?? entry.n_covered ?? drugTargets.filter(t => t.is_assay_ready).length,
-                targets_total: entry.targets_total ?? entry.n_targets ?? drugTargets.length,
+                sensitivity: sens,
+                specificity: drugSpec,
+                meets_tpp: sens >= tppSens && drugSpec >= 0.98,
+                targets_covered: entry.n_covered ?? readyTargets.length,
+                targets_total: entry.n_targets ?? drugTargets.length,
               };
             }
           }
@@ -3665,58 +3676,101 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           </CollapsibleSection>
 
           {/* C: WHO Compliance Table */}
-          {whoCompliance && whoCompliance.who_compliance && (
+          {whoCompliance && whoCompliance.who_compliance && (() => {
+            // Filter out species_control/UNKNOWN from WHO table — it's not a resistance drug class
+            const whoEntries = Object.entries(whoCompliance.who_compliance).filter(([drug]) => !["UNKNOWN", "OTHER", "SPECIES_CONTROL", "species_control"].includes(drug));
+            const WHO_TPP_SENS = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AMI: 0.80 };
+            const passing = whoEntries.filter(([, d]) => d.meets_tpp).length;
+            return (
             <div style={{ marginBottom: "24px", border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
-              <div style={{ background: T.bgSub, padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ background: T.bgSub, padding: "14px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <Shield size={14} color={T.primary} />
-                <span style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>WHO TPP Compliance by Drug Class</span>
-                <Badge variant={Object.values(whoCompliance.who_compliance).every(d => d.meets_tpp) ? "success" : "warning"}>
-                  {Object.values(whoCompliance.who_compliance).filter(d => d.meets_tpp).length}/{Object.keys(whoCompliance.who_compliance).length} passing
+                <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>WHO TPP Compliance by Drug Class</span>
+                <Badge variant={passing === whoEntries.length ? "success" : "warning"}>
+                  {passing}/{whoEntries.length} passing
                 </Badge>
+              </div>
+              <div style={{ padding: "12px 18px", fontSize: "11px", color: T.textSec, lineHeight: 1.6, borderBottom: `1px solid ${T.borderLight}`, background: T.bg }}>
+                WHO Target Product Profile (TPP) 2024 defines minimum sensitivity and specificity thresholds per drug class for diagnostic deployment. Sensitivity = fraction of resistance-conferring mutations detected. Specificity is estimated from mean discrimination ratios (proxy: 1 - 1/disc).
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT, fontSize: "12px" }}>
                   <thead>
                     <tr style={{ background: T.bgSub }}>
-                      {["Drug Class", "Sensitivity", "Specificity", "Coverage", "Status"].map(h => (
+                      {["Drug Class", "Sensitivity", "WHO Target", "Coverage", "Avg Disc", "Status"].map(h => (
                         <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(whoCompliance.who_compliance).map(([drug, data]) => (
+                    {whoEntries.map(([drug, data]) => {
+                      const tppTarget = WHO_TPP_SENS[drug] || 0.80;
+                      // Compute avg discrimination for this drug class from diagnostics per_target
+                      const drugTargets = (diagnostics.per_target || []).filter(t => {
+                        const tDrug = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI");
+                        return tDrug === drug;
+                      });
+                      const discTargets = drugTargets.filter(t => t.discrimination > 0 && t.strategy === "Direct");
+                      const avgDisc = discTargets.length ? discTargets.reduce((a, t) => a + t.discrimination, 0) / discTargets.length : 0;
+                      const sensPercent = (data.sensitivity * 100);
+                      const tppPercent = (tppTarget * 100);
+                      const gap = sensPercent - tppPercent;
+                      return (
                       <tr key={drug} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                         <td style={{ padding: "10px 14px" }}><DrugBadge drug={drug} /></td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, color: data.sensitivity >= 0.85 ? T.success : T.warning }}>{(data.sensitivity * 100).toFixed(1)}%</td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, color: data.specificity >= 0.80 ? T.success : T.warning }}>{(data.specificity * 100).toFixed(1)}%</td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO }}>{data.targets_covered}/{data.targets_total}</td>
+                        <td style={{ padding: "10px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "13px", color: data.sensitivity >= tppTarget ? T.success : data.sensitivity >= tppTarget * 0.8 ? T.warning : T.danger }}>{sensPercent.toFixed(1)}%</span>
+                            {gap !== 0 && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: gap >= 0 ? T.success : T.danger }}>{gap >= 0 ? "+" : ""}{gap.toFixed(0)}pp</span>}
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontSize: "11px", color: T.textTer }}>≥ {tppPercent.toFixed(0)}%</td>
+                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600 }}>{data.targets_covered}/{data.targets_total}</td>
+                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontSize: "11px", color: avgDisc >= 3 ? T.success : avgDisc >= 2 ? T.warning : T.textTer }}>{avgDisc > 0 ? `${avgDisc.toFixed(1)}×` : "—"}</td>
                         <td style={{ padding: "10px 14px" }}>
                           {data.meets_tpp ? (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: T.success, fontWeight: 600, fontSize: "11px" }}><CheckCircle size={13} /> Pass</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "20px", background: "rgba(16,185,129,0.1)", color: T.success, fontWeight: 600, fontSize: "11px" }}><CheckCircle size={12} /> Pass</span>
                           ) : (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: T.danger, fontWeight: 600, fontSize: "11px" }}><AlertTriangle size={13} /> Fail</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "3px 10px", borderRadius: "20px", background: "rgba(239,68,68,0.08)", color: T.danger, fontWeight: 600, fontSize: "11px" }}><AlertTriangle size={12} /> Fail</span>
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
+              {/* Interpretation */}
+              {(() => {
+                const failing = whoEntries.filter(([, d]) => !d.meets_tpp);
+                const worstDrug = failing.length ? failing.sort((a, b) => a[1].sensitivity - b[1].sensitivity)[0] : null;
+                return (
+                  <div style={{ padding: "12px 18px", background: T.primaryLight, borderTop: `1px solid ${T.borderLight}`, fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                    <strong style={{ color: T.primary }}>Interpretation:</strong> {passing}/{whoEntries.length} drug classes meet WHO TPP minimal sensitivity requirements.
+                    {worstDrug && ` ${worstDrug[0]} is the weakest (${(worstDrug[1].sensitivity * 100).toFixed(0)}% vs ${((WHO_TPP_SENS[worstDrug[0]] || 0.80) * 100).toFixed(0)}% required)`}
+                    {failing.length > 1 && ` — ${failing.length} classes need additional mutation coverage or candidate optimisation.`}
+                    {passing === whoEntries.length && " All drug classes pass. The panel meets WHO TPP for clinical deployment."}
+                    {" "}Note: these are in silico estimates. Experimental validation will refine per-assay sensitivity and specificity.
+                  </div>
+                );
+              })()}
             </div>
-          )}
+            );
+          })()}
 
           {/* D: Per-Target Breakdown with Top-K */}
           {diagnostics.per_target && diagnostics.per_target.length > 0 && (
-            <CollapsibleSection title={`Per-Target Breakdown (${diagnostics.per_target.length} targets) — click a row to see Top-K alternatives`} defaultOpen={false}>
-              <div style={{ padding: "8px 12px", marginBottom: "10px", background: T.primaryLight, borderRadius: "6px", fontSize: "11px", color: T.primaryDark, fontWeight: 500 }}>
-                Click any target row to expand and view the top 5 alternative candidates with their scores, discrimination ratios, and detection strategies.
+            <CollapsibleSection title={`Per-Target Breakdown (${diagnostics.per_target.length} targets)`} defaultOpen={false}>
+              <div style={{ padding: "10px 14px", marginBottom: "12px", background: T.primaryLight, borderRadius: "8px", fontSize: "11px", color: T.primaryDark, lineHeight: 1.6 }}>
+                <strong>Per-target assay readiness assessment.</strong> Each row shows the selected candidate's predicted efficiency and discrimination ratio against the active profile thresholds.
+                Click any row to expand the <strong>Top-K alternative candidates</strong> — ranked alternatives with tradeoff annotations for experimental fallback planning.
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT, fontSize: "12px" }}>
                   <thead>
                     <tr style={{ background: T.bgSub }}>
-                      {["", "Target", "Efficiency", "Discrimination", "Primers", "Assay-Ready"].map(h => (
-                        <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, color: T.textSec, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}` }}>{h}</th>
+                      {["", "Target", "Drug", "Strategy", "Efficiency", "Discrimination", "Primers", "Status"].map(h => (
+                        <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: T.textSec, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `1px solid ${T.border}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -3724,6 +3778,12 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                     {diagnostics.per_target.map(t => {
                       const isExpanded = expandedTargets[t.target_label];
                       const topK = topKData[t.target_label];
+                      const eff = typeof t.efficiency === "number" ? t.efficiency : 0;
+                      const disc = typeof t.discrimination === "number" ? t.discrimination : 0;
+                      const effColor = eff >= 0.7 ? T.success : eff >= 0.5 ? T.warning : T.danger;
+                      const discColor = disc >= 3 ? T.success : disc >= 2 ? T.warning : T.danger;
+                      const drugDisplay = (t.drug || "").toUpperCase().replace("RIFAMPICIN", "RIF").replace("ISONIAZID", "INH").replace("FLUOROQUINOLONE", "FQ").replace("ETHAMBUTOL", "EMB").replace("PYRAZINAMIDE", "PZA").replace("AMINOGLYCOSIDE", "AMI").replace("SPECIES_CONTROL", "CTRL");
+                      const stratDisplay = (t.strategy || "").charAt(0).toUpperCase() + (t.strategy || "").slice(1);
                       const toggleExpand = () => {
                         setExpandedTargets(prev => ({ ...prev, [t.target_label]: !prev[t.target_label] }));
                         if (!topKData[t.target_label]) {
@@ -3733,7 +3793,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                             const timeout = setTimeout(() => {
                               setTopKData(prev => prev[t.target_label] === undefined ? { ...prev, [t.target_label]: [] } : prev);
                             }, 5000);
-                            getTopK(jobId, t.target_label, 5).then(({ data, error }) => {
+                            getTopK(jobId, t.target_label, 5).then(({ data }) => {
                               clearTimeout(timeout);
                               setTopKData(prev => ({ ...prev, [t.target_label]: (data?.alternatives || data) || [] }));
                             });
@@ -3742,57 +3802,150 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       };
                       return (
                         <React.Fragment key={t.target_label}>
-                          <tr style={{ borderBottom: `1px solid ${T.borderLight}`, cursor: "pointer" }} onClick={toggleExpand}>
-                            <td style={{ padding: "8px 6px", width: "20px" }}>{isExpanded ? <ChevronDown size={12} color={T.textTer} /> : <ChevronRight size={12} color={T.textTer} />}</td>
-                            <td style={{ padding: "8px 12px", fontWeight: 600, fontFamily: MONO, fontSize: "11px" }}>{t.target_label}</td>
-                            <td style={{ padding: "8px 12px", fontFamily: MONO, color: t.efficiency >= 0.7 ? T.success : t.efficiency >= 0.5 ? T.warning : T.danger }}>{t.efficiency.toFixed(3)}</td>
-                            <td style={{ padding: "8px 12px", fontFamily: MONO, color: t.discrimination >= 3 ? T.success : t.discrimination >= 2 ? T.warning : T.danger }}>{typeof t.discrimination === "number" ? `${t.discrimination.toFixed(1)}×` : "—"}</td>
-                            <td style={{ padding: "8px 12px" }}>{t.has_primers ? <Badge variant="success">Yes</Badge> : <Badge variant="danger">No</Badge>}</td>
-                            <td style={{ padding: "8px 12px" }}>{t.is_assay_ready ? <Badge variant="success">Ready</Badge> : <Badge>Not ready</Badge>}</td>
+                          <tr style={{ borderBottom: `1px solid ${T.borderLight}`, cursor: "pointer", transition: "background 0.1s" }} onClick={toggleExpand} onMouseEnter={e => e.currentTarget.style.background = T.bgSub} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                            <td style={{ padding: "10px 8px", width: "24px" }}>{isExpanded ? <ChevronDown size={13} color={T.primary} /> : <ChevronRight size={13} color={T.textTer} />}</td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600, fontFamily: MONO, fontSize: "11px", color: T.text }}>{t.target_label}</td>
+                            <td style={{ padding: "10px 12px" }}><DrugBadge drug={drugDisplay} /></td>
+                            <td style={{ padding: "10px 12px" }}>
+                              <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "10px", background: stratDisplay === "Direct" ? "rgba(37,99,235,0.08)" : "rgba(147,51,234,0.08)", color: stratDisplay === "Direct" ? T.primary : T.purple }}>{stratDisplay}</span>
+                            </td>
+                            <td style={{ padding: "10px 12px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: effColor }}>{eff.toFixed(3)}</span>
+                                <div style={{ width: "40px", height: "4px", background: T.borderLight, borderRadius: "2px", overflow: "hidden" }}>
+                                  <div style={{ width: `${Math.min(eff * 100, 100)}%`, height: "100%", background: effColor, borderRadius: "2px" }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: "10px 12px" }}>
+                              {t.strategy === "Proximity" ? (
+                                <span style={{ fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA</span>
+                              ) : (
+                                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: discColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "10px 12px" }}>{t.has_primers ? <CheckCircle size={14} color={T.success} /> : <span style={{ color: T.textTer }}>—</span>}</td>
+                            <td style={{ padding: "10px 12px" }}>
+                              {t.is_assay_ready ? (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: "rgba(16,185,129,0.1)", color: T.success }}>Ready</span>
+                              ) : (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "10px", fontWeight: 600, padding: "3px 10px", borderRadius: "20px", background: T.bgSub, color: T.textTer }}>Not ready</span>
+                              )}
+                            </td>
                           </tr>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={6} style={{ padding: "12px 16px", background: T.bgSub }}>
-                                {!topK ? (
-                                  <div style={{ fontSize: "11px", color: T.textTer }}><Loader2 size={12} style={{ animation: "spin 1s linear infinite", display: "inline-block", marginRight: "6px" }} />Loading alternatives…</div>
-                                ) : topK.length === 0 ? (
-                                  <div style={{ fontSize: "11px", color: T.textTer }}>No alternatives available — API may be offline or this job has no stored candidates.</div>
-                                ) : (
-                                  <div>
-                                    {/* Dot strip */}
-                                    <div style={{ position: "relative", height: "24px", background: T.bg, borderRadius: "4px", marginBottom: "10px", border: `1px solid ${T.borderLight}` }}>
-                                      {topK.map((alt, i) => {
-                                        const s = alt.efficiency || alt.score || alt.composite_score || 0;
-                                        return (
-                                          <div key={i} style={{ position: "absolute", top: "6px", left: `${Math.max(0, Math.min(s, 1)) * 100}%`, width: i === 0 ? "10px" : "8px", height: i === 0 ? "10px" : "8px", borderRadius: "50%", background: i === 0 ? "#111827" : "transparent", border: i === 0 ? "none" : "2px solid #9CA3AF", transform: "translateX(-50%)" }} title={`#${i + 1}: ${s.toFixed(3)}`} />
-                                        );
-                                      })}
-                                      {/* Scale ticks */}
-                                      {[0.4, 0.5, 0.6, 0.7, 0.8].map(v => (
-                                        <div key={v} style={{ position: "absolute", bottom: "-14px", left: `${v * 100}%`, fontSize: "8px", color: T.textTer, fontFamily: MONO, transform: "translateX(-50%)" }}>{v}</div>
-                                      ))}
+                              <td colSpan={8} style={{ padding: 0, background: T.bgSub }}>
+                                <div style={{ padding: "16px 20px 16px 44px" }}>
+                                  {!topK ? (
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: T.textTer, padding: "8px 0" }}><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />Loading alternative candidates…</div>
+                                  ) : topK.length === 0 ? (
+                                    <div style={{ fontSize: "11px", color: T.textTer, padding: "8px 0", fontStyle: "italic" }}>No alternative candidates available for this target.</div>
+                                  ) : (
+                                    <div>
+                                      <div style={{ fontSize: "10px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>Top {Math.min(topK.length, 5)} Alternative Candidates</div>
+                                      {/* Score range strip */}
+                                      <div style={{ position: "relative", height: "32px", background: T.bg, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${T.borderLight}`, padding: "0 8px" }}>
+                                        {/* Gradient background showing score quality zones */}
+                                        <div style={{ position: "absolute", inset: 0, borderRadius: "6px", overflow: "hidden", opacity: 0.15 }}>
+                                          <div style={{ position: "absolute", left: "60%", right: "20%", top: 0, bottom: 0, background: `linear-gradient(90deg, ${T.warning}, ${T.success})` }} />
+                                          <div style={{ position: "absolute", left: "80%", right: 0, top: 0, bottom: 0, background: T.success }} />
+                                        </div>
+                                        {topK.slice(0, 5).map((alt, i) => {
+                                          const s = alt.efficiency ?? alt.score ?? alt.composite_score ?? 0;
+                                          const leftPct = Math.max(2, Math.min(s * 100, 98));
+                                          return (
+                                            <div key={i} style={{ position: "absolute", top: "50%", left: `${leftPct}%`, transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 5 - i }}>
+                                              <div style={{ width: i === 0 ? "14px" : "10px", height: i === 0 ? "14px" : "10px", borderRadius: "50%", background: i === 0 ? T.text : T.bg, border: i === 0 ? "none" : `2px solid ${T.textTer}`, boxShadow: i === 0 ? "0 1px 3px rgba(0,0,0,0.2)" : "none" }} />
+                                              <div style={{ fontSize: "8px", fontFamily: MONO, fontWeight: 700, color: i === 0 ? T.text : T.textTer, marginTop: "1px" }}>#{i + 1}</div>
+                                            </div>
+                                          );
+                                        })}
+                                        {/* Scale labels */}
+                                        {[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map(v => (
+                                          <div key={v} style={{ position: "absolute", bottom: "-12px", left: `${v * 100}%`, fontSize: "7px", color: T.textTer, fontFamily: MONO, transform: "translateX(-50%)" }}>{v}</div>
+                                        ))}
+                                      </div>
+                                      {/* Alternative cards */}
+                                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "16px" }}>
+                                        {topK.slice(0, 5).map((alt, i) => {
+                                          const s = alt.efficiency ?? alt.score ?? alt.composite_score ?? 0;
+                                          const disc = alt.discrimination_ratio ?? alt.discrimination ?? 0;
+                                          const spacer = alt.spacer_seq || alt.spacer || "";
+                                          const notes = alt.tradeoff_summary || alt.tradeoff_note || alt.notes || "";
+                                          const tradeoffs = alt.tradeoffs || [];
+                                          const deltaEff = alt.delta_efficiency;
+                                          const deltaDisc = alt.delta_discrimination;
+                                          const isSelected = i === 0;
+                                          const sColor = s >= 0.7 ? T.success : s >= 0.5 ? T.warning : T.danger;
+                                          const dColor = disc >= 3 ? T.success : disc >= 2 ? T.warning : T.danger;
+                                          return (
+                                            <div key={i} style={{
+                                              display: "flex", alignItems: "stretch", gap: "0",
+                                              background: T.bg, border: `1px solid ${isSelected ? T.primary + "44" : T.borderLight}`,
+                                              borderRadius: "8px", overflow: "hidden", transition: "border-color 0.15s",
+                                            }}>
+                                              {/* Rank badge */}
+                                              <div style={{ width: "36px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: isSelected ? T.primary : T.bgSub, color: isSelected ? "#fff" : T.textTer, flexShrink: 0 }}>
+                                                <div style={{ fontSize: "13px", fontWeight: 800, fontFamily: MONO }}>#{i + 1}</div>
+                                                {isSelected && <div style={{ fontSize: "7px", fontWeight: 700, letterSpacing: "0.05em", marginTop: "1px" }}>SEL</div>}
+                                              </div>
+                                              {/* Main content */}
+                                              <div style={{ flex: 1, padding: "10px 14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                                {/* Metrics row */}
+                                                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                                                  <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>Score</span>
+                                                    <span style={{ fontFamily: MONO, fontWeight: 800, fontSize: "13px", color: sColor }}>{s.toFixed(3)}</span>
+                                                    {deltaEff != null && !isSelected && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
+                                                  </div>
+                                                  <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>Disc</span>
+                                                    <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: dColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
+                                                    {deltaDisc != null && !isSelected && disc > 0 && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: deltaDisc >= 0 ? T.success : T.danger }}>{deltaDisc >= 0 ? "+" : ""}{deltaDisc.toFixed(1)}</span>}
+                                                  </div>
+                                                  {alt.offtarget_count != null && <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                                                    <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>OT</span>
+                                                    <span style={{ fontFamily: MONO, fontSize: "11px", color: alt.offtarget_count === 0 ? T.success : T.warning }}>{alt.offtarget_count}</span>
+                                                  </div>}
+                                                </div>
+                                                {/* Spacer sequence */}
+                                                {spacer && (
+                                                  <div style={{ fontFamily: MONO, fontSize: "10px", color: T.textTer, letterSpacing: "0.5px", marginTop: "2px" }}>
+                                                    {spacer.slice(0, 8)}<span style={{ color: T.textSec }}>{spacer.slice(8, 16)}</span>{spacer.slice(16)}
+                                                  </div>
+                                                )}
+                                                {/* Tradeoff annotation */}
+                                                {notes && !isSelected && (
+                                                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", flexWrap: "wrap" }}>
+                                                    {tradeoffs.filter(tr => tr !== "comparable").map(tr => {
+                                                      const tagColors = {
+                                                        higher_discrimination: { bg: "rgba(16,185,129,0.1)", color: T.success },
+                                                        higher_efficiency: { bg: "rgba(37,99,235,0.1)", color: T.primary },
+                                                        fewer_offtargets: { bg: "rgba(139,92,246,0.1)", color: T.purple },
+                                                        different_pam: { bg: "rgba(245,158,11,0.1)", color: T.warning },
+                                                      };
+                                                      const tc = tagColors[tr] || { bg: T.bgSub, color: T.textTer };
+                                                      const labels = {
+                                                        higher_discrimination: "Higher disc",
+                                                        higher_efficiency: "Higher score",
+                                                        fewer_offtargets: "Fewer OT",
+                                                        different_pam: "Alt. PAM site",
+                                                      };
+                                                      return <span key={tr} style={{ fontSize: "9px", fontWeight: 600, padding: "2px 7px", borderRadius: "10px", background: tc.bg, color: tc.color }}>{labels[tr] || tr}</span>;
+                                                    })}
+                                                    <span style={{ fontSize: "10px", color: T.textTer, fontStyle: "italic" }}>{notes}</span>
+                                                  </div>
+                                                )}
+                                                {isSelected && <div style={{ fontSize: "10px", color: T.primary, fontWeight: 600, marginTop: "1px" }}>Currently selected — best composite score</div>}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                    {/* List */}
-                                    <div style={{ marginTop: "18px" }}>
-                                      {topK.slice(0, 5).map((alt, i) => {
-                                        const s = alt.efficiency || alt.score || alt.composite_score || 0;
-                                        const disc = alt.discrimination_ratio || alt.discrimination || 0;
-                                        const strategy = alt.strategy || alt.detection_strategy || "";
-                                        const notes = alt.tradeoff_summary || alt.tradeoff_note || alt.notes || "";
-                                        return (
-                                          <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px 0", fontSize: "11px", fontFamily: MONO, color: i === 0 ? T.text : T.textSec }}>
-                                            <span style={{ width: "20px", fontWeight: 700 }}>#{i + 1}</span>
-                                            <span style={{ width: "10px" }}>{i === 0 ? "●" : "○"}</span>
-                                            <span style={{ width: "50px" }}>{s.toFixed(3)}</span>
-                                            <span style={{ width: "50px", color: T.textTer }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
-                                            <span style={{ width: "70px", color: T.textTer }}>{typeof strategy === "string" ? (strategy.charAt(0).toUpperCase() + strategy.slice(1)).replace("direct", "Direct").replace("proximity", "Proximity") : ""}</span>
-                                            <span style={{ flex: 1, fontSize: "10px", color: T.textTer }}>{notes}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           )}
