@@ -2902,8 +2902,8 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                     <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 700, color: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger }}>{(r.ensembleScore || r.score).toFixed(3)}</td>
                     {hasML && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.score > 0.8 ? T.primary : r.score > 0.65 ? T.warning : T.danger }}>{r.score.toFixed(3)}</td>}
                     {hasML && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.cnnCalibrated != null ? (r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger) : T.textTer }}>{r.cnnCalibrated != null ? r.cnnCalibrated.toFixed(3) : "—"}</td>}
-                    <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 1.5 ? T.warning : T.danger }}>
-                      {r.strategy === "Proximity" ? <span style={{ fontSize: "10px" }}>AS-RPA</span> : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`}
+                    <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.gene === "IS6110" ? T.textTer : r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 1.5 ? T.warning : T.danger }}>
+                      {r.gene === "IS6110" ? <span style={{ fontSize: "10px", color: T.textTer }}>N/A</span> : r.strategy === "Proximity" ? <span style={{ fontSize: "10px" }}>AS-RPA</span> : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`}
                     </td>
                     <td style={{ padding: "10px 12px", fontFamily: MONO }}>{(r.gc * 100).toFixed(0)}%</td>
                     <td style={{ padding: "10px 12px", fontFamily: MONO }}>{r.ot}</td>
@@ -3652,8 +3652,8 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       for (const drug of drugs) {
         const drugTargets = perTarget.filter(t => t.drug === drug);
         const covered = drugTargets.filter(t => t.is_assay_ready).length;
-        // Per-drug specificity: dual path — Cas12a disc for Direct, computed AS-RPA for Proximity
-        const drugSpecs = drugTargets.map(t => {
+        // Per-drug specificity: only viable targets (exclude WC-pair AS-RPA with no discrimination)
+        const drugSpecs = drugTargets.filter(t => t.is_assay_ready).map(t => {
           if (t.strategy === "Proximity") {
             const orig = res.find(r => r.label === t.target_label);
             if (orig?.asrpaDiscrimination?.estimated_specificity != null) return orig.asrpaDiscrimination.estimated_specificity;
@@ -4132,7 +4132,10 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <td style={{ padding: "10px 14px", fontFamily: MONO, fontSize: "11px", color: avgDisc >= 3 ? T.success : avgDisc >= 2 ? T.warning : T.textTer }}>{avgDisc > 0 ? `${avgDisc.toFixed(1)}×` : "—"}</td>
                         <td style={{ padding: "10px 14px" }}>
                           {data.specificity != null ? (
-                            <span style={{ fontFamily: MONO, fontWeight: 600, fontSize: "12px", color: data.specificity >= 0.98 ? T.success : data.specificity >= 0.90 ? T.warning : T.textTer }}>{(data.specificity * 100).toFixed(1)}%</span>
+                            <div>
+                              <span style={{ fontFamily: MONO, fontWeight: 600, fontSize: "12px", color: data.specificity >= 0.98 ? T.success : data.specificity >= 0.90 ? T.warning : T.textTer }}>{(data.specificity * 100).toFixed(1)}%</span>
+                              {data.n_excluded_specificity > 0 && <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{data.n_excluded_specificity} excluded</div>}
+                            </div>
                           ) : <span style={{ color: T.textTer }}>—</span>}
                         </td>
                         <td style={{ padding: "10px 14px" }}>

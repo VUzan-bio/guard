@@ -199,13 +199,18 @@ class DiagnosticMetrics:
         """
         result = {}
         for d in self.drug_class_metrics:
-            # Per-drug specificity: use all targets in this class with strategies
+            # Per-drug specificity: only viable targets (exclude WC-pair AS-RPA)
             class_targets = [
                 t for t in self.target_metrics if t.drug_class == d.drug_class
             ]
             specs = []
+            n_excluded = 0
             for t in class_targets:
                 if t.detection_strategy == "proximity":
+                    # Skip non-viable WC-pair targets (specificity 0.0 = no discrimination)
+                    if not t.is_covered:
+                        n_excluded += 1
+                        continue
                     if t.asrpa_specificity is not None:
                         specs.append(t.asrpa_specificity)
                     else:
@@ -223,6 +228,7 @@ class DiagnosticMetrics:
                 "required_minimal": d.who_minimal,
                 "n_covered": d.n_covered,
                 "n_targets": d.n_targets,
+                "n_excluded_specificity": n_excluded,
             }
         return result
 
