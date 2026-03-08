@@ -79,6 +79,7 @@ class TargetMetrics:
     n_candidates: int
     n_above_threshold: int
     detection_strategy: str      # "direct" or "proximity"
+    asrpa_specificity: float | None = None  # computed AS-RPA specificity (proximity only)
 
 
 @dataclass
@@ -158,7 +159,8 @@ class DiagnosticMetrics:
 
         Two discrimination paths:
         - Direct candidates: Cas12a mismatch discrimination → 1 - 1/disc
-        - Proximity candidates: AS-RPA primer specificity → assume 0.95 (conservative)
+        - Proximity candidates: AS-RPA thermodynamic estimate (computed),
+          fallback 0.95 if not computed
 
         Computed across all assay-ready resistance targets (not just Direct).
         """
@@ -171,9 +173,10 @@ class DiagnosticMetrics:
         specs = []
         for t in ready:
             if t.detection_strategy == "proximity":
-                # AS-RPA primers provide allele-specific discrimination
-                # Conservative estimate: 0.95 specificity (10-100× primer discrimination)
-                specs.append(0.95)
+                if t.asrpa_specificity is not None:
+                    specs.append(t.asrpa_specificity)
+                else:
+                    specs.append(0.95)
             else:
                 specs.append(1.0 - 1.0 / max(t.best_disc, 1.01))
         return float(np.mean(specs))
@@ -203,7 +206,10 @@ class DiagnosticMetrics:
             specs = []
             for t in class_targets:
                 if t.detection_strategy == "proximity":
-                    specs.append(0.95)
+                    if t.asrpa_specificity is not None:
+                        specs.append(t.asrpa_specificity)
+                    else:
+                        specs.append(0.95)
                 elif t.best_disc > 0:
                     specs.append(1.0 - 1.0 / max(t.best_disc, 1.01))
             drug_spec = float(np.mean(specs)) if specs else 0.0
@@ -270,6 +276,7 @@ class DiagnosticMetrics:
                     "discrimination": round(t.best_disc, 1),
                     "strategy": t.detection_strategy,
                     "n_candidates": t.n_candidates,
+                    **({"asrpa_specificity": round(t.asrpa_specificity, 4)} if t.asrpa_specificity is not None else {}),
                 }
                 for t in self.target_metrics
             ],
@@ -342,6 +349,11 @@ def compute_diagnostic_metrics(
         )
         is_assay_ready = is_covered and has_primers
 
+        # Extract computed AS-RPA specificity if available
+        asrpa_spec = None
+        if is_proximity and member and hasattr(member, "asrpa_discrimination") and member.asrpa_discrimination:
+            asrpa_spec = member.asrpa_discrimination.get("estimated_specificity")
+
         target_metrics_list.append(TargetMetrics(
             label=label,
             drug_class=drug_class,
@@ -354,6 +366,7 @@ def compute_diagnostic_metrics(
             n_candidates=len(candidates),
             n_above_threshold=n_above,
             detection_strategy=strategy,
+            asrpa_specificity=asrpa_spec,
         ))
 
     return DiagnosticMetrics(target_metrics=target_metrics_list)

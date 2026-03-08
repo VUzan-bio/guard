@@ -111,6 +111,7 @@ class TargetResult(BaseModel):
     sm_position: Optional[int] = None
     sm_discrimination_score: Optional[float] = None
     sm_improvement_factor: Optional[float] = None
+    asrpa_discrimination: Optional[dict] = None
 
 
 class PanelSummary(BaseModel):
@@ -138,6 +139,9 @@ class PipelineResultResponse(BaseModel):
     targets: list[TargetResult]
     module_stats: list[ModuleStats] = []
     total_duration_ms: int = 0
+    primer_dimer_matrix: Optional[list[list[float]]] = None
+    primer_dimer_labels: Optional[list[str]] = None
+    primer_dimer_report: Optional[dict] = None
 
 
 # ======================================================================

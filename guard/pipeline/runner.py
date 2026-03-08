@@ -830,6 +830,170 @@ class GUARDPipeline:
             "breakdown": {"standard_rpa": n_standard, "allele_specific_rpa": n_asrpa, "tm_range": "57\u201372\u00b0C", "amplicon_range": "80\u2013250 bp"},
         })
 
+        # --- Module 8.5a: AS-RPA thermodynamic discrimination ---
+        t0 = time.perf_counter_ns()
+        logger.info("Module 8.5: Post-primer analysis (AS-RPA discrimination + primer dimer check)...")
+        n_asrpa_disc = 0
+        try:
+            from guard.primers.asrpa_discrimination import compute_asrpa_discrimination
+
+            for member in panel.members:
+                if member.selected_candidate.candidate.detection_strategy != DetectionStrategy.PROXIMITY:
+                    continue
+                if member.primers is None:
+                    continue
+
+                # Find the allele-specific primer
+                as_primer = None
+                if member.primers.fwd.is_allele_specific:
+                    as_primer = member.primers.fwd
+                elif member.primers.rev.is_allele_specific:
+                    as_primer = member.primers.rev
+
+                if as_primer is None:
+                    logger.debug("  %s: no allele-specific primer found, skipping AS-RPA disc", member.label)
+                    continue
+
+                # The 3' terminal base of the AS primer is the mutant allele base
+                primer_3p = as_primer.seq[-1].upper()
+
+                # Determine the WT template base from the target mutation
+                target = target_map.get(member.target.label)
+                if target is None:
+                    continue
+
+                # For AS-RPA: primer 3' = mutant base, WT template base creates the mismatch
+                # The ref codon vs alt codon tells us the WT base at this position
+                ref_codon = target.ref_codon.upper() if target.ref_codon else ""
+                alt_codon = target.alt_codon.upper() if target.alt_codon else ""
+
+                # Determine WT base on the template strand opposite the primer 3' end
+                # The primer matches the mutant allele; the WT template is the complement
+                # of the ref base on the same strand as the primer
+                wt_template_base = None
+                if len(ref_codon) == 1 and len(alt_codon) == 1:
+                    # Single-base: ref_base is in coding orientation
+                    if as_primer.direction == "fwd":
+                        # Forward primer reads plus strand; template is minus strand
+                        # WT template base = complement of ref base
+                        from Bio.Seq import Seq as _Seq
+                        wt_template_base = str(_Seq(ref_codon).complement())
+                    else:
+                        wt_template_base = ref_codon
+                elif len(ref_codon) == 3 and len(alt_codon) == 3:
+                    # Find the differing position in the codon
+                    for ci in range(3):
+                        if ref_codon[ci] != alt_codon[ci]:
+                            ref_base = ref_codon[ci]
+                            break
+                    else:
+                        continue
+                    # Determine strand orientation from genome
+                    if genome_seq:
+                        from Bio.Seq import Seq as _Seq
+                        gcodon = genome_seq[target.genomic_pos:target.genomic_pos + 3].upper()
+                        rc_ref = str(_Seq(ref_codon).reverse_complement())
+                        if gcodon == ref_codon:
+                            # Plus-strand gene
+                            if as_primer.direction == "fwd":
+                                wt_template_base = str(_Seq(ref_base).complement())
+                            else:
+                                wt_template_base = ref_base
+                        elif gcodon == rc_ref:
+                            # Minus-strand gene
+                            comp_ref = str(_Seq(ref_base).complement())
+                            if as_primer.direction == "rev":
+                                wt_template_base = str(_Seq(comp_ref).complement())
+                            else:
+                                wt_template_base = comp_ref
+                        else:
+                            wt_template_base = str(_Seq(ref_base).complement()) if as_primer.direction == "fwd" else ref_base
+
+                if wt_template_base is None or len(wt_template_base) != 1:
+                    logger.debug("  %s: could not determine WT template base (ref=%s, alt=%s)", member.label, ref_codon, alt_codon)
+                    continue
+
+                # Check for deliberate penultimate mismatch
+                has_pen_mm = as_primer.allele_specific_position is not None and as_primer.allele_specific_position <= 3
+
+                try:
+                    disc_result = compute_asrpa_discrimination(
+                        primer_3prime_base=primer_3p,
+                        wt_template_base=wt_template_base,
+                        has_penultimate_mm=has_pen_mm,
+                    )
+                    member.asrpa_discrimination = disc_result
+                    n_asrpa_disc += 1
+                    logger.info(
+                        "  %s: AS-RPA disc %s → ratio=%.1f× (%s)",
+                        member.label,
+                        disc_result["terminal_mismatch"],
+                        disc_result["disc_ratio"],
+                        disc_result["block_class"],
+                    )
+                except (ValueError, KeyError) as e:
+                    logger.debug("  %s: AS-RPA disc failed: %s", member.label, e)
+
+        except ImportError:
+            logger.debug("asrpa_discrimination module not available")
+
+        if n_asrpa_disc:
+            logger.info("AS-RPA discrimination: %d/%d proximity targets scored", n_asrpa_disc, n_asrpa)
+
+        # --- Module 8.5b: Multiplex primer dimer analysis ---
+        t0_dimer = time.perf_counter_ns()
+        n_dimer_flagged = 0
+        try:
+            from guard.multiplex.primer_dimer import analyse_panel_dimers
+
+            primer_entries = []
+            for member in panel.members:
+                if member.primers is not None:
+                    primer_entries.append({
+                        "target": member.label,
+                        "fwd": member.primers.fwd.seq,
+                        "rev": member.primers.rev.seq,
+                    })
+
+            if len(primer_entries) >= 2:
+                dimer_report = analyse_panel_dimers(primer_entries)
+
+                # Populate the panel's primer_dimer_matrix (3'-anchored ΔG)
+                panel.primer_dimer_matrix = dimer_report.dg_matrix_3prime.tolist()
+                panel.primer_dimer_labels = dimer_report.oligo_labels
+
+                # Store report summary
+                panel.primer_dimer_report = {
+                    "panel_dimer_score": dimer_report.panel_dimer_score,
+                    "high_risk_pairs": dimer_report.high_risk_pairs,
+                    "flagged_pairs": dimer_report.flagged_pairs,
+                    "internal_dimers": dimer_report.internal_dimers,
+                    "recommendations": dimer_report.recommendations,
+                    "dg_matrix_full": dimer_report.dg_matrix_full.tolist(),
+                }
+                n_dimer_flagged = len(dimer_report.high_risk_pairs) + len(dimer_report.flagged_pairs)
+
+                logger.info(
+                    "Primer dimer analysis: %d oligos, score=%.4f, %d high-risk, %d moderate-risk",
+                    len(dimer_report.oligo_labels),
+                    dimer_report.panel_dimer_score,
+                    len(dimer_report.high_risk_pairs),
+                    len(dimer_report.flagged_pairs),
+                )
+        except ImportError:
+            logger.debug("primer_dimer module not available")
+        except Exception as e:
+            logger.warning("Primer dimer analysis failed: %s", e)
+
+        self._stats.append({
+            "module_id": "M8.5", "module_name": "Post-Primer Analysis",
+            "duration_ms": ((time.perf_counter_ns() - t0) + (time.perf_counter_ns() - t0_dimer)) // 1_000_000,
+            "candidates_in": n_with_primers,
+            "candidates_out": n_with_primers,
+            "detail": f"AS-RPA disc: {n_asrpa_disc} scored | Dimer check: {n_dimer_flagged} flagged pairs",
+            "breakdown": {"asrpa_scored": n_asrpa_disc, "dimer_flagged": n_dimer_flagged},
+        })
+
         # --- Module 9: Panel assembly + IS6110 control ---
         t0 = time.perf_counter_ns()
         logger.info("Module 9: Panel assembly + IS6110 control...")
@@ -1167,6 +1331,9 @@ class GUARDPipeline:
                 entry["rev_primer"] = member.primers.rev.seq
                 entry["amplicon_length"] = member.primers.amplicon_length
                 entry["has_as_rpa"] = member.primers.has_allele_specific_primer
+
+            if member.asrpa_discrimination is not None:
+                entry["asrpa_discrimination"] = member.asrpa_discrimination
 
             # Enhancement info
             enh_reports = enhancement_reports.get(member.label, [])

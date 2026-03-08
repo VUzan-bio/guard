@@ -346,6 +346,7 @@ function transformApiCandidate(c) {
       fwd: c.fwd_primer, rev: c.rev_primer, amplicon: c.amplicon_length,
       proximityDistance: c.proximity_distance || null,
       mutActivity: sc.discrimination?.mut_activity || 0, wtActivity: sc.discrimination?.wt_activity || 0,
+      asrpaDiscrimination: c.asrpa_discrimination || null,
       refs: WHO_REFS[c.label] || null,
       scoringBreakdown: null,
       isControl: false,
@@ -511,7 +512,7 @@ const CandidateViewer = ({ r, onClose }) => {
             { l: r.ensembleScore != null ? "Ensemble" : "Score", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
             ...(r.ensembleScore != null ? [{ l: "Heuristic", v: r.score.toFixed(3), c: T.textSec }] : []),
             ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
-            { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
+            { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? `${r.asrpaDiscrimination.disc_ratio >= 1000 ? "≥1000" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}` : "AS-RPA") : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
             ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
             { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
             { l: "Off-targets", v: r.ot, c: r.ot === 0 ? T.success : T.warning },
@@ -1682,11 +1683,11 @@ const HomePage = ({ goTo, connected }) => {
             },
             {
               title: "AS-RPA specificity",
-              text: "Discrimination for Proximity candidates uses a fixed 0.95 specificity estimate. Real AS-RPA performance varies with 3\u2032 mismatch identity, primer design, and template concentration.",
+              text: "Discrimination for Proximity candidates is estimated from 3′ terminal mismatch identity using Boltzmann thermodynamics (not experimentally validated). Ratios > 100× are capped — kinetic effects dominate at high ΔΔG.",
             },
             {
               title: "Multiplex compatibility",
-              text: "Assessed by sequence homology only. Thermodynamic primer-dimer stability, enzyme competition, and amplification bias in multiplexed RPA reactions are not currently modelled.",
+              text: "Cross-reactivity is assessed by sequence homology (Bowtie2). Primer dimer stability is now predicted using SantaLucia nearest-neighbour thermodynamics. Enzyme competition and amplification bias are not modelled.",
             },
             {
               title: "Specificity estimates",
@@ -2518,7 +2519,7 @@ const CandidateAccordion = ({ r, onShowAlternatives }) => {
           { l: "Ensemble", v: (r.ensembleScore || r.score).toFixed(3), c: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger },
           { l: "Heuristic", v: r.score.toFixed(3), c: T.textSec },
           ...(r.cnnCalibrated != null ? [{ l: r.mlScores?.some(m => (m.model_name || m.modelName) === "guard_net") ? "GUARD-Net" : "CNN (cal)", v: r.cnnCalibrated.toFixed(3), c: r.cnnCalibrated > 0.7 ? T.primary : r.cnnCalibrated > 0.5 ? T.warning : T.danger }] : []),
-          { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? "AS-RPA" : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
+          { l: r.strategy === "Proximity" ? "Disc (AS-RPA)" : "Discrimination", v: r.strategy === "Proximity" ? (r.asrpaDiscrimination ? `${r.asrpaDiscrimination.disc_ratio >= 1000 ? "≥1000" : r.asrpaDiscrimination.disc_ratio.toFixed(0)}× ${r.asrpaDiscrimination.terminal_mismatch}` : "AS-RPA") : `${typeof r.disc === "number" ? r.disc.toFixed(1) : r.disc}×`, c: r.strategy === "Proximity" ? T.purple : discColor },
           ...(r.strategy === "Proximity" && r.proximityDistance ? [{ l: "Distance", v: `${r.proximityDistance} bp`, c: T.purple }] : []),
           { l: "GC%", v: `${(r.gc * 100).toFixed(0)}%`, c: T.text },
           { l: "Off-targets", v: r.ot, c: r.ot === 0 ? T.success : T.warning },
@@ -3136,29 +3137,48 @@ const DiscriminationTab = ({ results }) => {
           <div style={{ padding: "16px 20px 8px", fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
             These candidates use <strong>allele-specific RPA primers</strong> for discrimination — the crRNA binds outside the mutation site.
             Discrimination is provided by preferential primer extension on the mutant template.
+            {proximityCands.some(r => r.asrpaDiscrimination) && (
+              <span> Thermodynamic estimates below are based on 3′ terminal mismatch identity and penultimate mismatch design.</span>
+            )}
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
               <tr style={{ background: T.bgSub }}>
-                {["Target", "Drug", "Distance", "Score", "Primers"].map(h => (
+                {["Target", "Drug", "Distance", "Score", "Mismatch", "Disc. Ratio", "Block", "Primers"].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, borderBottom: `1px solid ${T.borderLight}` }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {proximityCands.map((r) => (
-                <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                  <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px" }}>{r.label}</td>
-                  <td style={{ padding: "10px 14px" }}><DrugBadge drug={r.drug} /></td>
-                  <td style={{ padding: "10px 14px", fontFamily: MONO, color: T.purple }}>{r.proximityDistance ? `${r.proximityDistance} bp` : "—"}</td>
-                  <td style={{ padding: "10px 14px", fontFamily: MONO }}>{r.score.toFixed(3)}</td>
-                  <td style={{ padding: "10px 14px" }}>
-                    <Badge variant={r.hasPrimers ? "success" : "danger"}>{r.hasPrimers ? "AS-RPA" : "No primers"}</Badge>
-                  </td>
-                </tr>
-              ))}
+              {proximityCands.map((r) => {
+                const d = r.asrpaDiscrimination;
+                const blockColor = d?.block_class === "strong" ? T.success : d?.block_class === "moderate" ? T.warning : T.danger;
+                return (
+                  <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px" }}>{r.label}</td>
+                    <td style={{ padding: "10px 14px" }}><DrugBadge drug={r.drug} /></td>
+                    <td style={{ padding: "10px 14px", fontFamily: MONO, color: T.purple }}>{r.proximityDistance ? `${r.proximityDistance} bp` : "—"}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: MONO }}>{r.score.toFixed(3)}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700 }}>{d?.terminal_mismatch || "—"}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: d ? (d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
+                      {d ? (d.disc_ratio >= 1000 ? "≥1000×" : `${d.disc_ratio.toFixed(0)}×`) : "—"}
+                    </td>
+                    <td style={{ padding: "10px 14px" }}>
+                      {d ? <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span> : "—"}
+                    </td>
+                    <td style={{ padding: "10px 14px" }}>
+                      <Badge variant={r.hasPrimers ? "success" : "danger"}>{r.hasPrimers ? "AS-RPA" : "No primers"}</Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          {proximityCands.some(r => r.asrpaDiscrimination) && (
+            <div style={{ padding: "12px 20px", fontSize: "10px", color: T.textTer, fontStyle: "italic", borderTop: `1px solid ${T.purple}15` }}>
+              Thermodynamic estimates — not experimentally validated. Ratios from Boltzmann conversion exp(ΔΔG/RT) at 37 °C, capped at 1000×.
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -3277,13 +3297,16 @@ const PrimersTab = ({ results }) => {
   );
 };
 
-const MultiplexTab = ({ results }) => {
+const MultiplexTab = ({ results, panelData }) => {
   const mobile = useIsMobile();
   const drugs = [...new Set(results.map((r) => r.drug))];
   const controlIncluded = results.some((r) => r.gene === "IS6110");
   const directCount = results.filter(r => r.strategy === "Direct").length;
   const proximityCount = results.filter(r => r.strategy === "Proximity").length;
   const withPrimers = results.filter(r => r.hasPrimers).length;
+  const dimerMatrix = panelData?.primer_dimer_matrix || null;
+  const dimerLabels = panelData?.primer_dimer_labels || null;
+  const dimerReport = panelData?.primer_dimer_report || null;
 
   return (
     <div>
@@ -3392,30 +3415,130 @@ const MultiplexTab = ({ results }) => {
         </div>
       </div>
 
-      {/* Cross-reactivity explanation + matrix */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>crRNA–Primer Compatibility</div>
+      {/* Primer Dimer ΔG Heatmap */}
+      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Primer Dimer Analysis</div>
         <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
-          Cross-reactivity check ensures no crRNA in the panel binds to another member's amplicon or primer sequence.
-          The simulated annealing optimizer penalizes panels with cross-reactive pairs, selecting candidates that
-          coexist without interference. Green = compatible, Yellow = potential cross-reactivity requiring validation.
+          Thermodynamic primer-dimer prediction using SantaLucia nearest-neighbour parameters.
+          The heatmap shows <strong>3′-anchored ΔG</strong> (kcal/mol) for each primer pair — extensible dimers that can produce
+          amplification artifacts in multiplex RPA. Red cells indicate high-risk dimers (ΔG &lt; −6.0), yellow moderate risk (ΔG &lt; −4.0).
         </p>
-        <div style={{ overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `40px repeat(${Math.min(results.length, 12)}, 1fr)`, gap: "2px", fontSize: "9px", minWidth: Math.min(results.length, 12) * 30 + 40 }}>
-            <div />
-            {results.slice(0, 12).map((r) => (
-              <div key={`h-${r.label}`} style={{ textAlign: "center", fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "4px 0", overflow: "hidden", textOverflow: "ellipsis" }}>{r.gene}</div>
-            ))}
-            {results.slice(0, 12).map((r1, i) => (
-              <React.Fragment key={`r-${r1.label}`}>
-                <div style={{ fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "4px", display: "flex", alignItems: "center" }}>{r1.gene.slice(0, 4)}</div>
-                {results.slice(0, 12).map((r2, j) => {
-                  const compat = i === j ? 1 : Math.random() > 0.15 ? 1 : 0.5;
-                  return <div key={`c-${i}-${j}`} style={{ background: compat === 1 ? T.successLight : T.warningLight, borderRadius: "2px", height: 20 }} />;
-                })}
-              </React.Fragment>
-            ))}
+        {dimerMatrix && dimerLabels ? (
+          <>
+            <div style={{ overflowX: "auto", marginBottom: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: `60px repeat(${dimerLabels.length}, 1fr)`, gap: "1px", fontSize: "8px", minWidth: dimerLabels.length * 28 + 60 }}>
+                <div />
+                {dimerLabels.map((lbl) => (
+                  <div key={`dh-${lbl}`} style={{ textAlign: "center", fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "3px 1px", overflow: "hidden", textOverflow: "ellipsis", writingMode: "vertical-lr", transform: "rotate(180deg)", height: "50px" }}>{lbl}</div>
+                ))}
+                {dimerLabels.map((rowLbl, i) => (
+                  <React.Fragment key={`dr-${rowLbl}`}>
+                    <div style={{ fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "3px 4px", display: "flex", alignItems: "center", fontSize: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rowLbl}</div>
+                    {dimerLabels.map((_, j) => {
+                      const dg = dimerMatrix[i][j];
+                      let bg = T.successLight;
+                      let textColor = T.success;
+                      if (dg < -6.0) { bg = "#FEE2E2"; textColor = "#DC2626"; }
+                      else if (dg < -4.0) { bg = "#FEF3C7"; textColor = "#D97706"; }
+                      else if (dg < -2.0) { bg = "#F0FDF4"; textColor = "#16A34A"; }
+                      return (
+                        <div key={`dc-${i}-${j}`} style={{ background: bg, borderRadius: "2px", height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", fontFamily: MONO, color: textColor, fontWeight: 600 }}
+                          title={`${rowLbl} × ${dimerLabels[j]}: ΔG = ${dg.toFixed(1)} kcal/mol`}>
+                          {i !== j && dg < -2.0 ? dg.toFixed(1) : ""}
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+            {/* Legend */}
+            <div style={{ display: "flex", gap: "16px", fontSize: "10px", color: T.textSec, marginBottom: "12px" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#FEE2E2", border: "1px solid #FECACA" }} /> &lt; −6.0 HIGH risk</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#FEF3C7", border: "1px solid #FDE68A" }} /> &lt; −4.0 MODERATE</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: T.successLight, border: `1px solid ${T.success}33` }} /> Clean</span>
+            </div>
+            {/* Dimer report summary */}
+            {dimerReport && (
+              <div style={{ background: T.bgSub, borderRadius: "8px", padding: "14px 18px", border: `1px solid ${T.borderLight}` }}>
+                <div style={{ display: "flex", gap: "24px", marginBottom: "8px", fontSize: "12px" }}>
+                  <span style={{ fontWeight: 600, color: T.text }}>Panel dimer score: <span style={{ fontFamily: MONO, color: dimerReport.panel_dimer_score < 0.1 ? T.success : dimerReport.panel_dimer_score < 0.3 ? T.warning : T.danger }}>{dimerReport.panel_dimer_score.toFixed(3)}</span></span>
+                  <span style={{ color: T.textSec }}>HIGH-risk: <strong style={{ color: (dimerReport.high_risk_pairs?.length || 0) > 0 ? T.danger : T.success }}>{dimerReport.high_risk_pairs?.length || 0}</strong></span>
+                  <span style={{ color: T.textSec }}>Moderate: <strong style={{ color: (dimerReport.flagged_pairs?.length || 0) > 0 ? T.warning : T.success }}>{dimerReport.flagged_pairs?.length || 0}</strong></span>
+                  <span style={{ color: T.textSec }}>Internal: <strong>{dimerReport.internal_dimers?.length || 0}</strong></span>
+                </div>
+                {dimerReport.recommendations?.map((rec, i) => (
+                  <p key={i} style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.5, margin: i === 0 ? 0 : "4px 0 0" }}>{rec}</p>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ padding: "20px", textAlign: "center", color: T.textTer, fontSize: "12px", background: T.bgSub, borderRadius: "8px" }}>
+            Primer dimer analysis not available — run a full pipeline to generate thermodynamic dimer predictions.
           </div>
+        )}
+      </div>
+
+      {/* AS-RPA Discrimination Summary */}
+      {results.some(r => r.asrpaDiscrimination) && (
+        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>AS-RPA Thermodynamic Discrimination</div>
+          <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
+            Proximity candidates use allele-specific RPA primers for discrimination. The 3′ terminal mismatch
+            identity determines extension blocking strength. Values are <strong>thermodynamic estimates</strong> based
+            on terminal mismatch penalty data — not experimentally validated ratios.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+                  <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Target</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Mismatch</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>ΔΔG</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Disc. Ratio</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Block</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Specificity</th>
+                  <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, fontFamily: HEADING, color: T.textSec }}>Pen. MM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.filter(r => r.asrpaDiscrimination).map(r => {
+                  const d = r.asrpaDiscrimination;
+                  const blockColor = d.block_class === "strong" ? T.success : d.block_class === "moderate" ? T.warning : T.danger;
+                  return (
+                    <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                      <td style={{ padding: "8px 12px", fontWeight: 600 }}>{r.label}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700 }}>{d.terminal_mismatch}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO }}>{d.ddg_kcal.toFixed(1)} kcal/mol</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700, color: d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger }}>{d.disc_ratio >= 1000 ? "≥1000" : d.disc_ratio.toFixed(0)}×</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                        <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span>
+                      </td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO }}>{(d.estimated_specificity * 100).toFixed(1)}%</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center" }}>{d.has_penultimate_mm ? "✓" : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ fontSize: "10px", color: T.textTer, marginTop: "8px", fontStyle: "italic" }}>
+            Discrimination ratios computed via Boltzmann conversion: exp(ΔΔG / RT) at 37 °C. Ratios &gt; 100× capped — kinetic effects dominate at high ΔΔG.
+          </div>
+        </div>
+      )}
+
+      {/* Cross-reactivity explanation (sequence-based) */}
+      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px" }}>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>crRNA Sequence Cross-Reactivity</div>
+        <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
+          Cross-reactivity is assessed by sequence homology (Bowtie2 alignment). The simulated annealing optimizer
+          penalizes panels with cross-reactive pairs, selecting candidates that coexist without interference.
+          This is complementary to the thermodynamic primer dimer check above.
+        </p>
+        <div style={{ padding: "16px", textAlign: "center", color: T.textTer, fontSize: "12px", background: T.bgSub, borderRadius: "8px" }}>
+          Cross-reactivity matrix checked during optimization — {directCount + proximityCount} targets validated for sequence orthogonality.
         </div>
       </div>
     </div>
@@ -3488,9 +3611,16 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       const assayReady = resistanceTargets.filter(t => t.is_assay_ready).length;
       const directTargets = resistanceTargets.filter(t => t.strategy === "Direct" && t.discrimination > 0);
       const meanDisc = directTargets.length ? directTargets.reduce((a, t) => a + t.discrimination, 0) / directTargets.length : 0;
-      // Panel specificity: Direct targets use Cas12a disc, Proximity use AS-RPA estimate (0.95)
+      // Panel specificity: Direct targets use Cas12a disc, Proximity use computed AS-RPA estimate (fallback 0.95)
       const readyResistance = resistanceTargets.filter(t => t.is_assay_ready);
-      const specValues = readyResistance.map(t => t.strategy === "Proximity" ? 0.95 : Math.max(0, 1 - 1 / Math.max(t.discrimination, 1.01)));
+      const specValues = readyResistance.map(t => {
+        if (t.strategy === "Proximity") {
+          const orig = res.find(r => r.label === t.target_label);
+          if (orig?.asrpaDiscrimination?.estimated_specificity != null) return orig.asrpaDiscrimination.estimated_specificity;
+          return 0.95;
+        }
+        return Math.max(0, 1 - 1 / Math.max(t.discrimination, 1.01));
+      });
       const specificity = specValues.length ? specValues.reduce((a, v) => a + v, 0) / specValues.length : 0;
       const sensitivity = resistanceTargets.length ? assayReady / resistanceTargets.length : 0;
 
@@ -3508,9 +3638,13 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
       for (const drug of drugs) {
         const drugTargets = perTarget.filter(t => t.drug === drug);
         const covered = drugTargets.filter(t => t.is_assay_ready).length;
-        // Per-drug specificity: dual path — Cas12a disc for Direct, AS-RPA for Proximity
+        // Per-drug specificity: dual path — Cas12a disc for Direct, computed AS-RPA for Proximity
         const drugSpecs = drugTargets.map(t => {
-          if (t.strategy === "Proximity") return 0.95;
+          if (t.strategy === "Proximity") {
+            const orig = res.find(r => r.label === t.target_label);
+            if (orig?.asrpaDiscrimination?.estimated_specificity != null) return orig.asrpaDiscrimination.estimated_specificity;
+            return 0.95;
+          }
           return t.discrimination > 0 ? Math.max(0, 1 - 1 / Math.max(t.discrimination, 1.01)) : 0;
         }).filter(v => v > 0);
         const drugSens = drugTargets.length ? covered / drugTargets.length : 0;
@@ -4019,7 +4153,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                     {worstSens && ` ${worstSens[0]} is the weakest (${(worstSens[1].sensitivity * 100).toFixed(0)}% vs ${((WHO_TPP_SENS[worstSens[0]] || 0.80) * 100).toFixed(0)}% required).`}
                     {sensFailing.length > 1 && ` ${sensFailing.length} classes need additional mutation coverage.`}
                     {sensPassing === whoEntries.length && " All drug classes pass sensitivity."}
-                    {" "}<strong>Specificity:</strong> {specPassing}/{whoEntries.length} classes meet the ≥98% threshold (in silico proxy: 1−1/disc for Direct, 0.95 for AS-RPA Proximity).
+                    {" "}<strong>Specificity:</strong> {specPassing}/{whoEntries.length} classes meet the ≥98% threshold (in silico proxy: 1−1/disc for Direct, thermodynamic AS-RPA estimate for Proximity).
                     {specFailing.length > 0 && ` ${specFailing.length} class${specFailing.length > 1 ? "es" : ""} pending — specificity estimates require experimental validation on the electrochemical platform.`}
                     {specPassing === whoEntries.length && " All classes pass specificity."}
                   </div>
@@ -4089,9 +4223,15 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                               </div>
                             </td>
                             <td style={{ padding: "10px 12px" }}>
-                              {t.strategy === "Proximity" ? (
-                                <span style={{ fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA</span>
-                              ) : (
+                              {t.strategy === "Proximity" ? (() => {
+                                const orig = results.find(r => r.label === t.target_label);
+                                const ad = orig?.asrpaDiscrimination;
+                                if (ad) {
+                                  const c = ad.block_class === "strong" ? T.success : ad.block_class === "moderate" ? T.warning : T.danger;
+                                  return <span style={{ fontSize: "10px", fontWeight: 700, color: c }} title={`AS-RPA ${ad.terminal_mismatch} — ${ad.block_class}`}>{ad.disc_ratio >= 1000 ? "≥1000" : ad.disc_ratio.toFixed(0)}× <span style={{ fontWeight: 500, color: T.purple }}>AS-RPA</span></span>;
+                                }
+                                return <span style={{ fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA</span>;
+                              })() : (
                                 <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: discColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
                               )}
                             </td>
@@ -4258,6 +4398,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
   const toast = useToast();
   const [tab, setTab] = useState("overview");
   const [results, setResults] = useState(null);
+  const [panelData, setPanelData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [activeJob, setActiveJob] = useState(jobId || null);
@@ -4288,6 +4429,11 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
         } else if (data?.candidates) {
           setResults(data.candidates.map(transformApiCandidate));
         }
+        setPanelData({
+          primer_dimer_matrix: data?.primer_dimer_matrix || null,
+          primer_dimer_labels: data?.primer_dimer_labels || null,
+          primer_dimer_report: data?.primer_dimer_report || null,
+        });
         setLoading(false);
       });
     } else if (activeJob.startsWith("mock-")) {
@@ -4420,7 +4566,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
           {tab === "candidates" && <CandidatesTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} />}
           {tab === "discrimination" && <DiscriminationTab results={results} />}
           {tab === "primers" && <PrimersTab results={results} />}
-          {tab === "multiplex" && <MultiplexTab results={results} />}
+          {tab === "multiplex" && <MultiplexTab results={results} panelData={panelData} />}
           {tab === "diagnostics" && <DiagnosticsErrorBoundary><DiagnosticsTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} /></DiagnosticsErrorBoundary>}
         </>
       )}

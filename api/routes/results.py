@@ -150,6 +150,7 @@ def _build_target_result(member: dict[str, Any]) -> TargetResult:
         sm_position=member.get("sm_position"),
         sm_discrimination_score=member.get("sm_discrimination_score"),
         sm_improvement_factor=member.get("sm_improvement_factor"),
+        asrpa_discrimination=member.get("asrpa_discrimination"),
     )
 
 
@@ -239,6 +240,9 @@ async def get_results(job_id: str) -> PipelineResultResponse:
         targets=target_results,
         module_stats=module_stats,
         total_duration_ms=total_duration_ms,
+        primer_dimer_matrix=result.get("primer_dimer_matrix"),
+        primer_dimer_labels=result.get("primer_dimer_labels"),
+        primer_dimer_report=result.get("primer_dimer_report"),
     )
 
 

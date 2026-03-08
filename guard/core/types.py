@@ -620,6 +620,8 @@ class PanelMember(BaseModel):
     sm_replacement_base: Optional[str] = None       # replacement base
     sm_discrimination_score: Optional[float] = None # discrimination after SM
     sm_improvement_factor: Optional[float] = None   # improvement over natural discrimination
+    # AS-RPA thermodynamic discrimination (Module 8 — proximity candidates only)
+    asrpa_discrimination: Optional[dict] = None     # full result from asrpa_discrimination.py
 
     @property
     def label(self) -> str:
@@ -649,6 +651,8 @@ class MultiplexPanel(BaseModel):
     members: list[PanelMember]
     cross_reactivity_matrix: Optional[list[list[float]]] = None
     primer_dimer_matrix: Optional[list[list[float]]] = None
+    primer_dimer_labels: Optional[list[str]] = None
+    primer_dimer_report: Optional[dict] = None      # flagged_pairs, high_risk, recommendations
     panel_score: Optional[float] = None
     optimizer_iterations: Optional[int] = None
     optimizer_temperature: Optional[float] = None
