@@ -544,46 +544,76 @@ class GUARDPipeline:
                         if emb_entry["drug"] is None:
                             emb_entry["drug"] = drug_by_label.get(emb_entry["target_label"])
 
-                    # --- UMAP: also embed ALL pre-filter candidates from M2 ---
-                    # This gives the full ~34K background for the UMAP scatter,
-                    # not just the ~200 that survived M3/M4 filtering.
-                    collected_spacers = {e["spacer_seq"] for e in self.ml_scorer._collected_embeddings}
-                    extra_candidates = []
-                    for label_sr, sr in scan_results.items():
-                        for cand in sr.all_candidates:
-                            if cand.spacer_seq not in collected_spacers:
-                                extra_candidates.append(cand)
-                                collected_spacers.add(cand.spacer_seq)  # dedup
+                    # --- UMAP: broad PAM scan for dense background ---
+                    # The normal pipeline only keeps spacers overlapping the
+                    # mutation (~230 total). For a dense UMAP we scan ALL PAM
+                    # sites across every target's flanking region, generating
+                    # thousands of background spacers regardless of SNP overlap.
+                    from guard.candidates.scanner import iupac_match, _gc
+                    from types import SimpleNamespace
 
-                    if extra_candidates:
+                    collected_spacers = {e["spacer_seq"] for e in self.ml_scorer._collected_embeddings}
+                    bg_spacers: list[tuple] = []  # (spacer, pam, target_label, drug, gc)
+                    sp_len = 20  # single length for efficiency
+
+                    _RC = str.maketrans("ACGT", "TGCA")
+                    for target in targets:
+                        flanking = target.flanking_seq.upper()
+                        drug = drug_by_label.get(target.label, "OTHER")
+                        seqs = [flanking, flanking[::-1].translate(_RC)]
+                        for seq_strand in seqs:
+                            for i in range(len(seq_strand) - 4 - sp_len):
+                                pam4 = seq_strand[i:i+4]
+                                is_pam = False
+                                for pd in self.scanner.pams:
+                                    if iupac_match(pam4, pd.pattern):
+                                        is_pam = True
+                                        break
+                                if not is_pam:
+                                    continue
+                                spacer = seq_strand[i+4:i+4+sp_len]
+                                if spacer in collected_spacers:
+                                    continue
+                                collected_spacers.add(spacer)
+                                bg_spacers.append((spacer, pam4, target.label, drug, _gc(spacer)))
+
+                    if bg_spacers:
                         logger.info(
-                            "UMAP: encoding %d additional pre-filter candidates for embedding space...",
-                            len(extra_candidates),
+                            "UMAP: encoding %d background PAM spacers for dense embedding...",
+                            len(bg_spacers),
                         )
+                        # Minimal duck-typed objects for _encode_context (needs .pam_seq, .spacer_seq)
+                        # and _get_rnafm_embedding (needs .spacer_seq)
+                        bg_objs = [
+                            SimpleNamespace(pam_seq=pam, spacer_seq=sp)
+                            for sp, pam, _, _, _ in bg_spacers
+                        ]
+
                         CHUNK = 4096
-                        for start in range(0, len(extra_candidates), CHUNK):
-                            chunk = extra_candidates[start:start + CHUNK]
+                        for start in range(0, len(bg_objs), CHUNK):
+                            chunk = bg_objs[start:start + CHUNK]
                             ctx = [self.ml_scorer._encode_context(c) for c in chunk]
                             rfm = [self.ml_scorer._get_rnafm_embedding(c) for c in chunk]
                             chunk_preds = self.ml_scorer._predict_batch(ctx, rfm)
 
                             if self.ml_scorer._last_batch_embeddings is not None:
                                 chunk_embs = self.ml_scorer._last_batch_embeddings
-                                for idx, cand in enumerate(chunk):
+                                for idx in range(len(chunk)):
+                                    sp, pam, tl, dr, gc = bg_spacers[start + idx]
                                     self.ml_scorer._collected_embeddings.append({
-                                        "target_label": cand.target_label,
-                                        "spacer_seq": cand.spacer_seq,
+                                        "target_label": tl,
+                                        "spacer_seq": sp,
                                         "embedding": chunk_embs[idx],
                                         "score": chunk_preds[idx],
-                                        "gc_content": cand.gc_content,
-                                        "detection_strategy": cand.detection_strategy.value,
-                                        "drug": drug_by_label.get(cand.target_label),
+                                        "gc_content": gc,
+                                        "detection_strategy": "direct",
+                                        "drug": dr,
                                         "selected": False,
                                     })
                         logger.info(
-                            "UMAP: total embeddings = %d (scored: %d + pre-filter: %d)",
+                            "UMAP: total embeddings = %d (scored: %d + background: %d)",
                             len(self.ml_scorer._collected_embeddings),
-                            len(all_sc), len(extra_candidates),
+                            len(all_sc), len(bg_spacers),
                         )
             else:
                 # SeqCNN: individual predictions
