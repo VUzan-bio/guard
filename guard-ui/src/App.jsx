@@ -1995,6 +1995,23 @@ const OverviewTab = ({ results, scorer }) => {
   const ensResults = results.filter(r => r.ensembleScore != null);
   const avgEnsemble = ensResults.length ? +(ensResults.reduce((a, r) => a + r.ensembleScore, 0) / ensResults.length).toFixed(3) : null;
 
+  // Model agreement — Spearman ρ between heuristic and GUARD-Net
+  const modelAgreement = (() => {
+    const pairs = results.filter(r => r.cnnCalibrated != null).map(r => ({ h: r.score, g: r.cnnCalibrated }));
+    if (pairs.length < 3) return null;
+    const rankArr = (arr) => {
+      const sorted = arr.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+      const ranks = new Array(arr.length);
+      sorted.forEach((s, rank) => { ranks[s.i] = rank + 1; });
+      return ranks;
+    };
+    const hRanks = rankArr(pairs.map(p => p.h));
+    const gRanks = rankArr(pairs.map(p => p.g));
+    const n = pairs.length;
+    const dSq = hRanks.reduce((sum, hr, i) => sum + (hr - gRanks[i]) ** 2, 0);
+    return +(1 - (6 * dSq) / (n * (n * n - 1))).toFixed(2);
+  })();
+
   /* Adaptyv-style grouped stat section */
   const StatGroup = ({ title, items }) => (
     <div style={{ flex: 1, minWidth: mobile ? "100%" : 0 }}>
@@ -2054,6 +2071,7 @@ const OverviewTab = ({ results, scorer }) => {
         <StatGroup title="Predicted Activity" items={[
           { l: "Avg. activity", v: usesGuardNet && avgEnsemble ? avgEnsemble : avgScore },
           { l: "Range", v: `${minScore} – ${maxScore}`, sub: "min – max" },
+          ...(usesGuardNet && modelAgreement != null ? [{ l: "Model ρ", v: modelAgreement, sub: "heuristic vs net" }] : []),
         ]} />
       </div>
 
@@ -2066,258 +2084,198 @@ const OverviewTab = ({ results, scorer }) => {
       {/* Diagnostic Readiness Score Chart */}
       <ReadinessChart results={results} />
 
-      {/* Scoring Model Comparison */}
-      {avgCNN != null && (
-        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-          <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, marginBottom: "6px", fontFamily: HEADING }}>Scoring Model Comparison</div>
-          <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            Two models independently predict each crRNA's cleavage activity: a heuristic (biophysical features: seed position, GC, secondary structure) and GUARD-Net (CNN + RNA-FM + RLPA, trained on 25K+ cis- and trans-cleavage measurements, validated on diagnostic trans-cleavage at \u03c1 = 0.55). The ensemble blends both to produce the final predicted activity score used for panel selection.
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: "16px" }}>
-            <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Heuristic</div>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{avgScore}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>5 features · fixed weights</div>
-            </div>
-            <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px" }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{mlModelLabel} (calibrated)</div>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{avgCNN}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>{mlModelDetail}</div>
-            </div>
-            <div style={{ background: T.bgSub, borderRadius: "10px", padding: "20px", border: `2px solid ${T.primary}33` }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Ensemble</div>
-              <div style={{ fontSize: "24px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{avgEnsemble || "—"}</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "4px" }}>{usesGuardNet ? "val ρ = 0.537 · primary score" : "val ρ = 0.74 · primary score"}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* KDE Score Distribution */}
+      {/* Score vs Discrimination Scatter — readiness-sized dots */}
       {!mobile && (() => {
-        const scoresByDrug = results.map(r => ({ score: usesGuardNet ? (r.ensembleScore || r.score) : r.score, drug: r.drug, label: r.label }));
-        const scores = scoresByDrug.map(s => s.score);
-        const kde = gaussianKDE(scores, 0.05, 100);
-        const sigma = stdDev(scores);
-        const mean = +(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3);
-        const scoreMin = Math.min(...scores).toFixed(2);
-        const scoreMax = Math.max(...scores).toFixed(2);
-        const effThreshold = 0.4;
-        const DRUG_DOT = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#6B7280" };
+        const DRUG_SC = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
+        const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
+        const hasReadiness = results.some(r => r.readinessScore != null);
+        const scatterData = results.filter(r => r.disc > 0 && r.disc < 900).map(r => ({
+          score: getScore(r), disc: Math.min(r.disc, 25), label: r.label, drug: r.drug, strategy: r.strategy, hasPrimers: r.hasPrimers, readiness: r.readinessScore || 0.5,
+        }));
+        const inTopRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3).length;
         return (
           <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score vs Discrimination</div>
+              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
+                Each candidate plotted by efficiency score (x) and discrimination ratio (y).
+                Top-right quadrant = diagnostic-ready.{hasReadiness ? " Dot size reflects diagnostic readiness score (larger = higher readiness)." : " Dot size reflects primer availability."}
+              </div>
+            </div>
+            <div style={{ position: "relative" }}>
+              <ResponsiveContainer width="100%" height={360}>
+                <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
+                  <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
+                  <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
+                  <Tooltip content={({ payload }) => {
+                    if (!payload?.length) return null;
+                    const d = payload[0]?.payload;
+                    if (!d) return null;
+                    const ready = d.score >= 0.4 && d.disc >= 3;
+                    return (
+                      <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
+                        <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_SC[d.drug] || T.text, marginBottom: "4px" }}>{d.label}</div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>Score: <strong style={{ color: T.text }}>{d.score.toFixed(3)}</strong></div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>Discrimination: <strong style={{ color: T.text }}>{d.disc.toFixed(1)}×</strong></div>
+                        <div style={{ fontSize: "11px", color: T.textSec }}>{d.drug} · {d.strategy}{hasReadiness ? ` · Readiness ${(d.readiness * 100).toFixed(0)}%` : (d.hasPrimers ? " · Primers OK" : " · No primers")}</div>
+                        <div style={{ marginTop: "4px" }}><Badge variant={ready ? "success" : "warning"}>{ready ? "Diagnostic-ready" : "Needs improvement"}</Badge></div>
+                      </div>
+                    );
+                  }} />
+                  <ReferenceLine x={0.4} stroke={T.danger} strokeDasharray="5 3" strokeWidth={1.5} />
+                  <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} />
+                  <Scatter data={scatterData} isAnimationActive={false}>
+                    {scatterData.map((entry, i) => {
+                      const dotR = hasReadiness ? Math.max(4, entry.readiness * 14) : (entry.hasPrimers ? 8 : 5);
+                      return <Cell key={i} fill={DRUG_SC[entry.drug] || DRUG_SC.OTHER} r={dotR} stroke="#fff" strokeWidth={2} opacity={0.85} />;
+                    })}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+              {/* Quadrant labels */}
+              <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.success, opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
+              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: T.danger, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
+              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.warning, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
+            </div>
+            {/* Legend */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+              {[...new Set(results.map(r => r.drug))].map(d => (
+                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: DRUG_SC[d] || DRUG_SC.OTHER }} />
+                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
+                </div>
+              ))}
+              {hasReadiness ? (<>
+                <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.textTer, opacity: 0.6 }} />
+                  <span style={{ fontSize: "10px", color: T.textTer }}>Low readiness</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.textTer, opacity: 0.6 }} />
+                  <span style={{ fontSize: "10px", color: T.textTer }}>High readiness</span>
+                </div>
+              </>) : (<>
+                <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.textTer, opacity: 0.8 }} />
+                  <span style={{ fontSize: "10px", color: T.textTer }}>With primers</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.textTer, opacity: 0.4 }} />
+                  <span style={{ fontSize: "10px", color: T.textTer }}>No primers</span>
+                </div>
+              </>)}
+            </div>
+            {/* Interpretation */}
+            {(() => {
+              const topRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3);
+              const bottomRight = scatterData.filter(d => d.score >= 0.4 && d.disc < 3);
+              const topLeft = scatterData.filter(d => d.score < 0.4 && d.disc >= 3);
+              const bestCandidate = [...scatterData].sort((a, b) => (b.score * b.disc) - (a.score * a.disc))[0];
+              const worstCandidate = [...scatterData].sort((a, b) => (a.score * a.disc) - (b.score * b.disc))[0];
+              const proximityCands = results.filter(r => r.strategy === "Proximity" && r.gene !== "IS6110");
+              const viableProx = proximityCands.filter(r => !r.asrpaDiscrimination || r.asrpaDiscrimination.block_class !== "none");
+              const nonViableProx = proximityCands.length - viableProx.length;
+              return (
+                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> {topRight.length}/{scatterData.length} Direct candidates are diagnostic-ready (score ≥ 0.4, disc ≥ 3×).
+                  {bestCandidate ? ` Best overall: ${bestCandidate.label} (${bestCandidate.score.toFixed(3)}, ${bestCandidate.disc.toFixed(1)}×).` : ""}
+                  {bottomRight.length > 0 ? ` ${bottomRight.length} Direct candidate${bottomRight.length > 1 ? "s have" : " has"} good scores but low Cas12a discrimination (${bottomRight.slice(0, 2).map(d => d.label).join(", ")}${bottomRight.length > 2 ? "…" : ""}) — synthetic mismatch enhancement may improve these.` : ""}
+                  {topLeft.length > 0 ? ` ${topLeft.length} candidate${topLeft.length > 1 ? "s" : ""} ${topLeft.length > 1 ? "have" : "has"} strong discrimination but weak scores — alternative spacers may help.` : ""}
+                  {proximityCands.length > 0 ? ` ${proximityCands.length} Proximity candidate${proximityCands.length > 1 ? "s are" : " is"} not plotted — their discrimination comes from AS-RPA primers, not crRNA mismatch. Of these, ${viableProx.length} show viable AS-RPA discrimination${nonViableProx > 0 ? ` and ${nonViableProx} ha${nonViableProx > 1 ? "ve" : "s"} no viable discrimination pathway (WC pair)` : ""}.` : ""}
+                  {worstCandidate && worstCandidate !== bestCandidate ? ` Weakest Direct: ${worstCandidate.label} (${worstCandidate.score.toFixed(3)}, ${worstCandidate.disc.toFixed(1)}×).` : ""}
+                </div>
+              );
+            })()}
+          </div>
+        );
+      })()}
+
+      {/* Heuristic vs GUARD-Net Scatter */}
+      {!mobile && usesGuardNet && avgCNN != null && (() => {
+        const DRUG_SC = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
+        const scatterData = results.filter(r => r.cnnCalibrated != null).map(r => ({
+          heuristic: r.score, guardNet: r.cnnCalibrated, ensemble: r.ensembleScore || r.score,
+          label: r.label, drug: r.drug,
+        }));
+        const agreePct = (() => {
+          const above = (v) => v >= 0.5;
+          const agree = scatterData.filter(d => above(d.heuristic) === above(d.guardNet)).length;
+          return scatterData.length ? Math.round(agree / scatterData.length * 100) : 0;
+        })();
+        return (
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+            <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Predicted Activity Distribution</div>
+                <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Scoring Model Comparison</div>
                 <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
-                  Distribution of predicted Cas12a trans-cleavage activity across all candidates. Higher scores = stronger fluorescent signal = faster time-to-result.
-                  Scores below 0.4 may not produce detectable signal; above 0.7 indicates high-confidence diagnostic performance.
+                  Heuristic score (x) vs GUARD-Net calibrated score (y) per candidate. Points near the diagonal indicate model agreement.
+                  Candidates above the line are scored higher by GUARD-Net; below by heuristic.
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "20px" }}>
                 <div style={{ display: "flex", gap: "16px" }}>
-                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>RANGE</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{scoreMin}–{scoreMax}</div></div>
-                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>MEAN</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{mean}</div></div>
-                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>STD DEV</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{sigma.toFixed(3)}</div></div>
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>AGREEMENT</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{agreePct}%</div></div>
+                  {modelAgreement != null && <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SPEARMAN</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{modelAgreement}</div></div>}
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>AVG HEURISTIC</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{avgScore}</div></div>
+                  <div><div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>AVG GUARD-NET</div><div style={{ fontSize: "13px", fontWeight: 800, color: T.primary, fontFamily: MONO }}>{avgCNN}</div></div>
                 </div>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={kde} margin={{ top: 5, right: 15, bottom: 20, left: 15 }}>
-                <defs>
-                  <linearGradient id="kdeAreaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={T.primary} stopOpacity={0.3} />
-                    <stop offset="100%" stopColor={T.primary} stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.border }} tickLine={false} />
-                <YAxis hide domain={[0, "auto"]} />
-                <Tooltip contentStyle={{ ...tooltipStyle, padding: "8px 12px" }} formatter={(v) => [v.toFixed(4), "Density"]} labelFormatter={(l) => `Score: ${l}`} />
-                <ReferenceLine x={effThreshold} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "0.4 min", position: "insideTopRight", fontSize: 9, fill: T.danger, fontWeight: 600 }} />
-                <ReferenceLine x={mean} stroke={T.primary} strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ", position: "insideTopRight", fontSize: 10, fill: T.primary, fontWeight: 700 }} />
-                <Area type="monotone" dataKey="density" stroke={T.primary} strokeWidth={2.5} fill="url(#kdeAreaFill)" isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-            {/* Rug plot — colored by drug */}
-            <div style={{ position: "relative", height: "18px", marginTop: "-14px", marginLeft: "15px", marginRight: "15px" }}>
-              {scoresByDrug.map((s, i) => (
-                <div key={i} style={{ position: "absolute", left: `${s.score * 100}%`, bottom: 0, width: "2.5px", height: "12px", background: DRUG_DOT[s.drug] || DRUG_DOT.OTHER, opacity: 0.85, borderRadius: "1px" }} title={`${s.label} (${s.drug}): ${s.score.toFixed(3)}`} />
-              ))}
-            </div>
-            {/* Legend */}
-            <div style={{ display: "flex", gap: "12px", marginTop: "8px", marginLeft: "15px", flexWrap: "wrap", alignItems: "center" }}>
-              {Object.entries(DRUG_DOT).filter(([d]) => d !== "OTHER" && results.some(r => r.drug === d)).map(([drug, color]) => (
-                <div key={drug} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: color }} />
-                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{drug}</span>
-                </div>
-              ))}
-            </div>
-            {/* Interpretation */}
-            {(() => {
-              const sorted = [...scoresByDrug].sort((a, b) => a.score - b.score);
-              const worst = sorted[0];
-              const best = sorted[sorted.length - 1];
-              const belowMin = sorted.filter(s => s.score < 0.4);
-              const aboveTarget = sorted.filter(s => s.score >= 0.7);
-              const medianScore = sorted[Math.floor(sorted.length / 2)].score;
-              return (
-                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
-                  <strong style={{ color: T.primary }}>Interpretation:</strong> Panel scores range from <strong style={{ color: T.text }}>{worst.score.toFixed(3)}</strong> ({worst.label}) to <strong style={{ color: T.text }}>{best.score.toFixed(3)}</strong> ({best.label}) with a median of {medianScore.toFixed(3)} (μ = {mean}, σ = {sigma.toFixed(3)}).
-                  {aboveTarget.length > 0 ? ` ${aboveTarget.length}/${scores.length} candidates exceed the 0.7 high-confidence threshold.` : " No candidates reach the 0.7 high-confidence threshold — consider alternative spacer designs or SM enhancement."}
-                  {belowMin.length > 0 ? ` ${belowMin.length} candidate${belowMin.length > 1 ? "s" : ""} (${belowMin.map(s => s.label).slice(0, 3).join(", ")}${belowMin.length > 3 ? "…" : ""}) fall below the 0.4 viability threshold.` : " All candidates clear the 0.4 minimum viability threshold."}
-                  {sigma < 0.05 ? " The narrow spread (σ < 0.05) suggests the model assigns similar scores — consider a checkpoint with wider dynamic range or re-evaluate feature diversity." : sigma > 0.1 ? " The wide spread (σ > 0.1) confirms the model differentiates strongly between targets, which is desirable for panel optimisation." : ""}
-                </div>
-              );
-            })()}
-          </div>
-        );
-      })()}
-
-      {/* Drug Class Score Distribution — Box Plot */}
-      {!mobile && (() => {
-        const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
-        const DRUG_FILL = { RIF: { bg: "#DBEAFE", dot: "#2563EB", bar: "#3B82F6" }, INH: { bg: "#FEF3C7", dot: "#D97706", bar: "#F59E0B" }, EMB: { bg: "#F3E8FF", dot: "#7C3AED", bar: "#8B5CF6" }, FQ: { bg: "#FFE4E6", dot: "#E11D48", bar: "#F43F5E" }, AG: { bg: "#E0E7FF", dot: "#4F46E5", bar: "#6366F1" }, PZA: { bg: "#F0FDF4", dot: "#16A34A", bar: "#22C55E" }, OTHER: { bg: "#F3F4F6", dot: "#6B7280", bar: "#9CA3AF" } };
-        const drugOrder = [...new Set(results.map(r => r.drug))];
-        const drugData = drugOrder.map(d => {
-          const dScores = results.filter(r => r.drug === d).map(r => getScore(r)).sort((a, b) => a - b);
-          const avg = +(dScores.reduce((a, b) => a + b, 0) / dScores.length).toFixed(3);
-          return { drug: d, min: dScores[0], max: dScores[dScores.length - 1], avg, count: dScores.length, scores: dScores };
-        }).sort((a, b) => b.avg - a.avg);
-        const weakest = drugData[drugData.length - 1];
-        return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score by Drug Class</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
-                Score range and distribution per drug. Sorted by average score, highest first. Each dot is one candidate.
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {drugData.map(d => {
-                const c = DRUG_FILL[d.drug] || DRUG_FILL.OTHER;
-                const isWeakest = d === weakest && d.avg < 0.5;
-                return (
-                  <div key={d.drug} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px 0" }}>
-                    <div style={{ width: "50px", textAlign: "right" }}><span style={{ background: c.bg, color: c.dot, padding: "3px 10px", borderRadius: "999px", fontSize: "10px", fontWeight: 700, border: isWeakest ? `1.5px solid ${T.danger}` : "none" }}>{d.drug}</span></div>
-                    <div style={{ flex: 1, position: "relative", height: "32px", background: T.bgSub, borderRadius: "6px" }}>
-                      {/* Range bar with gradient */}
-                      <div style={{ position: "absolute", top: "12px", left: `${d.min * 100}%`, width: `${Math.max((d.max - d.min) * 100, 0.3)}%`, height: "8px", background: `linear-gradient(90deg, ${c.bar}44, ${c.bar}88)`, borderRadius: "4px" }} />
-                      {/* Mean tick */}
-                      <div style={{ position: "absolute", top: "8px", left: `${d.avg * 100}%`, width: "2px", height: "16px", background: c.dot, borderRadius: "1px", transform: "translateX(-1px)" }} />
-                      {/* Individual dots */}
-                      {d.scores.map((s, i) => (
-                        <div key={i} style={{ position: "absolute", top: "10px", left: `${s * 100}%`, width: "12px", height: "12px", borderRadius: "50%", background: c.dot, border: "2px solid #fff", transform: "translateX(-6px)", boxShadow: "0 1px 4px rgba(0,0,0,0.12)", zIndex: 2 }} />
-                      ))}
-                    </div>
-                    <div style={{ width: "90px", textAlign: "right" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 800, color: d.avg >= 0.7 ? T.success : d.avg >= 0.5 ? T.text : T.danger, fontFamily: MONO }}>{d.avg}</span>
-                      <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "4px" }}>({d.count})</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Scale line */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px" }}>
-              <div style={{ width: "50px" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: T.textTer, fontFamily: MONO, padding: "0 1px" }}>
-                  {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map(v => <span key={v} style={v === 0.4 ? { color: T.danger, fontWeight: 700 } : {}}>{v}</span>)}
-                </div>
-              </div>
-              <div style={{ width: "90px" }} />
-            </div>
-            {/* Interpretation */}
-            {(() => {
-              const strongest = drugData[0];
-              const spread = drugData.map(d => ({ drug: d.drug, range: +(d.max - d.min).toFixed(3) })).sort((a, b) => b.range - a.range);
-              const mostVariable = spread[0];
-              return (
-                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
-                  <strong style={{ color: T.primary }}>Interpretation:</strong> <strong style={{ color: T.text }}>{strongest.drug}</strong> leads with avg {strongest.avg} across {strongest.count} target{strongest.count > 1 ? "s" : ""}.
-                  {weakest && weakest.avg < 0.5 ? ` ${weakest.drug} (avg ${weakest.avg}, ${weakest.count} targets) is critically weak — consider alternative spacer designs, SM enhancement, or dropping low-value targets.` : weakest && weakest.avg < 0.6 ? ` ${weakest.drug} (avg ${weakest.avg}) trails other classes and may benefit from optimisation.` : " All drug classes maintain competitive average scores."}
-                  {mostVariable.range > 0.2 ? ` ${mostVariable.drug} shows the widest intra-class variation (range ${mostVariable.range}) — its targets vary significantly in spacer quality.` : ""}
-                  {drugData.length >= 3 ? ` Coverage spans ${drugData.length} drug classes, supporting multi-drug resistance profiling.` : ""}
-                </div>
-              );
-            })()}
-          </div>
-        );
-      })()}
-
-      {/* Score by Target — bars colored by drug class */}
-      {(() => {
-        const DRUG_BAR = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
-        const DRUG_BAR_LIGHT = { RIF: "rgba(37,99,235,0.15)", INH: "rgba(217,119,6,0.15)", EMB: "rgba(124,58,237,0.15)", FQ: "rgba(225,29,72,0.15)", AG: "rgba(79,70,229,0.15)", PZA: "rgba(22,163,74,0.15)", OTHER: "rgba(156,163,175,0.15)" };
-        const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
-        const sorted = [...results].sort((a, b) => getScore(b) - getScore(a));
-        const chartData = sorted.map((r) => ({ name: r.label, score: getScore(r), disc: r.disc, drug: r.drug, strategy: r.strategy }));
-        const belowThreshold = chartData.filter(d => d.score < 0.4).length;
-        const aboveTarget = chartData.filter(d => d.score >= 0.7).length;
-        return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>{usesGuardNet ? "Ensemble Score" : "Heuristic Score"} by Target</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
-                Individual candidate scores sorted by rank. Bar color = drug class. Dot marks the exact score.
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={320}>
-              <ComposedChart data={chartData} barCategoryGap="25%">
-                <CartesianGrid vertical={false} stroke={T.borderLight} />
-                <XAxis dataKey="name" tick={{ fontSize: 8, fill: T.textTer, fontFamily: MONO }} angle={-50} textAnchor="end" height={65} axisLine={{ stroke: T.border }} tickLine={false} interval={0} />
-                <YAxis tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} domain={[0, 1]} axisLine={false} tickLine={false} label={{ value: "Score", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: T.textTer }, offset: 0 }} />
-                <Tooltip content={({ payload, label }) => {
+            <ResponsiveContainer width="100%" height={340}>
+              <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
+                <XAxis type="number" dataKey="heuristic" name="Heuristic" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Heuristic Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
+                <YAxis type="number" dataKey="guardNet" name="GUARD-Net" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "GUARD-Net (calibrated)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
+                <Tooltip content={({ payload }) => {
                   if (!payload?.length) return null;
                   const d = payload[0]?.payload;
-                  return d ? (
-                    <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
-                      <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_BAR[d.drug] || T.text }}>{d.name}</div>
-                      <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Score: <strong>{d.score.toFixed(3)}</strong></div>
-                      <div style={{ fontSize: "11px", color: T.textSec }}>Disc: {d.disc?.toFixed(1)}× · {d.drug} · {d.strategy}</div>
+                  if (!d) return null;
+                  const diff = d.guardNet - d.heuristic;
+                  return (
+                    <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
+                      <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_SC[d.drug] || T.text, marginBottom: "4px" }}>{d.label}</div>
+                      <div style={{ fontSize: "11px", color: T.textSec }}>Heuristic: <strong style={{ color: T.text }}>{d.heuristic.toFixed(3)}</strong></div>
+                      <div style={{ fontSize: "11px", color: T.textSec }}>GUARD-Net: <strong style={{ color: T.primary }}>{d.guardNet.toFixed(3)}</strong></div>
+                      <div style={{ fontSize: "11px", color: T.textSec }}>Ensemble: <strong style={{ color: T.text }}>{d.ensemble.toFixed(3)}</strong></div>
+                      <div style={{ fontSize: "11px", color: diff > 0.05 ? T.success : diff < -0.05 ? T.warning : T.textTer, marginTop: "2px" }}>
+                        {"\u0394"} = {diff > 0 ? "+" : ""}{diff.toFixed(3)} ({diff > 0.05 ? "Net scores higher" : diff < -0.05 ? "Heuristic scores higher" : "Models agree"})
+                      </div>
                     </div>
-                  ) : null;
+                  );
                 }} />
-                <ReferenceLine y={0.4} stroke={T.danger} strokeDasharray="4 3" strokeWidth={1} />
-                <ReferenceLine y={0.7} stroke={T.success} strokeDasharray="4 3" strokeWidth={1} />
-                <Bar dataKey="score" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_BAR_LIGHT[entry.drug] || DRUG_BAR_LIGHT.OTHER} stroke={DRUG_BAR[entry.drug] || DRUG_BAR.OTHER} strokeWidth={1} />
-                  ))}
-                </Bar>
-                <Scatter dataKey="score" r={5} isAnimationActive={false}>
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_BAR[entry.drug] || DRUG_BAR.OTHER} stroke="#fff" strokeWidth={1.5} />
+                <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke={T.textTer} strokeDasharray="6 4" strokeWidth={1} opacity={0.4} />
+                <Scatter data={scatterData} isAnimationActive={false}>
+                  {scatterData.map((entry, i) => (
+                    <Cell key={i} fill={DRUG_SC[entry.drug] || DRUG_SC.OTHER} r={7} stroke="#fff" strokeWidth={2} opacity={0.85} />
                   ))}
                 </Scatter>
-              </ComposedChart>
+              </ScatterChart>
             </ResponsiveContainer>
-            {/* Legend + thresholds */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+            {/* Legend */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
               {[...new Set(results.map(r => r.drug))].map(d => (
                 <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "3px", background: DRUG_BAR[d] || DRUG_BAR.OTHER }} />
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: DRUG_SC[d] || DRUG_SC.OTHER }} />
                   <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
                 </div>
               ))}
-              <span style={{ fontSize: "10px", color: T.textTer, marginLeft: "6px" }}>—</span>
-              <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600 }}>0.4 minimum</span>
-              <span style={{ fontSize: "10px", color: T.success, fontWeight: 600 }}>0.7 target</span>
+              <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+              <span style={{ fontSize: "10px", color: T.textTer }}>Dashed line = perfect agreement (y = x)</span>
             </div>
             {/* Interpretation */}
             {(() => {
-              const top3 = chartData.slice(0, 3);
-              const bottom3 = chartData.slice(-3);
-              const lowTargets = chartData.filter(d => d.score < 0.4);
-              const midTargets = chartData.filter(d => d.score >= 0.4 && d.score < 0.7);
+              const aboveLine = scatterData.filter(d => d.guardNet > d.heuristic + 0.05);
+              const belowLine = scatterData.filter(d => d.heuristic > d.guardNet + 0.05);
+              const onLine = scatterData.length - aboveLine.length - belowLine.length;
               return (
                 <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
-                  <strong style={{ color: T.primary }}>Interpretation:</strong> Top performers: {top3.map(d => `${d.name} (${d.score.toFixed(3)})`).join(", ")}.
-                  {aboveTarget > 0 ? ` ${aboveTarget}/${chartData.length} candidates exceed the 0.7 target — these are deployment-ready.` : " No candidates reach the 0.7 target — the panel may need alternative spacer designs."}
-                  {lowTargets.length > 0 ? ` ${lowTargets.length} candidate${lowTargets.length > 1 ? "s" : ""} (${lowTargets.map(d => d.name).slice(0, 3).join(", ")}${lowTargets.length > 3 ? "…" : ""}) fall below 0.4 and should be flagged for redesign or removal.` : ""}
-                  {midTargets.length > 0 ? ` ${midTargets.length} candidate${midTargets.length > 1 ? "s sit" : " sits"} in the 0.4–0.7 optimisation zone — SM enhancement or alternative spacers may improve these.` : ""}
-                  {` Weakest: ${bottom3[bottom3.length - 1].name} at ${bottom3[bottom3.length - 1].score.toFixed(3)}.`}
+                  <strong style={{ color: T.primary }}>Interpretation:</strong> {onLine}/{scatterData.length} candidates scored within ±0.05 by both models.
+                  {aboveLine.length > 0 ? ` GUARD-Net scores ${aboveLine.length} candidate${aboveLine.length > 1 ? "s" : ""} higher (${aboveLine.slice(0, 2).map(d => d.label).join(", ")}${aboveLine.length > 2 ? "\u2026" : ""}).` : ""}
+                  {belowLine.length > 0 ? ` Heuristic scores ${belowLine.length} candidate${belowLine.length > 1 ? "s" : ""} higher (${belowLine.slice(0, 2).map(d => d.label).join(", ")}${belowLine.length > 2 ? "\u2026" : ""}).` : ""}
+                  {modelAgreement != null ? ` Rank correlation \u03c1 = ${modelAgreement} \u2014 ${modelAgreement >= 0.7 ? "strong agreement, ensemble adds stability" : modelAgreement >= 0.4 ? "moderate agreement, ensemble captures complementary signal" : "weak agreement, models capture different features \u2014 ensemble is critical"}.` : ""}
                 </div>
               );
             })()}
@@ -2369,101 +2327,6 @@ const OverviewTab = ({ results, scorer }) => {
         </table>
         </div>
       </div>
-
-      {/* Score vs Discrimination Scatter */}
-      {!mobile && (() => {
-        const DRUG_SC = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
-        const getScore = (r) => usesGuardNet ? (r.ensembleScore || r.score) : r.score;
-        const scatterData = results.filter(r => r.disc > 0 && r.disc < 900).map(r => ({
-          score: getScore(r), disc: Math.min(r.disc, 25), label: r.label, drug: r.drug, strategy: r.strategy, hasPrimers: r.hasPrimers,
-        }));
-        const inTopRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3).length;
-        return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginTop: "24px" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score vs Discrimination</div>
-              <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
-                Each candidate plotted by efficiency score (x) and discrimination ratio (y).
-                Top-right quadrant = diagnostic-ready. Dot size reflects primer availability.
-              </div>
-            </div>
-            <div style={{ position: "relative" }}>
-              <ResponsiveContainer width="100%" height={360}>
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
-                  <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
-                  <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
-                  <Tooltip content={({ payload }) => {
-                    if (!payload?.length) return null;
-                    const d = payload[0]?.payload;
-                    if (!d) return null;
-                    const ready = d.score >= 0.4 && d.disc >= 3;
-                    return (
-                      <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
-                        <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_SC[d.drug] || T.text, marginBottom: "4px" }}>{d.label}</div>
-                        <div style={{ fontSize: "11px", color: T.textSec }}>Score: <strong style={{ color: T.text }}>{d.score.toFixed(3)}</strong></div>
-                        <div style={{ fontSize: "11px", color: T.textSec }}>Discrimination: <strong style={{ color: T.text }}>{d.disc.toFixed(1)}×</strong></div>
-                        <div style={{ fontSize: "11px", color: T.textSec }}>{d.drug} · {d.strategy} · {d.hasPrimers ? "Primers OK" : "No primers"}</div>
-                        <div style={{ marginTop: "4px" }}><Badge variant={ready ? "success" : "warning"}>{ready ? "Diagnostic-ready" : "Needs improvement"}</Badge></div>
-                      </div>
-                    );
-                  }} />
-                  <ReferenceLine x={0.4} stroke={T.danger} strokeDasharray="5 3" strokeWidth={1.5} />
-                  <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} />
-                  <Scatter data={scatterData} isAnimationActive={false}>
-                    {scatterData.map((entry, i) => (
-                      <Cell key={i} fill={DRUG_SC[entry.drug] || DRUG_SC.OTHER} r={entry.hasPrimers ? 8 : 5} stroke="#fff" strokeWidth={2} opacity={entry.hasPrimers ? 0.9 : 0.5} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
-              {/* Quadrant labels */}
-              <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.success, opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
-              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: T.danger, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
-              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.warning, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
-            </div>
-            {/* Legend */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-              {[...new Set(results.map(r => r.drug))].map(d => (
-                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: DRUG_SC[d] || DRUG_SC.OTHER }} />
-                  <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
-                </div>
-              ))}
-              <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <div style={{ width: 12, height: 12, borderRadius: "50%", background: T.textTer, opacity: 0.8 }} />
-                <span style={{ fontSize: "10px", color: T.textTer }}>With primers</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.textTer, opacity: 0.4 }} />
-                <span style={{ fontSize: "10px", color: T.textTer }}>No primers</span>
-              </div>
-            </div>
-            {/* Interpretation */}
-            {(() => {
-              const topRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3);
-              const bottomRight = scatterData.filter(d => d.score >= 0.4 && d.disc < 3);
-              const topLeft = scatterData.filter(d => d.score < 0.4 && d.disc >= 3);
-              const bestCandidate = [...scatterData].sort((a, b) => (b.score * b.disc) - (a.score * a.disc))[0];
-              const worstCandidate = [...scatterData].sort((a, b) => (a.score * a.disc) - (b.score * b.disc))[0];
-              const proximityCands = results.filter(r => r.strategy === "Proximity" && r.gene !== "IS6110");
-              const viableProx = proximityCands.filter(r => !r.asrpaDiscrimination || r.asrpaDiscrimination.block_class !== "none");
-              const nonViableProx = proximityCands.length - viableProx.length;
-              return (
-                <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
-                  <strong style={{ color: T.primary }}>Interpretation:</strong> {topRight.length}/{scatterData.length} Direct candidates are diagnostic-ready (score ≥ 0.4, disc ≥ 3×).
-                  {bestCandidate ? ` Best overall: ${bestCandidate.label} (${bestCandidate.score.toFixed(3)}, ${bestCandidate.disc.toFixed(1)}×).` : ""}
-                  {bottomRight.length > 0 ? ` ${bottomRight.length} Direct candidate${bottomRight.length > 1 ? "s have" : " has"} good scores but low Cas12a discrimination (${bottomRight.slice(0, 2).map(d => d.label).join(", ")}${bottomRight.length > 2 ? "…" : ""}) — synthetic mismatch enhancement may improve these.` : ""}
-                  {topLeft.length > 0 ? ` ${topLeft.length} candidate${topLeft.length > 1 ? "s" : ""} ${topLeft.length > 1 ? "have" : "has"} strong discrimination but weak scores — alternative spacers may help.` : ""}
-                  {proximityCands.length > 0 ? ` ${proximityCands.length} Proximity candidate${proximityCands.length > 1 ? "s are" : " is"} not plotted — their discrimination comes from AS-RPA primers, not crRNA mismatch. Of these, ${viableProx.length} show viable AS-RPA discrimination${nonViableProx > 0 ? ` and ${nonViableProx} ha${nonViableProx > 1 ? "ve" : "s"} no viable discrimination pathway (WC pair)` : ""}.` : ""}
-                  {worstCandidate && worstCandidate !== bestCandidate ? ` Weakest Direct: ${worstCandidate.label} (${worstCandidate.score.toFixed(3)}, ${worstCandidate.disc.toFixed(1)}×).` : ""}
-                </div>
-              );
-            })()}
-          </div>
-        );
-      })()}
     </div>
   );
 };
