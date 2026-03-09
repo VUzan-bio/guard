@@ -19,6 +19,7 @@ from api.schemas import (
     PipelineResultResponse,
     TargetResult,
 )
+from api.readiness import compute_readiness_scores
 from api.state import AppState, JobStatus
 
 router = APIRouter(prefix="/api/results", tags=["results"])
@@ -229,6 +230,11 @@ async def get_results(job_id: str) -> PipelineResultResponse:
     # Full mode: MultiplexPanel
     members = result.get("members", [])
     target_results = [_build_target_result(m) for m in members]
+
+    # Compute readiness scores (operates on dicts, maps back to models)
+    tr_dicts = [tr.model_dump() for tr in target_results]
+    compute_readiness_scores(tr_dicts)
+    target_results = [TargetResult(**d) for d in tr_dicts]
 
     # Compute panel summary
     disc_ratios = []

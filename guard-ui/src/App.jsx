@@ -35,6 +35,9 @@ const T = {
   danger: "#DC2626", dangerLight: "#FEE2E2",
   purple: "#7C3AED", purpleLight: "#F3E8FF",
   sidebar: "#FAFBFD", sidebarActive: "#EEF2FF", sidebarHover: "#F3F4F6", sidebarText: "#374151",
+  riskGreen: "#22c55e", riskGreenBg: "#f0fdf4",
+  riskAmber: "#f59e0b", riskAmberBg: "#fefce8",
+  riskRed: "#ef4444", riskRedBg: "#fef2f2",
 };
 const FONT = "'Urbanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif";
 const HEADING = "'Urbanist', sans-serif";
@@ -352,6 +355,11 @@ function transformApiCandidate(c) {
       refs: WHO_REFS[c.label] || null,
       scoringBreakdown: null,
       isControl: false,
+      readinessScore: c.readiness_score ?? null,
+      readinessComponents: c.readiness_components ?? null,
+      experimentalPriority: c.experimental_priority ?? null,
+      riskProfile: c.risk_profile ?? null,
+      priorityReason: c.priority_reason ?? null,
     };
   }
   /* Original detailed per-candidate shape */
@@ -1791,6 +1799,175 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
+   READINESS SCORING COMPONENTS
+   ═══════════════════════════════════════════════════════════════════ */
+const RISK_COLORS = { green: T.riskGreen, amber: T.riskAmber, red: T.riskRed };
+const RISK_BG = { green: T.riskGreenBg, amber: T.riskAmberBg, red: T.riskRedBg };
+const AXIS_COLORS = { efficiency: "#3b82f6", discrimination: "#f97316", primers: "#22c55e", safety: "#8b5cf6", gc: "#6b7280" };
+const AXIS_LABELS = { efficiency: "Activity", discrimination: "Discrimination", primers: "Primers", safety: "Off-target", gc: "GC" };
+
+const RiskDot = ({ level, size = 12 }) => (
+  <span style={{
+    display: "inline-block", width: size, height: size, borderRadius: "50%",
+    backgroundColor: RISK_COLORS[level] || "#6b7280", flexShrink: 0,
+  }} />
+);
+
+const PriorityBadge = ({ rank }) => (
+  <span style={{
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: 24, height: 24, borderRadius: "50%", fontSize: "11px", fontWeight: 800,
+    fontFamily: MONO,
+    background: rank <= 3 ? T.primaryLight : T.bgSub,
+    color: rank <= 3 ? T.primary : T.textSec,
+    border: rank <= 3 ? `1.5px solid ${T.primary}44` : `1px solid ${T.border}`,
+  }}>
+    {rank}
+  </span>
+);
+
+const ExperimentalPriorityCard = ({ results }) => {
+  const top3 = [...results].filter(r => r.experimentalPriority != null)
+    .sort((a, b) => a.experimentalPriority - b.experimentalPriority).slice(0, 3);
+  const gaps = results.filter(r => r.riskProfile?.discrimination === "red");
+  if (top3.length === 0) return null;
+  return (
+    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px 28px", marginBottom: "24px" }}>
+      <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "16px" }}>Experimental Priorities</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        {top3.map((r) => {
+          const disc = r.strategy === "Direct" ? r.disc : (r.asrpaDiscrimination?.disc_ratio || 0);
+          const eff = r.ensembleScore || r.score;
+          return (
+            <div key={r.label} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+              <PriorityBadge rank={r.experimentalPriority} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>{r.label}</span>
+                  <span style={{ fontSize: "11px", color: T.textSec, fontFamily: MONO }}>
+                    {disc > 0 && disc < 900 ? `${disc.toFixed(1)}x disc` : ""}
+                    {disc > 0 && disc < 900 ? " \u00b7 " : ""}
+                    {eff.toFixed(3)} eff
+                    {r.drug ? ` \u00b7 ${r.drug}` : ""}
+                  </span>
+                  <RiskDot level={r.riskProfile?.overall || "amber"} size={10} />
+                </div>
+                <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
+                  {r.priorityReason || ""}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {gaps.length > 0 && (
+        <div style={{ marginTop: "14px", padding: "10px 14px", background: T.riskRedBg, border: `1px solid ${T.riskRed}33`, borderRadius: "8px", fontSize: "11px", color: T.danger, lineHeight: 1.6 }}>
+          <strong>Panel gap:</strong> {gaps.map(r => r.label).join(", ")} — no viable discrimination pathway. Requires alternative strategy or SM enhancement.
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RiskMatrix = ({ results }) => {
+  const mobile = useIsMobile();
+  const sorted = [...results].filter(r => r.experimentalPriority != null)
+    .sort((a, b) => a.experimentalPriority - b.experimentalPriority);
+  if (sorted.length === 0) return null;
+  const axes = ["activity", "discrimination", "primers", "gc_risk", "off_target"];
+  const axisNames = { activity: "Activity", discrimination: "Disc", primers: "Primers", gc_risk: "GC", off_target: "Off-T" };
+  return (
+    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", overflow: "hidden", marginBottom: "24px" }}>
+      <div style={{ padding: "18px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Risk Assessment Matrix</div>
+        <div style={{ fontSize: "12px", color: T.textTer }}>{sorted.length} targets</div>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+          <thead>
+            <tr>
+              <th style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, width: mobile ? 100 : 140 }}>Target</th>
+              {axes.map(a => (
+                <th key={a} style={{ padding: "8px 10px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, width: 60 }}>{axisNames[a]}</th>
+              ))}
+              <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, width: 60 }}>Overall</th>
+              <th style={{ padding: "8px 14px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: `1px solid ${T.border}`, width: 50 }}>#</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => {
+              const risk = r.riskProfile || {};
+              return (
+                <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}`, height: 38 }}>
+                  <td style={{ padding: "6px 16px", fontWeight: 600, fontSize: "11px", color: T.text, whiteSpace: "nowrap" }}>{r.label}</td>
+                  {axes.map(a => (
+                    <td key={a} style={{ padding: "6px 10px", textAlign: "center" }}><RiskDot level={risk[a]} /></td>
+                  ))}
+                  <td style={{ padding: "6px 10px", textAlign: "center" }}><RiskDot level={risk.overall} /></td>
+                  <td style={{ padding: "6px 14px", textAlign: "center" }}><PriorityBadge rank={r.experimentalPriority} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const ReadinessChart = ({ results }) => {
+  const hasReadiness = results.some(r => r.readinessScore != null);
+  if (!hasReadiness) return null;
+  const sorted = [...results].filter(r => r.readinessScore != null)
+    .sort((a, b) => b.readinessScore - a.readinessScore);
+  const W_EFF = 0.20, W_DISC = 0.40, W_PRIMER = 0.15, W_SAFETY = 0.15, W_GC = 0.10;
+  const chartData = sorted.map(r => {
+    const c = r.readinessComponents || {};
+    return {
+      name: r.label, drug: r.drug, readiness: r.readinessScore,
+      risk: r.riskProfile?.overall || "amber",
+      efficiency: +(c.efficiency * W_EFF || 0).toFixed(3),
+      discrimination: +(c.discrimination * W_DISC || 0).toFixed(3),
+      primers: +(c.primers * W_PRIMER || 0).toFixed(3),
+      safety: +(c.safety * W_SAFETY || 0).toFixed(3),
+      gc: +(c.gc * W_GC || 0).toFixed(3),
+    };
+  });
+  return (
+    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Diagnostic Readiness Score</div>
+          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Multi-axis composite (percentile-ranked within panel). Discrimination is 40% of the score.</div>
+        </div>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          {Object.entries(AXIS_COLORS).map(([key, color]) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: T.textSec }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
+              {AXIS_LABELS[key]}
+            </div>
+          ))}
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={Math.max(220, sorted.length * 32 + 60)}>
+        <BarChart data={chartData} layout="vertical" barCategoryGap="20%" margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
+          <CartesianGrid horizontal={false} stroke={T.borderLight} />
+          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer }} />
+          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: T.textSec }} />
+          <Tooltip contentStyle={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }}
+            formatter={(value, name) => [`${(value * 100).toFixed(0)}%`, AXIS_LABELS[name] || name]} />
+          <Bar dataKey="efficiency" stackId="readiness" fill={AXIS_COLORS.efficiency} />
+          <Bar dataKey="discrimination" stackId="readiness" fill={AXIS_COLORS.discrimination} />
+          <Bar dataKey="primers" stackId="readiness" fill={AXIS_COLORS.primers} />
+          <Bar dataKey="safety" stackId="readiness" fill={AXIS_COLORS.safety} />
+          <Bar dataKey="gc" stackId="readiness" fill={AXIS_COLORS.gc} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
    RESULT TABS
    ═══════════════════════════════════════════════════════════════════ */
 const OverviewTab = ({ results, scorer }) => {
@@ -1849,6 +2026,8 @@ const OverviewTab = ({ results, scorer }) => {
             <div><strong>Discrimination</strong> (×) — fold-difference in cleavage activity between the mutant (resistant) and wildtype (susceptible) template. A 5× ratio means the guide cleaves 5× faster on the mutant — so the assay signal from a resistant sample is 5× stronger than from a susceptible sample. ≥ 3× is diagnostic-grade. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Predicted by a gradient-boosted model trained on 6,136 EasyDesign pairs using 15 thermodynamic features." : "Predicted by heuristic position × destabilisation model."}</div>
             <div><strong>RPA Primers</strong> — isothermal amplification primers (37°C, no thermal cycler). RPA amplifies the target region in 15–20 min, then Cas12a detects the amplified product. A candidate without primers cannot be used as a complete assay.</div>
             <div><strong>Drug class</strong> — which antibiotic the mutation confers resistance to (e.g. RIF = rifampicin, INH = isoniazid). A 14-plex panel covers all 6 WHO priority drug classes for MDR/XDR-TB.</div>
+            <div><strong>Readiness Score</strong> (0–1) — multi-axis composite that ranks candidates against each other within this panel. Discrimination is weighted 40%, activity 20%, primers 15%, off-targets 15%, GC balance 10%. Forces spread to reveal true quality differences hidden by similar efficiency scores.</div>
+            <div><strong>Risk Matrix</strong> — traffic-light assessment per axis. Green = meets threshold, amber = borderline, red = below minimum. Overall risk = worst axis. Priority number indicates experimental validation order.</div>
           </div>
         </div>
       </div>
@@ -1877,6 +2056,15 @@ const OverviewTab = ({ results, scorer }) => {
           { l: "Range", v: `${minScore} – ${maxScore}`, sub: "min – max" },
         ]} />
       </div>
+
+      {/* Experimental Priorities */}
+      {results.some(r => r.readinessScore != null) && <ExperimentalPriorityCard results={results} />}
+
+      {/* Risk Assessment Matrix */}
+      {results.some(r => r.riskProfile != null) && <RiskMatrix results={results} />}
+
+      {/* Diagnostic Readiness Score Chart */}
+      <ReadinessChart results={results} />
 
       {/* Scoring Model Comparison */}
       {avgCNN != null && (
@@ -2735,7 +2923,8 @@ const CandidateAccordion = ({ r, onShowAlternatives }) => {
 const CandidatesTab = ({ results, jobId, connected, scorer }) => {
   const mobile = useIsMobile();
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState(scorer === "guard_net" ? "ensembleScore" : "score");
+  const defaultSort = results.some(r => r.readinessScore != null) ? "readinessScore" : (scorer === "guard_net" ? "ensembleScore" : "score");
+  const [sortKey, setSortKey] = useState(defaultSort);
   const [sortDir, setSortDir] = useState(-1);
   const [drugFilter, setDrugFilter] = useState("ALL");
   const [expanded, setExpanded] = useState(null);
@@ -2779,7 +2968,12 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
       const q = search.toLowerCase();
       arr = arr.filter((r) => r.label.toLowerCase().includes(q) || r.gene.toLowerCase().includes(q) || r.spacer.toLowerCase().includes(q));
     }
-    arr.sort((a, b) => (a[sortKey] > b[sortKey] ? 1 : -1) * sortDir);
+    const getSortVal = (r) => {
+      if (sortKey === "riskOverall") { const v = r.riskProfile?.overall; return v === "green" ? 2 : v === "amber" ? 1 : 0; }
+      if (sortKey === "experimentalPriority") return r.experimentalPriority ?? 999;
+      return r[sortKey] ?? 0;
+    };
+    arr.sort((a, b) => (getSortVal(a) > getSortVal(b) ? 1 : -1) * sortDir);
     return arr;
   }, [results, search, sortKey, sortDir, drugFilter]);
 
@@ -2792,10 +2986,14 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
   const hasML = hasGuardNet || results.some(r => r.cnnCalibrated != null);
   const mlColLabel = hasGuardNet ? "GN" : "CNN";
 
+  const hasReadiness = filtered.some(r => r.readinessScore != null);
   const cols = [
+    ...(hasReadiness ? [{ key: "experimentalPriority", label: "#", w: 36 }] : []),
     { key: "label", label: "Target", w: 140 },
     { key: "drug", label: "Drug", w: 70 },
     { key: "strategy", label: "Strategy", w: 80 },
+    ...(hasReadiness ? [{ key: "readinessScore", label: "Readiness", w: 75 }] : []),
+    ...(hasReadiness ? [{ key: "riskOverall", label: "Risk", w: 45 }] : []),
     { key: "spacer", label: "Spacer", w: 200 },
     { key: "ensembleScore", label: hasML ? "Ensemble" : "Score", w: 70 },
     ...(hasML ? [{ key: "score", label: "Heuristic", w: 75 }] : []),
@@ -2927,9 +3125,12 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                     <td style={{ padding: "10px 8px", textAlign: "center" }}>
                       {isExpanded ? <ChevronDown size={14} color={T.primary} /> : <ChevronRight size={14} color={T.textTer} />}
                     </td>
+                    {hasReadiness && <td style={{ padding: "10px 6px", textAlign: "center" }}>{r.experimentalPriority != null && <PriorityBadge rank={r.experimentalPriority} />}</td>}
                     <td style={{ padding: "10px 12px", fontWeight: 600, fontFamily: MONO, fontSize: "11px" }}>{r.label}</td>
                     <td style={{ padding: "10px 12px" }}><DrugBadge drug={r.drug} /></td>
                     <td style={{ padding: "10px 12px" }}><Badge variant={r.strategy === "Direct" ? "success" : "purple"}>{r.strategy}</Badge></td>
+                    {hasReadiness && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 700, fontSize: "12px" }}>{r.readinessScore != null ? <span style={{ padding: "2px 8px", borderRadius: 6, background: RISK_BG[r.riskProfile?.overall] || T.bgSub, color: RISK_COLORS[r.riskProfile?.overall] || T.textSec }}>{r.readinessScore.toFixed(2)}</span> : "—"}</td>}
+                    {hasReadiness && <td style={{ padding: "10px 12px", textAlign: "center" }}>{r.riskProfile && <RiskDot level={r.riskProfile.overall} />}</td>}
                     <td style={{ padding: "10px 12px" }}><Seq s={r.spacer?.slice(0, 24)} /></td>
                     <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 700, color: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger }}>{(r.ensembleScore || r.score).toFixed(3)}</td>
                     {hasML && <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 600, color: r.score > 0.8 ? T.primary : r.score > 0.65 ? T.warning : T.danger }}>{r.score.toFixed(3)}</td>}
@@ -4241,7 +4442,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                 <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT, fontSize: "12px" }}>
                   <thead>
                     <tr style={{ background: T.bgSub }}>
-                      {["", "Target", "Drug", "Strategy", "Efficiency", "Discrimination", "Primers", "Status"].map(h => (
+                      {["", "Target", "Drug", "Strategy", "Efficiency", "Discrimination", "Primers", "Status", ...(results.some(r => r.riskProfile) ? ["Risk", "#"] : [])].map(h => (
                         <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 600, color: T.textSec, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: `1px solid ${T.border}` }}>{h}</th>
                       ))}
                     </tr>
@@ -4310,10 +4511,14 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "10px", fontWeight: 600, padding: "3px 10px", borderRadius: "20px", background: T.bgSub, color: T.textTer }}>Not ready</span>
                               )}
                             </td>
+                            {(() => { const orig = results.find(r => r.label === t.target_label); return orig?.riskProfile ? (<>
+                              <td style={{ padding: "10px 8px", textAlign: "center" }}><RiskDot level={orig.riskProfile.overall} /></td>
+                              <td style={{ padding: "10px 8px", textAlign: "center" }}>{orig.experimentalPriority != null && <PriorityBadge rank={orig.experimentalPriority} />}</td>
+                            </>) : null; })()}
                           </tr>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={8} style={{ padding: 0, background: T.bgSub }}>
+                              <td colSpan={results.some(r => r.riskProfile) ? 10 : 8} style={{ padding: 0, background: T.bgSub }}>
                                 <div style={{ padding: "16px 20px 16px 44px" }}>
                                   {!topK ? (
                                     <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: T.textTer, padding: "8px 0" }}><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />Loading alternative candidates…</div>

@@ -119,6 +119,12 @@ class TargetResult(BaseModel):
     sm_original_base: Optional[str] = None
     sm_replacement_base: Optional[str] = None
     asrpa_discrimination: Optional[dict] = None
+    # Readiness scoring (computed post-hoc over panel)
+    readiness_score: Optional[float] = None
+    readiness_components: Optional[dict] = None
+    experimental_priority: Optional[int] = None
+    risk_profile: Optional[dict] = None
+    priority_reason: Optional[str] = None
 
 
 class PanelSummary(BaseModel):
