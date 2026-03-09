@@ -19,7 +19,7 @@ import {
   listScoringModels, getPresets, getDiagnostics, getWHOCompliance,
   getTopK, runSweep, runPareto,
   compareScorers, getThermoProfile, getThermoStandalone, getAblation,
-  getNucleaseProfiles, getNucleaseComparison,
+  getNucleaseProfiles, getNucleaseComparison, getUmapData,
 } from "./api";
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1968,9 +1968,224 @@ const ReadinessChart = ({ results }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
+   UMAP EMBEDDING PANEL
+   ═══════════════════════════════════════════════════════════════════ */
+const DRUG_CANVAS = { RIF: "#2563EB", INH: "#D97706", EMB: "#7C3AED", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#6B7280" };
+
+const UMAPPanel = ({ jobId }) => {
+  const [umapData, setUmapData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [colorBy, setColorBy] = useState("drug");
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef(null);
+  const scaleRef = useRef(null);
+  const mobile = useIsMobile();
+
+  useEffect(() => {
+    if (!jobId) return;
+    getUmapData(jobId)
+      .then(({ data }) => { if (data) setUmapData(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [jobId]);
+
+  // Canvas drawing
+  useEffect(() => {
+    if (!umapData || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = canvas.clientWidth;
+    const displayH = mobile ? 300 : 480;
+    canvas.width = displayW * dpr;
+    canvas.height = displayH * dpr;
+    canvas.style.height = `${displayH}px`;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const pad = 36;
+
+    // Clear
+    ctx.fillStyle = T.bg;
+    ctx.fillRect(0, 0, displayW, displayH);
+
+    const points = umapData.points;
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const xRange = xMax - xMin || 1;
+    const yRange = yMax - yMin || 1;
+    const scX = (x) => pad + ((x - xMin) / xRange) * (displayW - 2 * pad);
+    const scY = (y) => pad + ((y - yMin) / yRange) * (displayH - 2 * pad);
+    scaleRef.current = { scX, scY, points };
+
+    const getColor = (p) => {
+      if (colorBy === "drug") return DRUG_CANVAS[p.drug] || DRUG_CANVAS.OTHER;
+      if (colorBy === "score") {
+        const t = Math.max(0, Math.min(1, ((p.score || 0.5) - 0.2) / 0.6));
+        return `hsl(${(1 - t) * 240}, 75%, ${45 + t * 15}%)`;
+      }
+      if (colorBy === "gc") {
+        const t = Math.max(0, Math.min(1, ((p.gc_content || 0.5) - 0.3) / 0.4));
+        return `hsl(${(1 - t) * 120 + 200}, 70%, 50%)`;
+      }
+      if (colorBy === "strategy") return p.detection_strategy === "direct" ? "#3b82f6" : "#a855f7";
+      return "#555";
+    };
+
+    // Unselected: downsample for perf
+    const unselected = points.filter(p => !p.selected);
+    const maxBg = 5000;
+    const step = unselected.length > maxBg ? Math.ceil(unselected.length / maxBg) : 1;
+    ctx.globalAlpha = 0.12;
+    for (let i = 0; i < unselected.length; i += step) {
+      const p = unselected[i];
+      ctx.beginPath();
+      ctx.arc(scX(p.x), scY(p.y), 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = getColor(p);
+      ctx.fill();
+    }
+
+    // Selected: large, opaque, bordered
+    const selected = points.filter(p => p.selected);
+    ctx.globalAlpha = 1.0;
+    for (const p of selected) {
+      const cx = scX(p.x), cy = scY(p.y);
+      // Halo
+      ctx.beginPath();
+      ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fill();
+      // Dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = getColor(p);
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Labels for selected
+    ctx.font = `500 10px ${FONT}`;
+    ctx.textAlign = "left";
+    for (const p of selected) {
+      const cx = scX(p.x), cy = scY(p.y);
+      ctx.fillStyle = T.text;
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(p.target_label.replace(/_/g, " "), cx + 10, cy + 3);
+    }
+    ctx.globalAlpha = 1.0;
+  }, [umapData, colorBy, mobile]);
+
+  // Hover detection (selected points only for speed)
+  const handleMouseMove = useCallback((e) => {
+    if (!scaleRef.current || !umapData) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const { scX, scY, points } = scaleRef.current;
+    const selected = points.filter(p => p.selected);
+    let found = null;
+    for (const p of selected) {
+      const dx = scX(p.x) - mx, dy = scY(p.y) - my;
+      if (dx * dx + dy * dy < 144) { found = p; break; }
+    }
+    setHoveredPoint(found);
+  }, [umapData]);
+
+  if (loading) return null;
+  if (!umapData) return null;
+
+  const colorOpts = [
+    { key: "drug", label: "Drug class" },
+    { key: "score", label: "Activity" },
+    { key: "gc", label: "GC%" },
+    { key: "strategy", label: "Strategy" },
+  ];
+
+  return (
+    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px", position: "relative" }}>
+      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Candidate Embedding Space</div>
+          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
+            UMAP of {umapData.n_total.toLocaleString()} screened candidates (GUARD-Net 128-dim RLPA embeddings).
+            {" "}{umapData.n_selected} selected panel members highlighted. Proximity in this space reflects learned sequence similarity.
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center", flexShrink: 0 }}>
+          <span style={{ fontSize: "10px", color: T.textTer, fontWeight: 600 }}>COLOR:</span>
+          {colorOpts.map(o => (
+            <button key={o.key} onClick={() => setColorBy(o.key)} style={{
+              padding: "3px 10px", borderRadius: "6px", fontSize: "10px", fontWeight: 600, fontFamily: FONT, cursor: "pointer",
+              border: `1px solid ${colorBy === o.key ? T.primary + "88" : T.border}`,
+              background: colorBy === o.key ? T.primaryLight : "transparent",
+              color: colorBy === o.key ? T.primary : T.textSec,
+            }}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <canvas
+        ref={canvasRef}
+        style={{ width: "100%", borderRadius: "8px", border: `1px solid ${T.borderLight}`, cursor: "crosshair" }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHoveredPoint(null)}
+      />
+
+      {/* Tooltip */}
+      {hoveredPoint && (
+        <div style={{
+          position: "absolute", left: mousePos.x + 16, top: mousePos.y + 60,
+          background: T.bg, border: `1px solid ${T.border}`, borderRadius: "8px",
+          padding: "10px 14px", fontSize: "11px", pointerEvents: "none", zIndex: 10,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)", minWidth: "150px",
+        }}>
+          <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_CANVAS[hoveredPoint.drug] || T.text, marginBottom: "4px" }}>{hoveredPoint.target_label}</div>
+          {hoveredPoint.score != null && <div style={{ color: T.textSec }}>Score: <strong style={{ color: T.text }}>{hoveredPoint.score.toFixed(3)}</strong></div>}
+          {hoveredPoint.gc_content != null && <div style={{ color: T.textSec }}>GC: <strong style={{ color: T.text }}>{(hoveredPoint.gc_content * 100).toFixed(1)}%</strong></div>}
+          {hoveredPoint.drug && <div style={{ color: T.textSec }}>Drug: <strong style={{ color: T.text }}>{hoveredPoint.drug}</strong></div>}
+        </div>
+      )}
+
+      {/* Stats bar */}
+      <div style={{ display: "flex", gap: "20px", marginTop: "10px", fontSize: "11px", color: T.textTer, flexWrap: "wrap" }}>
+        <span><strong style={{ color: T.text, fontFamily: MONO }}>{umapData.n_total.toLocaleString()}</strong> candidates screened</span>
+        <span><strong style={{ color: T.primary, fontFamily: MONO }}>{umapData.n_selected}</strong> selected ({((umapData.n_selected / umapData.n_total) * 100).toFixed(2)}%)</span>
+        {umapData.stats?.panel_spread > 0 && <span>Panel spread: <strong style={{ fontFamily: MONO }}>{umapData.stats.panel_spread.toFixed(2)}</strong></span>}
+        {umapData.stats?.coverage != null && <span>Space coverage: <strong style={{ fontFamily: MONO }}>{(umapData.stats.coverage * 100).toFixed(1)}%</strong></span>}
+        <span style={{ fontSize: "10px", color: T.textTer }}>{umapData.stats?.method || "UMAP"} · cosine · 128-dim</span>
+      </div>
+
+      {/* Legend for drug colors when in drug mode */}
+      {colorBy === "drug" && (
+        <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+          {Object.entries(DRUG_CANVAS).filter(([d]) => d !== "OTHER" && umapData.points.some(p => p.drug === d)).map(([drug, color]) => (
+            <div key={drug} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+              <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{drug}</span>
+            </div>
+          ))}
+          <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.textTer, border: "1.5px solid #fff" }} />
+            <span style={{ fontSize: "10px", color: T.textTer }}>Selected (panel)</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <div style={{ width: 4, height: 4, borderRadius: "50%", background: T.textTer, opacity: 0.3 }} />
+            <span style={{ fontSize: "10px", color: T.textTer }}>Screened</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════════
    RESULT TABS
    ═══════════════════════════════════════════════════════════════════ */
-const OverviewTab = ({ results, scorer }) => {
+const OverviewTab = ({ results, scorer, jobId }) => {
   const mobile = useIsMobile();
 
   // Detect scorer from prop (primary) or ml_scores (fallback)
@@ -2083,6 +2298,9 @@ const OverviewTab = ({ results, scorer }) => {
 
       {/* Diagnostic Readiness Score Chart */}
       <ReadinessChart results={results} />
+
+      {/* UMAP Embedding Space */}
+      {jobId && <UMAPPanel jobId={jobId} />}
 
       {/* Score vs Discrimination Scatter — readiness-sized dots */}
       {!mobile && (() => {
@@ -4698,7 +4916,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
           </div>
 
           {/* Tab content */}
-          {tab === "overview" && <OverviewTab results={results} scorer={scorerProp} />}
+          {tab === "overview" && <OverviewTab results={results} scorer={scorerProp} jobId={activeJob} />}
           {tab === "candidates" && <CandidatesTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} />}
           {tab === "discrimination" && <DiscriminationTab results={results} />}
           {tab === "primers" && <PrimersTab results={results} />}

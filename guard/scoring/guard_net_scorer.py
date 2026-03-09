@@ -73,9 +73,12 @@ class GUARDNetScorer(Scorer):
         use_rnafm: bool = True,
         multitask: bool = False,
         device: str = "cpu",
+        collect_embeddings: bool = False,
     ) -> None:
         self.model = None
         self._fallback = heuristic_fallback
+        self.collect_embeddings = collect_embeddings
+        self._collected_embeddings: list[dict] = []
         self._device_name = device
         self._device = None
         self._val_rho: Optional[float] = None
@@ -624,7 +627,13 @@ class GUARDNetScorer(Scorer):
         contexts: list[np.ndarray],
         rnafm_embs: list[Optional[np.ndarray]],
     ) -> list[float]:
-        """Batch prediction. Returns list of efficiency scores in [0, 1]."""
+        """Batch prediction. Returns list of efficiency scores in [0, 1].
+
+        Side effect: if collect_embeddings is True, stores the last batch's
+        128-dim pooled embeddings in self._last_batch_embeddings.
+        """
+        self._last_batch_embeddings = None
+
         if self.model is None:
             return [0.5] * len(contexts)
 
@@ -655,4 +664,16 @@ class GUARDNetScorer(Scorer):
                 crrna_rnafm_emb=rnafm_batch,
             )
 
+        # Capture embeddings if requested (128-dim pooled RLPA vectors)
+        if self.collect_embeddings and "embedding" in output:
+            self._last_batch_embeddings = output["embedding"].cpu().numpy()
+
         return output["efficiency"].squeeze(-1).clamp(0, 1).tolist()
+
+    def get_collected_embeddings(self) -> list[dict]:
+        """Return all collected embeddings."""
+        return self._collected_embeddings
+
+    def clear_embeddings(self) -> None:
+        """Free collected embeddings memory."""
+        self._collected_embeddings = []

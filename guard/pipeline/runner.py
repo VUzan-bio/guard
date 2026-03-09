@@ -180,6 +180,7 @@ class GUARDPipeline:
                 ),
                 use_rlpa=config.scoring.guard_net_use_rlpa,
                 use_rnafm=config.scoring.guard_net_use_rnafm,
+                collect_embeddings=True,
             )
             logger.info("Using GUARD-Net scorer (RLPA=%s, RNA-FM=%s)",
                         config.scoring.guard_net_use_rlpa,
@@ -518,6 +519,30 @@ class GUARDPipeline:
                 contexts = [self.ml_scorer._encode_context(sc.candidate) for sc in all_sc]
                 rnafm_embs = [self.ml_scorer._get_rnafm_embedding(sc.candidate) for sc in all_sc]
                 raw_preds = self.ml_scorer._predict_batch(contexts, rnafm_embs)
+
+                # Collect 128-dim RLPA embeddings for UMAP visualization
+                if (getattr(self.ml_scorer, 'collect_embeddings', False)
+                        and self.ml_scorer._last_batch_embeddings is not None):
+                    batch_embs = self.ml_scorer._last_batch_embeddings
+                    for idx, sc in enumerate(all_sc):
+                        cand = sc.candidate
+                        self.ml_scorer._collected_embeddings.append({
+                            "target_label": cand.target_label,
+                            "spacer_seq": cand.spacer_seq,
+                            "embedding": batch_embs[idx],  # numpy (128,)
+                            "score": raw_preds[idx],
+                            "gc_content": cand.gc_content,
+                            "detection_strategy": cand.detection_strategy.value,
+                            "drug": None,  # populated below
+                            "selected": False,
+                        })
+                    # Attach drug info from target metadata
+                    drug_by_label = {}
+                    for t in targets:
+                        drug_by_label[t.label] = t.mutation.drug.value if hasattr(t.mutation.drug, 'value') else str(t.mutation.drug)
+                    for emb_entry in self.ml_scorer._collected_embeddings:
+                        if emb_entry["drug"] is None:
+                            emb_entry["drug"] = drug_by_label.get(emb_entry["target_label"])
             else:
                 # SeqCNN: individual predictions
                 raw_preds = [self.ml_scorer._predict(sc.candidate) for sc in all_sc]
@@ -1109,6 +1134,43 @@ class GUARDPipeline:
             "detail": "JSON + TSV + FASTA structured output",
             "breakdown": {"formats": ["JSON", "TSV", "CSV", "FASTA"]},
         })
+
+        # --- Module 11: UMAP embedding visualization (optional) ---
+        if (hasattr(self.ml_scorer, 'get_collected_embeddings')
+                and self.ml_scorer.get_collected_embeddings()):
+            t0 = time.perf_counter_ns()
+            try:
+                from guard.viz.umap_panel import compute_panel_umap
+                embeddings = self.ml_scorer.get_collected_embeddings()
+                panel_labels = [m.target.label for m in panel.members]
+
+                # Mark selected candidates
+                panel_set = set(panel_labels)
+                for e in embeddings:
+                    e["selected"] = e["target_label"] in panel_set
+
+                umap_path = self._output / "umap_embeddings.json"
+                umap_result = compute_panel_umap(embeddings, panel_labels, umap_path)
+                n_total = umap_result.get("n_total", 0)
+                n_selected = umap_result.get("n_selected", 0)
+                method = umap_result.get("stats", {}).get("method", "UMAP")
+
+                self._stats.append({
+                    "module_id": "M11", "module_name": "Embedding UMAP",
+                    "duration_ms": (time.perf_counter_ns() - t0) // 1_000_000,
+                    "candidates_in": n_total,
+                    "candidates_out": n_selected,
+                    "detail": f"{n_total:,} embeddings → 2D {method} ({n_selected} panel members highlighted)",
+                    "breakdown": {"method": method, "n_total": n_total, "n_selected": n_selected},
+                })
+                logger.info(
+                    "Module 11: UMAP computed — %d candidates → 2D (%d selected)",
+                    n_total, n_selected,
+                )
+            except Exception as e:
+                logger.warning("UMAP computation failed (non-fatal): %s", e)
+            finally:
+                self.ml_scorer.clear_embeddings()
 
         # Summary
         n_complete = panel.complete_members

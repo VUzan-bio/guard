@@ -67,6 +67,11 @@ export async function exportResults(jobId, format = "json") {
   }
 }
 
+// UMAP embeddings
+export async function getUmapData(jobId) {
+  return request(`/api/results/${jobId}/umap`);
+}
+
 // Figures — returns URL string, not a fetch
 export function getFigureUrl(jobId, type) {
   return `/api/figures/${jobId}/${type}`;

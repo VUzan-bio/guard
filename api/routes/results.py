@@ -357,3 +357,20 @@ async def export_results(
         media_type=media,
         headers={"Content-Disposition": f"attachment; filename=guard_{job_id}.{ext}"},
     )
+
+
+@router.get("/{job_id}/umap")
+async def get_umap_data(job_id: str) -> dict:
+    """Return UMAP embedding coordinates for all candidates in a run."""
+    state = _get_state()
+
+    # Look for UMAP JSON in the results directory
+    umap_path = state.results_dir / job_id / "umap_embeddings.json"
+    if not umap_path.exists():
+        raise HTTPException(
+            404,
+            "UMAP data not available. Re-run the pipeline with GUARD-Net scoring.",
+        )
+
+    with open(umap_path) as f:
+        return json.load(f)

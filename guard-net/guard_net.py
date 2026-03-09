@@ -220,6 +220,7 @@ class GUARDNet(nn.Module):
 
         output: dict[str, torch.Tensor] = {
             "efficiency": self.efficiency_head(mut_pooled),
+            "embedding": mut_pooled.detach(),  # (batch, 128) RLPA-pooled
         }
 
         # Domain-adversarial: predict source dataset
