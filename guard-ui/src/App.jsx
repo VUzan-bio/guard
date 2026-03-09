@@ -815,6 +815,25 @@ const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
   );
 };
 
+/* Collapsible figure wrapper for Overview tab — open by default, click to toggle */
+const FigureSection = ({ title, children, defaultOpen = true }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginBottom: "24px" }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none",
+        cursor: "pointer", padding: "4px 0", marginBottom: open ? "8px" : 0, fontFamily: FONT,
+        fontSize: "11px", fontWeight: 600, color: T.textTer, textTransform: "uppercase",
+        letterSpacing: "0.06em",
+      }}>
+        <ChevronDown size={12} style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }} />
+        {title}
+      </button>
+      {open && children}
+    </div>
+  );
+};
+
 /* ═══════════════════════════════════════════════════════════════════
    HOME PAGE — Run workflow + methodology blog
    ═══════════════════════════════════════════════════════════════════ */
@@ -2084,17 +2103,39 @@ const UMAPPanel = ({ jobId }) => {
       return gradientColor(0.5);
     };
 
-    // All unselected: draw all points (small, semi-transparent for density)
+    // Density cloud for unselected points using radial splats
     const unselected = points.filter(p => !p.selected);
-    const maxBg = 12000;
-    const step = unselected.length > maxBg ? Math.ceil(unselected.length / maxBg) : 1;
-    ctx.globalAlpha = 0.35;
-    for (let i = 0; i < unselected.length; i += step) {
-      const p = unselected[i];
-      ctx.beginPath();
-      ctx.arc(scX(p.x), scY(p.y), 1.2, 0, Math.PI * 2);
-      ctx.fillStyle = getColor(p);
-      ctx.fill();
+    if (unselected.length > 0) {
+      // Render density splats onto a temporary canvas, then composite
+      const tmpCanvas = document.createElement("canvas");
+      tmpCanvas.width = canvas.width;
+      tmpCanvas.height = canvas.height;
+      const tmp = tmpCanvas.getContext("2d");
+      tmp.scale(dpr, dpr);
+
+      // Adaptive radius: denser data → smaller splats
+      const density = unselected.length / ((displayW - 2 * pad) * (displayH - 2 * pad));
+      const splatR = Math.max(3, Math.min(12, 1.2 / Math.sqrt(density + 0.0001)));
+
+      // Draw gaussian-like splats (radial gradient circles)
+      for (const p of unselected) {
+        const cx = scX(p.x), cy = scY(p.y);
+        const baseColor = getColor(p);
+        // Parse rgb
+        const m = baseColor.match(/\d+/g);
+        if (!m) continue;
+        const [cr, cg, cb] = m.map(Number);
+        const grad = tmp.createRadialGradient(cx, cy, 0, cx, cy, splatR);
+        grad.addColorStop(0, `rgba(${cr},${cg},${cb},0.18)`);
+        grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.08)`);
+        grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        tmp.fillStyle = grad;
+        tmp.fillRect(cx - splatR, cy - splatR, splatR * 2, splatR * 2);
+      }
+
+      // Composite density layer onto main canvas
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height, 0, 0, displayW, displayH);
     }
 
     // Selected: large, opaque, bordered (no text labels)
@@ -2338,16 +2379,30 @@ const OverviewTab = ({ results, scorer, jobId }) => {
       </div>
 
       {/* Experimental Priorities */}
-      {results.some(r => r.readinessScore != null) && <ExperimentalPriorityCard results={results} />}
+      {results.some(r => r.readinessScore != null) && (
+        <FigureSection title="Experimental Priorities">
+          <ExperimentalPriorityCard results={results} />
+        </FigureSection>
+      )}
 
       {/* Risk Assessment Matrix */}
-      {results.some(r => r.riskProfile != null) && <RiskMatrix results={results} />}
+      {results.some(r => r.riskProfile != null) && (
+        <FigureSection title="Risk Assessment Matrix">
+          <RiskMatrix results={results} />
+        </FigureSection>
+      )}
 
       {/* Diagnostic Readiness Score Chart */}
-      <ReadinessChart results={results} />
+      <FigureSection title="Diagnostic Readiness Score">
+        <ReadinessChart results={results} />
+      </FigureSection>
 
       {/* UMAP Embedding Space */}
-      {jobId && <UMAPPanel jobId={jobId} />}
+      {jobId && (
+        <FigureSection title="Candidate Embedding Space">
+          <UMAPPanel jobId={jobId} />
+        </FigureSection>
+      )}
 
       {/* Score vs Discrimination Scatter — readiness-sized dots */}
       {!mobile && (() => {
@@ -2358,7 +2413,8 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         }));
         const inTopRight = scatterData.filter(d => d.score >= 0.4 && d.disc >= 3).length;
         return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+          <FigureSection title="Score vs Discrimination">
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "0" }}>
             <div style={{ marginBottom: "16px" }}>
               <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Score vs Discrimination</div>
               <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
@@ -2453,6 +2509,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               );
             })()}
           </div>
+          </FigureSection>
         );
       })()}
 
@@ -2468,7 +2525,8 @@ const OverviewTab = ({ results, scorer, jobId }) => {
           return scatterData.length ? Math.round(agree / scatterData.length * 100) : 0;
         })();
         return (
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
+          <FigureSection title="Scoring Model Comparison">
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "0" }}>
             <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Scoring Model Comparison</div>
@@ -2541,10 +2599,12 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               );
             })()}
           </div>
+          </FigureSection>
         );
       })()}
 
       {/* Drug coverage table */}
+      <FigureSection title="Drug Coverage">
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", overflow: "hidden" }}>
         <div style={{ padding: "18px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Drug Coverage</div>
@@ -2588,6 +2648,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         </table>
         </div>
       </div>
+      </FigureSection>
     </div>
   );
 };
