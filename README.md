@@ -4,157 +4,267 @@
 
 Computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels targeting drug-resistant *Mycobacterium tuberculosis*.
 
+Live platform: [guard-design.app](https://guard-design.app)
+
 ---
 
-GUARD takes WHO-catalogued drug-resistance mutations as input and produces ready-to-order crRNA sequences, RPA primer pairs, and a fully optimised multiplex panel for CRISPR-Cas12a electrochemical diagnostics. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses a three-level hierarchy — biophysical heuristic, temperature-calibrated SeqCNN, and GUARD-Net (dual-branch CNN + RNA-FM with physics-informed R-loop attention) — blended via Spearman-optimised ensemble weighting. GUARD designs a complete 15-channel MDR-TB panel — covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance plus an IS6110 species control.
+GUARD takes WHO-catalogued drug-resistance mutations as input and produces a complete, optimised diagnostic panel: crRNA sequences, RPA primer pairs, discrimination predictions, and clinical compliance metrics — ready for experimental validation on electrochemical or fluorescence platforms. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses GUARD-Net — a dual-branch CNN + RNA-FM architecture with physics-informed R-loop attention — calibrated via Spearman-optimised ensemble weighting against both cis-cleavage (Kim et al. 2018) and trans-cleavage (Huang et al. 2024) benchmarks. Discrimination prediction uses a gradient-boosted model trained on 6,136 paired MUT/WT measurements with 15 thermodynamic features. GUARD produces a 15-channel MDR-TB panel covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance, plus an IS6110 species identification control.
 
 ## Pipeline
 
 <img width="3398" height="1147" alt="GUARD pipeline architecture" src="https://github.com/user-attachments/assets/89c58154-ba94-4e98-94ec-c2c8580c4c99" />
 
 <br />
-<br />
-Ten modules execute sequentially:
 
-1. **Target Resolution** — WHO-catalogued mutations → genomic coordinates on H37Rv (5-strategy offset resolver)
-2. **PAM Scanning** — Both strands scanned for Cas12a-compatible PAMs (TTTV canonical + enAsCas12a relaxed: TTTN, TTCN, TCTV, CTTV) with variable spacer lengths (18–23 nt)
-3. **Candidate Filtering** — Biophysical constraints: GC 30–70%, homopolymer < 5, self-complementarity ΔG check
-4. **Off-Target Screening** — Bowtie2 alignment against complete H37Rv genome (4.41 Mb, ≤3 mismatches flagged)
-5. **Scoring** — Three-level hierarchy (see below), producing ranked candidates with calibrated scores
-6. **Mismatch Pairs + SM Enhancement** — WT/MUT spacer pairs generated; synthetic mismatches at seed positions 2–6 boost discrimination from 2–6× to 10–100×
-7. **Discrimination Scoring** — Position-dependent MUT/WT activity ratio quantification
-8. **Multiplex Optimisation** — Simulated annealing over candidate combinations (10,000 iterations), minimising cross-reactivity
-9. **RPA Primer Design** — Standard (28–38 nt, Tm 57–72 °C) + allele-specific primers for proximity candidates, with dimer ΔG checking
-10. **Panel Assembly + Export** — Final panel with crRNA sequences, primer pairs, amplicon maps, discrimination predictions → JSON, TSV, FASTA
+Ten modules execute sequentially across three processing blocks:
 
-For mutations in PAM-desert regions (e.g. *rpoB* RRDR, 70%+ GC with no T-rich PAM within 50 bp), the pipeline automatically falls back to **proximity detection**: the crRNA targets a nearby accessible site while an allele-specific RPA primer bridges the mutation for discrimination.
+**Block 1 — Candidate Generation (M1–M4)**
 
-## Scoring Hierarchy
+| Module | Function | Method |
+|--------|----------|--------|
+| M1 Target Resolution | WHO mutations → genomic coordinates on H37Rv | 5-strategy offset resolver against NC_000962.3 |
+| M2 PAM Scanning | Identify Cas12a-compatible protospacer sites | Both strands: TTTV canonical + enAsCas12a relaxed (TTTN, TTCN, TCTV, CTTV); spacer 18–23 nt |
+| M3 Candidate Filtering | Biophysical constraint enforcement | GC 30–70%, homopolymer < 5 nt, self-complementarity MFE > −3.0 kcal/mol |
+| M4 Off-Target Screening | Genome-wide specificity check | Bowtie2 against H37Rv (4.41 Mb); ≤3 mismatches flagged |
 
-Three scoring levels, each temperature-calibrated. `composite_score` automatically selects the best available: ensemble > calibrated ML > raw ML > heuristic.
+**Block 2 — Scoring & Optimisation (M5–M9)**
 
-### Level 1 — Biophysical Heuristic
+| Module | Function | Method |
+|--------|----------|--------|
+| M5 Efficiency Scoring | Predict Cas12a cleavage activity | GUARD-Net ensemble (see Architecture) |
+| M5.5 Mismatch Pair Generation | Create MUT/WT spacer pairs | Complement substitution at SNP position |
+| M6 Discrimination Scoring | Predict MUT/WT selectivity | Learned model: LightGBM, 15 thermodynamic features, 6,136 pairs (r = 0.46); fallback: position-dependent heuristic (r = 0.30) |
+| M7 Synthetic Mismatch Enhancement | Boost discrimination for borderline candidates | Deliberate mismatches at seed positions 2–6; 2–6× → 10–100× |
+| M8 Multiplex Optimisation | Select optimal panel combination | Simulated annealing, 10,000 iterations; objective: efficiency + discrimination − cross-reactivity |
+| M9 RPA Primer Co-Design | Design amplification primers per target | Standard RPA (28–38 nt, Tm 57–72°C) + allele-specific primers for proximity candidates |
 
-Weighted sum of five sequence features from high-throughput Cas12a activity profiling:
+**Block 3 — Clinical Assessment (M10)**
 
-| Feature | Weight | Reference |
-|---------|--------|-----------|
-| Seed position (nt 1–8) | 0.35 | Strohkendl et al., *Mol Cell* 2018 |
-| GC content | 0.20 | Kim et al., *Nat Biotechnol* 2018 |
-| Secondary structure (ΔG) | 0.20 | Nearest-neighbour thermodynamics |
-| Homopolymer penalty | 0.10 | Zetsche et al., *Cell* 2015 |
-| Off-target count | 0.15 | Bowtie2; Langmead & Salzberg 2012 |
+| Module | Function | Method |
+|--------|----------|--------|
+| M10 Panel Assembly | Compile final panel with clinical metrics | Per-drug-class sensitivity/specificity against WHO TPP 2024; three operating presets; ranked backup alternatives |
 
-### Level 2 — SeqCNN
+For mutations in PAM-desert regions (e.g., *rpoB* RRDR at 70%+ GC with no T-rich PAM within 50 bp), the pipeline automatically falls back to **proximity detection**: the crRNA targets a nearby accessible site while an allele-specific RPA primer provides mutation-specific amplification.
 
-Convolutional neural network predicting Cas12a guide activity from one-hot encoded 34-nt input.
+## GUARD-Net Architecture
 
-- **Architecture**: Multi-scale parallel Conv1d (k=3,5,7) → dilated Conv1d (d=1,2) with residual connections → adaptive pooling → dense head (128→64→32→1)
-- **Parameters**: 110K
-- **Training data**: 15,000 AsCas12a guides (Kim et al. 2018 HT-PAMDA)
-- **Loss**: Huber (δ=1.0) + differentiable Spearman regulariser (λ=0.1)
-- **Validation ρ**: 0.74 · Test ρ: 0.53 (cross-library)
-- **Calibration**: T = 7.53, α = 0.007
-
-### Level 3 — GUARD-Net
-
-Dual-branch architecture with physics-informed attention, purpose-built for diagnostic guide scoring.
+Dual-branch architecture with physics-informed attention for diagnostic guide scoring. 235,000 trainable parameters.
 
 ```
-Target DNA (4×34 one-hot) ──→ [CNN Branch: multi-scale Conv1d] ──→ (B, 34, 64) ─┐
-                                                                                   ├─→ concat ─→ [RLPA] ─→ pool ─→ [Efficiency Head] ─→ score
-crRNA spacer (20×640 RNA-FM) ─→ [Projection + zero-pad to 34] ──→ (B, 34, 64) ─┘
+Target DNA (4×34 one-hot) ──→ Multi-scale Conv1d (k=3,5,7; 32ch) → BN → (B, 34, 64) ─┐
+                                                                                         ├→ concat (128-dim) → RLPA → pool → Efficiency Head → σ
+crRNA spacer (20×640 RNA-FM) → Linear(640→64) + zero-pad to 34 ──→ (B, 34, 64) ────────┘                                  └→ Discrimination Head → Softplus
 ```
 
-- **CNN branch**: Multi-scale Conv1d (k=3,5,7,9) with batch norm → 64-dim per-position features from target DNA
-- **RNA-FM branch**: Frozen RNA-FM embeddings (640-dim) projected to 64-dim, zero-padded from 20 to 34 positions (crRNA spacer → full target alignment)
-- **RLPA** (R-Loop Propagation Attention): Causal self-attention encoding Cas12a R-loop propagation directionality (PAM-proximal → distal). Biophysically motivated: Cas12a unwinds DNA directionally from the PAM, so position 1 influences all downstream positions but not vice versa
-- **Efficiency head**: 128→64→32→1 with GELU + dropout, sigmoid output
-- **Parameters**: ~235K total (RNA-FM frozen; CNN ~65K, projection ~60K, RLPA ~25K, heads ~85K)
-- **Training data**: Kim et al. 2018 + Huang et al. 2024 (EasyDesign)
-- **Validation ρ**: 0.71 · Test ρ: 0.50
-- **Calibration**: T = 0.74 (quantile-matched), α = 0.028
+**CNN branch.** Multi-scale parallel Conv1d (kernel sizes 3, 5, 7; 32 channels each) with batch normalisation and dropout (0.3). Input: 34-nucleotide one-hot encoded target context (4 nt PAM + 20 nt protospacer + 10 nt flanking). Output: 64-dimensional features per position.
+
+**RNA-FM branch.** Frozen RNA-FM embeddings (Chen et al. 2022; 23M training sequences, 640-dim per-nucleotide) projected to 64 dimensions via learned linear layer, zero-padded from 20 to 34 positions for alignment with the CNN branch. Captures guide RNA folding stability and accessibility properties.
+
+**R-Loop Propagation Attention (RLPA).** Single-head causal self-attention with 32-dim Q/K/V projections and a learnable 34×34 positional bias matrix. The causal (lower-triangular) mask encodes the directional R-loop propagation of Cas12a (PAM-proximal → PAM-distal), motivated by the kinetic observation that R-loop formation is sequential and reversible (Strohkendl et al. 2018). RLPA improved cross-dataset generalisation by +6.7% on the Kim 2018 cross-library evaluation (test ρ: 0.496 → 0.534). ~25,000 parameters.
+
+**Output heads.** Efficiency: 128 → 64 → 32 → 1 with GELU activation and sigmoid output. Discrimination: 1024 → 64 → 32 → 1 with Softplus output. Loss: L_Huber(efficiency) + 0.5 × (1 − ρ_soft_Spearman) + λ_disc × L_Huber(log D), where ρ_soft uses the differentiable ranking of Blondel et al. (2020).
+
+### Training Data
+
+| Dataset | Enzyme | Measurement | Guides | Source |
+|---------|--------|-------------|--------|--------|
+| Kim et al. 2018 | AsCas12a | Indel frequency (cis-cleavage) | ~15,000 | HT-PAMDA, three HEK293T libraries |
+| Huang et al. 2024 (EasyDesign) | LbCas12a | FAM-quencher fluorescence (trans-cleavage) | ~10,000 | Pathogen-diverse diagnostic targets |
+
+The production checkpoint (multi-dataset, no domain adversarial training) achieves:
+- **Trans-cleavage ρ = 0.55** (EasyDesign benchmark — the diagnostic-relevant readout)
+- **Cis-cleavage ρ = 0.49** (Kim 2018 benchmark)
+
+Models trained only on cis-cleavage data show ρ = 0.04 on the trans-cleavage benchmark — the multi-dataset approach provides a 12× improvement in diagnostic prediction accuracy.
 
 ### Temperature Calibration & Ensemble
 
-Each scorer applies: `calibrated = sigmoid(logit(raw) / T)`, then `ensemble = α × heuristic + (1 − α) × calibrated`.
+Each scorer applies quantile-matched temperature scaling: `calibrated = sigmoid(logit(raw) / T)`, then `ensemble = α × heuristic + (1 − α) × calibrated`. The calibration file (guard/weights/calibration.json) stores T and α per scorer, fitted on the validation set.
 
-Temperature calibration maps raw sigmoid outputs onto the target activity distribution via quantile matching at the 10th/25th/50th/75th/90th percentiles. This ensures Block 3 threshold decisions (efficiency ≥ 0.3/0.4/0.6) operate on properly scaled values rather than compressed sigmoid ranges. The near-zero α values reflect the ML scorers' superior ranking ability (ρ > 0.7) over the simplified heuristic (ρ ≈ 0.18).
+| Scorer | Parameters | T | α | Val ρ | Test ρ |
+|--------|-----------|---|---|-------|--------|
+| Heuristic | 5 weights | — | — | — | ~0.18 |
+| SeqCNN | 110K | 7.53 | 0.007 | 0.74 | 0.53 |
+| GUARD-Net | 235K | 0.74 | 0.028 | 0.71 | 0.55 |
 
-| Scorer | T | α | Calibrated range | Val ρ |
-|--------|---|---|-----------------|-------|
-| SeqCNN | 7.53 | 0.007 | [0.36, 0.61] | 0.74 |
-| GUARD-Net | 0.74 | 0.028 | [0.01, 0.97] | 0.71 |
+## Learned Discrimination Model
 
-## Block 3 — Optimisation & Diagnostics
+Discrimination prediction replaces the position-dependent heuristic (Strohkendl et al. 2018) with a gradient-boosted model trained on paired MUT/WT measurements.
 
-Three configurable presets control candidate selection stringency:
+**Training data.** 6,136 paired measurements extracted from the EasyDesign dataset: same crRNA tested on both perfect-match (0-mismatch) and single-mismatch targets, from 1,224 unique guides. The discrimination ratio for each pair is the ratio of trans-cleavage activity on the perfect match vs the mismatched target.
+
+**Features (15).** Four categories:
+- Position: spacer position, seed binary, normalised position, sensitivity region
+- Mismatch chemistry: ΔΔG destabilisation penalty, wobble pair flag, purine-purine flag, transition/transversion class
+- Thermodynamics: cumulative ΔG at mismatch position, seed ΔG (positions 1–8), total hybrid ΔG, energy ratio (cumulative/penalty)
+- Sequence context: global GC content, local GC (±2 nt window)
+
+Thermodynamic parameters from Sugimoto et al. (2000, Biochemistry) for RNA:DNA mismatch penalties and Sugimoto et al. (1995, Biochemistry) for RNA:DNA hybrid nearest-neighbour parameters.
+
+**Results.** 3-fold cross-validation (guide-level stratified):
+
+| Model | RMSE | Pearson r |
+|-------|------|-----------|
+| Position heuristic (Strohkendl 2018) | 0.641 | 0.298 |
+| **Learned (LightGBM, 15 features)** | **0.540** | **0.459** |
+
+Top features by importance: seed ΔG, total hybrid ΔG, cumulative ΔG at mismatch, energy ratio — thermodynamic features dominate over position alone.
+
+## Post-Optimisation Analysis
+
+### Primer Dimer Thermodynamics
+
+All pairwise primer interactions (465 pairs for a 15-target panel) are evaluated using SantaLucia (2004) nearest-neighbour parameters. Two ΔG values per pair:
+- **ΔG_full**: most stable dimer across all alignment positions
+- **ΔG_3prime**: most stable dimer anchored at the 3' end of at least one primer (extensible — produces amplification artifacts)
+
+Thresholds: ΔG_3prime < −6.0 kcal/mol = high risk; < −4.0 = moderate risk. Displayed as a 30×30 heatmap on the Multiplex tab. Currently post-optimisation analysis; integration into the simulated annealing cost function is planned.
+
+### AS-RPA Thermodynamic Discrimination
+
+For proximity candidates, the forward primer's 3' terminal nucleotide matches only the mutant allele. Discrimination is estimated from the ΔΔG between matched (MUT) and mismatched (WT) primer-template complexes at the 3' anchor region:
+- Terminal C:C mismatch → ΔΔG ≈ 6.3 kcal/mol → strong block
+- Terminal G:T wobble → ΔΔG ≈ 0.5 kcal/mol → weak block
+- Boltzmann conversion: disc ≈ exp(ΔΔG / RT) at 37°C, capped at 100×
+
+Mismatch penalty data from Allawi & SantaLucia (1997, 1998) and RPA-specific tolerance from systematic mismatch profiling (PMC12179515, 2025). Penultimate mismatch strategy per Ye et al. (2019).
+
+## Diagnostics Presets
+
+Three operating modes control candidate selection:
 
 | Preset | Efficiency ≥ | Discrimination ≥ | Use case |
 |--------|-------------|-------------------|----------|
-| High sensitivity | 0.30 | 2× | Early screening, maximum coverage |
-| Balanced | 0.40 | 3× | WHO TPP-aligned clinical deployment |
-| High specificity | 0.60 | 5× | Confirmatory testing, minimal false positives |
+| High Sensitivity | 0.30 | 2× | Field screening, maximum coverage |
+| Balanced (WHO TPP) | 0.40 | 3× | Clinical diagnostic deployment |
+| High Specificity | 0.60 | 5× | Confirmatory testing, reference labs |
 
-Diagnostic metrics include per-drug-class sensitivity/specificity against WHO Target Product Profiles, coverage gap identification, and per-test cost estimation.
+WHO TPP compliance is evaluated per drug class: ≥95% sensitivity for RIF, ≥90% for INH and FQ, ≥80% for EMB, PZA, and AG. Specificity is approximated as 1 − 1/disc for Direct candidates and from thermodynamic AS-RPA estimates for Proximity candidates — all marked "Pending" as experimental validation is required.
 
-## Example: 14-plex MDR-TB Panel
+## Platform
 
-Input: 14 WHO-catalogued resistance mutations across 6 drug classes.
+The web platform ([guard-design.app](https://guard-design.app)) provides six result tabs per panel run:
 
-| Target | Drug | Strategy | Disc. | Score | Primers | SM |
-|--------|------|----------|-------|-------|---------|----|
-| *rpoB* S450L | RIF | Proximity | — | 0.607 | AS-RPA | No |
-| *rpoB* H445D | RIF | Direct | 5.7× | 0.632 | Standard | Yes |
-| *rpoB* H445Y | RIF | Direct | 5.7× | 0.645 | Standard | Yes |
-| *rpoB* D435V | RIF | Direct | 5.7× | 0.634 | Standard | Yes |
-| *rpoB* S450W | RIF | Proximity | — | 0.607 | AS-RPA | No |
-| *katG* S315T | INH | Proximity | — | 0.635 | AS-RPA | No |
-| *katG* S315N | INH | Proximity | — | 0.635 | AS-RPA | No |
-| *inhA* C-15T | INH | Direct | 4.6× | 0.628 | Standard | Yes |
-| *embB* M306V | EMB | Proximity | — | 0.595 | AS-RPA | No |
-| *embB* M306I | EMB | Proximity | — | 0.595 | AS-RPA | No |
-| *pncA* H57D | PZA | Proximity | — | 0.645 | AS-RPA | No |
-| *gyrA* D94G | FQ | Direct | 5.2× | 0.618 | Standard | Yes |
-| *gyrA* A90V | FQ | Proximity | — | 0.580 | AS-RPA | No |
-| *rrs* A1401G | AG | Direct | 3.3× | 0.598 | Standard | No |
-| IS6110 | Control | Direct | — | — | Standard | No |
+| Tab | Content |
+|-----|---------|
+| **Overview** | Score distribution, drug class coverage, score-vs-discrimination scatter plot |
+| **Candidates** | Per-candidate detail: spacer architecture, interpretation, oligo sequences, evidence metadata. Expandable rows with Top-K alternatives |
+| **Discrimination** | Direct detection ranking (learned model) + AS-RPA thermodynamic estimates for proximity candidates |
+| **Primers** | Standard and allele-specific RPA primer pairs, amplicon sizes, SM status |
+| **Multiplex** | Panel composition, primer dimer ΔG heatmap, AS-RPA discrimination table, crRNA cross-reactivity matrix |
+| **Diagnostics** | WHO TPP compliance per drug class, MUT vs WT density plots (filtered per preset), per-target readiness breakdown, parameter sweep |
 
-15/15 candidates with primers · 6 direct targets with diagnostic-grade discrimination (≥3×) · 42 SM-enhanced candidates · 34,364 → 1,037 → 238 → 15 · 14.4 s
+The **Research** page provides experimental tools: Scorer Comparison Lab, R-Loop Thermodynamic Explorer (per-position cumulative ΔG profiles with MUT/WT overlay), Ablation Tracker (cis vs trans benchmark scatter plot), and Feature Importance analysis.
+
+## Repository Structure
+
+```
+guard/                   Core pipeline library (10 modules)
+  core/                  Target resolution, PAM scanning, filtering, scoring
+  primers/               Standard RPA + AS-RPA primer design
+  multiplex/             Simulated annealing optimiser, primer dimer analysis
+  research/              Thermodynamic profiling, scorer comparison
+  nuclease/              NucleaseProfile configuration system
+  scoring/               Heuristic, SeqCNN, GUARD-Net scorers
+  weights/               Model checkpoints + calibration files
+
+guard-net/               Standalone ML model
+  models/                GUARD-Net architecture, discrimination model
+  data/                  Data loaders, discrimination pair extraction
+  features/              Thermodynamic feature computation
+  scripts/               Training scripts (Phase 1–3, multi-dataset)
+
+api/                     FastAPI REST + WebSocket backend (22 endpoints)
+guard-ui/                React 19 + Vite SPA frontend
+tests/                   97 tests across 6 files
+```
 
 ## Training
 
-### SeqCNN
+### GUARD-Net
+
+```bash
+# Phase 1: CNN + RNA-FM + RLPA (Kim 2018)
+cd guard-net && python scripts/run_phase1_rlpa.py
+
+# Phase 2: Multi-task (efficiency + discrimination heads)
+python scripts/run_phase2_multitask.py
+
+# Phase 3: Multi-dataset (Kim 2018 + EasyDesign, no domain adversarial)
+python scripts/run_multidataset.py
+
+# Temperature calibration
+python -m guard.scoring.calibrate_guard_net
+```
+
+### Discrimination Model
+
+```bash
+# Extract paired MUT/WT measurements from EasyDesign
+python guard-net/scripts/train_discrimination.py \
+    --data_dir guard-net/data/external/easydesign/ \
+    --output guard/weights/disc_model.joblib
+```
+
+### SeqCNN (baseline)
 
 ```bash
 python -m guard.scoring.train_cnn --data-dir guard/data/kim2018/ --epochs 200
 python -m guard.scoring.calibrate
 ```
 
-### GUARD-Net
+## Limitations
 
-```bash
-# Phase 1: CNN + RNA-FM + RLPA
-cd guard-net && python scripts/run_phase1_rlpa.py
-
-# Temperature calibration (quantile-matched on Kim 2018 validation)
-python -m guard.scoring.calibrate_guard_net
-```
-
-Training data: Kim et al. 2018 HT-PAMDA — three independent HEK293T libraries (HT1/HT2/HT3) with ~15,000 AsCas12a guides each. HT1 for training, HT2 for validation and calibration, HT3 for held-out testing. Labels are log₂-transformed indel frequencies normalised to [0, 1]. Source: [Paired-Library (GitHub)](https://github.com/MyungjaeSong/Paired-Library).
+- **Domain shift.** Trained on wild-type AsCas12a (Kim 2018) and LbCas12a (EasyDesign); deployed on enAsCas12a (E174R/S542R/K548R). The engineered variant's altered PAM recognition and potentially different cleavage kinetics are not captured by the training data. Active learning from experimental validation is the intended calibration mechanism.
+- **GC regime.** Training data median GC ≈ 50%; *M. tuberculosis* targets range 50–78% GC. The heuristic penalises high GC; GUARD-Net, trained on diverse sequences, partially compensates. Experimental measurement on high-GC targets will determine whether scores underpredict or overpredict actual performance.
+- **Discrimination model.** Pearson r = 0.46 explains ~21% of variance. The remaining 79% includes protein-mediated effects (conformational activation kinetics, NTS threading), mismatch-type-specific structural perturbations, and experimental noise. Position and thermodynamic features are necessary but not sufficient.
+- **Multiplex modelling.** Cross-reactivity is sequence-based (Bowtie2); primer dimer stability is thermodynamic (SantaLucia NN, post-optimisation). Enzyme competition (15 crRNAs competing for Cas12a), RPA amplification bias, and reporter crosstalk are not modelled.
+- **Specificity proxy.** The formula 1 − 1/disc assumes perfectly separated signal distributions. Actual specificity depends on signal variance and threshold selection. All specificity values are marked "Pending" pending experimental validation.
+- **Single reference genome.** All designs target H37Rv. Lineage-specific SNPs near target sites could affect PAM availability or primer binding in non-H37Rv strains (e.g., lineage 2/Beijing, ~25% of global MDR-TB).
 
 ## References
 
-1. Kim HK, et al. Deep learning improves prediction of CRISPR–Cpf1 guide RNA activity. *Nat Biotechnol* **36**, 239–241 (2018). [DOI](https://doi.org/10.1038/nbt.4061)
-2. Strohkendl I, et al. Kinetic basis for DNA target specificity of CRISPR-Cas12a. *Mol Cell* **71**, 816–824 (2018). [DOI](https://doi.org/10.1016/j.molcel.2018.06.043)
-3. Kleinstiver BP, et al. Engineered CRISPR-Cas12a variants with increased activities and improved targeting ranges. *Nat Biotechnol* **37**, 276–282 (2019). [DOI](https://doi.org/10.1038/s41587-018-0011-0)
-4. Chen JS, et al. CRISPR-Cas12a target binding unleashes indiscriminate single-stranded DNase activity. *Science* **360**, 436–439 (2018). [DOI](https://doi.org/10.1126/science.aar6245)
-5. Zetsche B, et al. Cpf1 is a single RNA-guided endonuclease of a class 2 CRISPR-Cas system. *Cell* **163**, 759–771 (2015). [DOI](https://doi.org/10.1016/j.cell.2015.09.038)
-6. Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. *Nat Methods* **9**, 357–359 (2012). [DOI](https://doi.org/10.1038/nmeth.1923)
-7. Chen J, et al. Interpretable RNA Foundation Model from Unannotated Data for Highly Accurate RNA Structure and Function Predictions. *arXiv:2204.00300* (2022). [arXiv](https://arxiv.org/abs/2204.00300)
-8. Huang B, et al. Deep learning enhancing guide RNA design for CRISPR/Cas12a-based diagnostics. *iMeta* **3**, e214 (2024). [DOI](https://doi.org/10.1002/imt2.214)
-9. Broughton JP, et al. CRISPR–Cas12-based detection of SARS-CoV-2. *Nat Biotechnol* **38**, 870–874 (2020). [DOI](https://doi.org/10.1038/s41587-020-0513-4)
-10. WHO. Catalogue of mutations in *Mycobacterium tuberculosis* complex and their association with drug resistance, 2nd edition. Geneva: World Health Organization (2023).
+### CRISPR-Cas12a Biology
+1. Zetsche B, Gootenberg JS, Abudayyeh OO, et al. Cpf1 is a single RNA-guided endonuclease of a class 2 CRISPR-Cas system. *Cell* **163**, 759–771 (2015). [DOI](https://doi.org/10.1016/j.cell.2015.09.038)
+2. Chen JS, Ma E, Harrington LB, et al. CRISPR-Cas12a target binding unleashes indiscriminate single-stranded DNase activity. *Science* **360**, 436–439 (2018). [DOI](https://doi.org/10.1126/science.aar6245)
+3. Strohkendl I, Saifuddin FA, Rybarski JR, et al. Kinetic basis for DNA target specificity of CRISPR-Cas12a. *Molecular Cell* **71**, 816–824 (2018). [DOI](https://doi.org/10.1016/j.molcel.2018.06.043)
+4. Kleinstiver BP, Sousa AA, Walton RT, et al. Engineered CRISPR-Cas12a variants with increased activities and improved targeting ranges for gene, epigenetic and base editing. *Nature Biotechnology* **37**, 276–282 (2019). [DOI](https://doi.org/10.1038/s41587-018-0011-0)
+5. Strohkendl I, Saha A, Moy C, et al. Cas12a domain flexibility guides R-loop formation and forces RuvC resetting. *Molecular Cell* **84**, 2717–2731 (2024). [DOI](https://doi.org/10.1016/j.molcel.2024.05.032)
+6. Swarts DC, van der Oost J, Jinek M. Structural basis for guide RNA processing and seed-dependent DNA targeting by CRISPR-Cas12a. *Molecular Cell* **66**, 221–233 (2017). [DOI](https://doi.org/10.1016/j.molcel.2017.03.016)
+
+### R-Loop Thermodynamics
+7. Sugimoto N, Nakano S, Katoh M, et al. Thermodynamic parameters to predict stability of RNA/DNA hybrid duplexes. *Biochemistry* **34**, 11211–11216 (1995). [DOI](https://doi.org/10.1021/bi00035a029)
+8. SantaLucia J Jr. A unified view of polymer, dumbbell, and oligonucleotide DNA nearest-neighbor thermodynamics. *PNAS* **95**, 1460–1465 (1998). [DOI](https://doi.org/10.1073/pnas.95.4.1460)
+9. Zhang J, Guan X, Moon J, et al. Interpreting CRISPR-Cas12a enzyme kinetics through free energy change of nucleic acids. *Nucleic Acids Research* **52**, 14077–14092 (2024). [DOI](https://doi.org/10.1093/nar/gkae1124)
+10. Aris KDP, Cofsky JC, Shi H, et al. Dynamic basis of supercoiling-dependent DNA interrogation by Cas12a via R-loop intermediates. *Nature Communications* **16**, 2939 (2025). [DOI](https://doi.org/10.1038/s41467-025-57703-y)
+
+### Guide Activity Prediction
+11. Kim HK, Min S, Song M, et al. Deep learning improves prediction of CRISPR-Cpf1 guide RNA activity. *Nature Biotechnology* **36**, 239–241 (2018). [DOI](https://doi.org/10.1038/nbt.4061)
+12. Huang B, Mu K, Li G, et al. Deep learning enhancing guide RNA design for CRISPR/Cas12a-based diagnostics. *iMeta* **3**, e214 (2024). [DOI](https://doi.org/10.1002/imt2.214)
+13. Chen J, Hu Z, Sun S, et al. Interpretable RNA Foundation Model from unannotated data for highly accurate RNA structure and function predictions. arXiv:2204.00300 (2022). [arXiv](https://arxiv.org/abs/2204.00300)
+14. Blondel M, Teboul O, Berthet Q, Djolonga J. Fast differentiable sorting and ranking. *ICML* (2020). [Soft Spearman loss in GUARD-Net training]
+15. Yao Z, Li W, He K, et al. Facilitating crRNA design by integrating DNA interaction features of CRISPR-Cas12a system. *Advanced Science* **12**, e2501269 (2025). [DOI](https://doi.org/10.1002/advs.202501269)
+
+### Mismatch Discrimination
+16. Sugimoto N, Nakano M, Nakano S. Thermodynamics-structure relationship of single mismatches in RNA/DNA duplexes. *Biochemistry* **39**, 11270–11281 (2000). [DOI](https://doi.org/10.1021/bi000819p)
+17. Allawi HT, SantaLucia J Jr. Thermodynamics of internal C·T mismatches in DNA. *Nucleic Acids Research* **26**, 2694–2701 (1998). [DOI](https://doi.org/10.1093/nar/26.11.2694)
+18. Kohabir KAV, et al. Synthetic mismatches enable specific CRISPR-Cas12a-based detection of genome-wide SNVs tracked by ARTEMIS. *Cell Reports Methods* **4**, 100912 (2024). [DOI](https://doi.org/10.1016/j.crmeth.2024.100912)
+19. Nguyen GT, et al. CRISPR-Cas12a exhibits metal-dependent specificity switching. *Nucleic Acids Research* **52**, 9343–9359 (2024). [DOI](https://doi.org/10.1093/nar/gkae613)
+
+### CRISPR Diagnostic Design Tools
+20. Low SJ, O'Neill M, Kerry WJ, et al. PathoGD: an integrative genomics approach to primer and guide RNA design for CRISPR-based diagnostics. *Communications Biology* **8**, 147 (2025). [DOI](https://doi.org/10.1038/s42003-025-07591-1)
+
+### Clinical Standards
+21. WHO. Target product profiles for tuberculosis diagnosis and detection of drug resistance. Geneva: World Health Organization (2024). ISBN: 978-92-4-009769-8.
+22. WHO. Catalogue of mutations in *Mycobacterium tuberculosis* complex and their association with drug resistance, 2nd edition. Geneva: World Health Organization (2023).
+23. CRyPTIC Consortium. A data compendium associating the genomes of 12,289 *Mycobacterium tuberculosis* isolates with quantitative resistance phenotypes to 13 antibiotics. *PLoS Biology* **20**, e3001721 (2022). [DOI](https://doi.org/10.1371/journal.pbio.3001721)
+
+### CRISPR Diagnostics
+24. Broughton JP, Deng X, Yu G, et al. CRISPR-Cas12-based detection of SARS-CoV-2. *Nature Biotechnology* **38**, 870–874 (2020). [DOI](https://doi.org/10.1038/s41587-020-0513-4)
+25. Ai JW, Zhou X, Xu T, et al. CRISPR-based rapid and ultra-sensitive diagnostic test for *Mycobacterium tuberculosis*. *Emerging Microbes & Infections* **8**, 1361–1369 (2019). [DOI](https://doi.org/10.1080/22221751.2019.1664939)
+
+### Bioinformatics
+26. Langmead B, Salzberg SL. Fast gapped-read alignment with Bowtie 2. *Nature Methods* **9**, 357–359 (2012). [DOI](https://doi.org/10.1038/nmeth.1923)
 
 ## Citation
 
@@ -168,10 +278,11 @@ Training data: Kim et al. 2018 HT-PAMDA — three independent HEK293T libraries 
 }
 ```
 
+## Acknowledgements
+
+Developed for the BRIDGE Discovery grant project on CRISPR-Cas12a electrochemical diagnostics for drug-resistant tuberculosis, in collaboration with the deMello Group (ETH Zurich) and CSEM.
+
+Frontend, backend, and implementation code were developed with the assistance of [Claude Code](https://claude.ai) (Anthropic).
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
-## Acknowledgements
-
-Developed for the BRIDGE Discovery grant project on CRISPR-Cas12a electrochemical diagnostics for drug-resistant tuberculosis.
