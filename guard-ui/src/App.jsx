@@ -2094,48 +2094,25 @@ const UMAPPanel = ({ jobId }) => {
 
     const getColor = (p) => {
       if (colorBy === "drug") return DRUG_CANVAS[p.drug] || DRUG_CANVAS.OTHER;
-      if (colorBy === "score") return gradientColor(p.score || 0);
+      if (colorBy === "score") return gradientColor(p.score != null ? p.score : 0.5);
       if (colorBy === "gc") {
-        const gcNorm = 1 - Math.min(Math.abs((p.gc_content || 0.5) - 0.5) / 0.25, 1);
+        const gc = p.gc_content != null ? p.gc_content : 0.5;
+        const gcNorm = 1 - Math.min(Math.abs(gc - 0.5) / 0.25, 1);
         return gradientColor(gcNorm);
       }
       if (colorBy === "strategy") return p.detection_strategy === "direct" ? "#3b82f6" : "#a855f7";
       return gradientColor(0.5);
     };
 
-    // Density cloud for unselected points using radial splats
+    // Dense dot cloud for unselected points (like CITEseq UMAP style)
     const unselected = points.filter(p => !p.selected);
-    if (unselected.length > 0) {
-      // Render density splats onto a temporary canvas, then composite
-      const tmpCanvas = document.createElement("canvas");
-      tmpCanvas.width = canvas.width;
-      tmpCanvas.height = canvas.height;
-      const tmp = tmpCanvas.getContext("2d");
-      tmp.scale(dpr, dpr);
-
-      // Adaptive radius: denser data → smaller splats
-      const density = unselected.length / ((displayW - 2 * pad) * (displayH - 2 * pad));
-      const splatR = Math.max(3, Math.min(12, 1.2 / Math.sqrt(density + 0.0001)));
-
-      // Draw gaussian-like splats (radial gradient circles)
-      for (const p of unselected) {
-        const cx = scX(p.x), cy = scY(p.y);
-        const baseColor = getColor(p);
-        // Parse rgb
-        const m = baseColor.match(/\d+/g);
-        if (!m) continue;
-        const [cr, cg, cb] = m.map(Number);
-        const grad = tmp.createRadialGradient(cx, cy, 0, cx, cy, splatR);
-        grad.addColorStop(0, `rgba(${cr},${cg},${cb},0.18)`);
-        grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.08)`);
-        grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
-        tmp.fillStyle = grad;
-        tmp.fillRect(cx - splatR, cy - splatR, splatR * 2, splatR * 2);
-      }
-
-      // Composite density layer onto main canvas
-      ctx.globalAlpha = 1.0;
-      ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height, 0, 0, displayW, displayH);
+    const dotR = unselected.length > 10000 ? 1.8 : unselected.length > 2000 ? 2.2 : 2.8;
+    ctx.globalAlpha = 0.75;
+    for (const p of unselected) {
+      ctx.beginPath();
+      ctx.arc(scX(p.x), scY(p.y), dotR, 0, Math.PI * 2);
+      ctx.fillStyle = getColor(p);
+      ctx.fill();
     }
 
     // Selected: large, opaque, bordered (no text labels)
