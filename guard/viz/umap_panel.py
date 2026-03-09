@@ -95,7 +95,8 @@ def compute_panel_umap(
     # Build output points (strip spacer_seq from unselected for size)
     points = []
     for i, e in enumerate(embeddings):
-        is_selected = e["target_label"] in panel_set
+        # Use pre-set "selected" flag from pipeline (matched by spacer_seq)
+        is_selected = e.get("selected", False)
         pt = {
             "x": round(float(coords[i, 0]), 4),
             "y": round(float(coords[i, 1]), 4),
@@ -111,7 +112,7 @@ def compute_panel_umap(
         points.append(pt)
 
     # Stats: panel spread (avg pairwise distance of selected candidates)
-    sel_indices = [i for i, e in enumerate(embeddings) if e["target_label"] in panel_set]
+    sel_indices = [i for i, e in enumerate(embeddings) if e.get("selected", False)]
     sel_coords = coords[sel_indices] if sel_indices else np.empty((0, 2))
 
     panel_spread = 0.0

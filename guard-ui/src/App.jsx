@@ -1803,15 +1803,15 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
    ═══════════════════════════════════════════════════════════════════ */
 const RISK_COLORS = { green: T.riskGreen, amber: T.riskAmber, red: T.riskRed };
 const RISK_BG = { green: T.riskGreenBg, amber: T.riskAmberBg, red: T.riskRedBg };
-/* Modified coolwarm: blue → white → orange-red (diverging/sequential) */
+/* Moreland coolwarm (exact): perceptually uniform through Msh color space */
 const gradientColor = (t) => {
   t = Math.max(0, Math.min(1, t));
   const stops = [
-    { t: 0.0,  r: 8,   g: 81,  b: 156 },  // #08519c deep blue
-    { t: 0.25, r: 107, g: 174, b: 214 },  // #6baed6 light blue
-    { t: 0.5,  r: 247, g: 247, b: 247 },  // #f7f7f7 white midpoint
-    { t: 0.75, r: 253, g: 174, b: 107 },  // #fdae6b light orange
-    { t: 1.0,  r: 230, g: 85,  b: 13  },  // #e6550d orange-red
+    { t: 0.00, r: 59,  g: 76,  b: 192 },  // #3B4CC0 deep blue
+    { t: 0.25, r: 145, g: 170, b: 230 },  // #91AAE6 light blue
+    { t: 0.50, r: 221, g: 221, b: 221 },  // #DDDDDD neutral gray
+    { t: 0.75, r: 228, g: 145, b: 115 },  // #E49173 salmon
+    { t: 1.00, r: 180, g: 4,   b: 38  },  // #B40426 deep red
   ];
   let lower = stops[0], upper = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -1824,9 +1824,9 @@ const gradientColor = (t) => {
   const b = Math.round(lower.b + f * (upper.b - lower.b));
   return `rgb(${r},${g},${b})`;
 };
-const gradientCSS = "linear-gradient(90deg, #08519c, #6baed6, #f7f7f7, #fdae6b, #e6550d)";
+const gradientCSS = "linear-gradient(90deg, #3B4CC0, #91AAE6, #DDDDDD, #E49173, #B40426)";
 const PASS_GREEN = "#22c55e";
-const AXIS_COLORS = { efficiency: "#fdae6b", discrimination: "#e6550d", primers: "#08519c", safety: "#6baed6", gc: "#9ecae1" };
+const AXIS_COLORS = { efficiency: "#E49173", discrimination: "#B40426", primers: "#3B4CC0", safety: "#91AAE6", gc: "#7B9FD4" };
 const AXIS_LABELS = { efficiency: "Activity", discrimination: "Discrimination", primers: "Primers", safety: "Off-target", gc: "GC" };
 
 const RiskDot = ({ level, size = 12 }) => (
@@ -1844,7 +1844,7 @@ const RiskHeatCell = ({ level, type = "quantitative" }) => {
     return (
       <div style={{
         width: 44, height: 28, borderRadius: 4, border: "2px solid #fff",
-        backgroundColor: passed ? "#08519c" : "#e6550d",
+        backgroundColor: passed ? "#3B4CC0" : "#B40426",
         margin: "0 auto",
       }} />
     );
@@ -4346,16 +4346,16 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <AreaChart data={combined} margin={{ top: 10, right: 15, bottom: 25, left: 15 }}>
                     <defs>
                       <linearGradient id="mutAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#e6550d" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#e6550d" stopOpacity={0.03} />
+                        <stop offset="0%" stopColor="#B40426" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#B40426" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="wtAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#08519c" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#08519c" stopOpacity={0.03} />
+                        <stop offset="0%" stopColor="#3B4CC0" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#3B4CC0" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="overlapAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#9467bd" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="#9467bd" stopOpacity={0.05} />
+                        <stop offset="0%" stopColor="#8C6BB1" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="#8C6BB1" stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.border }} tickLine={false} label={{ value: "Predicted cleavage activity", position: "insideBottom", offset: -12, fontSize: 10, fill: T.textSec }} />
@@ -4366,29 +4366,29 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
                           <div style={{ fontWeight: 600, fontSize: "11px", color: T.text, marginBottom: "4px" }}>Activity: {label}</div>
                           {payload.map(p => p.dataKey !== "overlap" && (
-                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#e6550d" : "#08519c" }}>
+                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#B40426" : "#3B4CC0" }}>
                               {p.dataKey === "mut" ? "Mutant" : "Wildtype"}: {p.value?.toFixed(4)}
                             </div>
                           ))}
                         </div>
                       );
                     }} />
-                    <ReferenceLine x={meanMut} stroke="#e6550d" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#e6550d", fontWeight: 700 }} />
-                    <ReferenceLine x={meanWt} stroke="#08519c" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#08519c", fontWeight: 700 }} />
+                    <ReferenceLine x={meanMut} stroke="#B40426" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#B40426", fontWeight: 700 }} />
+                    <ReferenceLine x={meanWt} stroke="#3B4CC0" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#3B4CC0", fontWeight: 700 }} />
                     <Area type="monotone" dataKey="overlap" stroke="none" fill="url(#overlapAreaFill)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="mut" stroke="#e6550d" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="wt" stroke="#08519c" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
+                    <Area type="monotone" dataKey="mut" stroke="#B40426" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="wt" stroke="#3B4CC0" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
                   </AreaChart>
                 </ResponsiveContainer>
                 {/* Custom legend + stats */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", flexWrap: "wrap", gap: "12px" }}>
                   <div style={{ display: "flex", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "16px", height: "3px", background: "#e6550d", borderRadius: "2px" }} />
+                      <div style={{ width: "16px", height: "3px", background: "#B40426", borderRadius: "2px" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Mutant (A<sub>MUT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "16px", height: "3px", background: "#08519c", borderRadius: "2px", borderBottom: "1px dashed #08519c" }} />
+                      <div style={{ width: "16px", height: "3px", background: "#3B4CC0", borderRadius: "2px", borderBottom: "1px dashed #3B4CC0" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Wildtype (A<sub>WT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -4399,11 +4399,11 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <div style={{ display: "flex", gap: "20px" }}>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ MUT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#e6550d", fontFamily: MONO }}>{meanMut}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#B40426", fontFamily: MONO }}>{meanMut}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ WT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#08519c", fontFamily: MONO }}>{meanWt}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#3B4CC0", fontFamily: MONO }}>{meanWt}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>

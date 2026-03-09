@@ -543,6 +543,48 @@ class GUARDPipeline:
                     for emb_entry in self.ml_scorer._collected_embeddings:
                         if emb_entry["drug"] is None:
                             emb_entry["drug"] = drug_by_label.get(emb_entry["target_label"])
+
+                    # --- UMAP: also embed ALL pre-filter candidates from M2 ---
+                    # This gives the full ~34K background for the UMAP scatter,
+                    # not just the ~200 that survived M3/M4 filtering.
+                    collected_spacers = {e["spacer_seq"] for e in self.ml_scorer._collected_embeddings}
+                    extra_candidates = []
+                    for label_sr, sr in scan_results.items():
+                        for cand in sr.all_candidates:
+                            if cand.spacer_seq not in collected_spacers:
+                                extra_candidates.append(cand)
+                                collected_spacers.add(cand.spacer_seq)  # dedup
+
+                    if extra_candidates:
+                        logger.info(
+                            "UMAP: encoding %d additional pre-filter candidates for embedding space...",
+                            len(extra_candidates),
+                        )
+                        CHUNK = 4096
+                        for start in range(0, len(extra_candidates), CHUNK):
+                            chunk = extra_candidates[start:start + CHUNK]
+                            ctx = [self.ml_scorer._encode_context(c) for c in chunk]
+                            rfm = [self.ml_scorer._get_rnafm_embedding(c) for c in chunk]
+                            chunk_preds = self.ml_scorer._predict_batch(ctx, rfm)
+
+                            if self.ml_scorer._last_batch_embeddings is not None:
+                                chunk_embs = self.ml_scorer._last_batch_embeddings
+                                for idx, cand in enumerate(chunk):
+                                    self.ml_scorer._collected_embeddings.append({
+                                        "target_label": cand.target_label,
+                                        "spacer_seq": cand.spacer_seq,
+                                        "embedding": chunk_embs[idx],
+                                        "score": chunk_preds[idx],
+                                        "gc_content": cand.gc_content,
+                                        "detection_strategy": cand.detection_strategy.value,
+                                        "drug": drug_by_label.get(cand.target_label),
+                                        "selected": False,
+                                    })
+                        logger.info(
+                            "UMAP: total embeddings = %d (scored: %d + pre-filter: %d)",
+                            len(self.ml_scorer._collected_embeddings),
+                            len(all_sc), len(extra_candidates),
+                        )
             else:
                 # SeqCNN: individual predictions
                 raw_preds = [self.ml_scorer._predict(sc.candidate) for sc in all_sc]
