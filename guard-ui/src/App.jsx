@@ -2335,13 +2335,13 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   const minScore = results.length ? Math.min(...results.map(r => getResultScore(r))).toFixed(3) : "0";
   const maxScore = results.length ? Math.max(...results.map(r => getResultScore(r))).toFixed(3) : "0";
   const cnnResults = results.filter(r => r.cnnCalibrated != null);
-  const avgCNN = cnnResults.length ? +(cnnResults.reduce((a, r) => a + r.cnnCalibrated, 0) / cnnResults.length).toFixed(3) : null;
+  const avgCNN = cnnResults.length ? +(cnnResults.reduce((a, r) => a + r.cnnCalibrated * (r.pamPenalty ?? 1.0), 0) / cnnResults.length).toFixed(3) : null;
   const ensResults = results.filter(r => r.ensembleScore != null);
   const avgEnsemble = ensResults.length ? +(ensResults.reduce((a, r) => a + r.ensembleScore, 0) / ensResults.length).toFixed(3) : null;
 
-  // Model agreement — Spearman ρ between heuristic and GUARD-Net
+  // Model agreement — Spearman ρ between heuristic and GUARD-Net (PAM-adjusted)
   const modelAgreement = (() => {
-    const pairs = results.filter(r => r.cnnCalibrated != null).map(r => ({ h: r.score, g: r.cnnCalibrated }));
+    const pairs = results.filter(r => r.cnnCalibrated != null).map(r => ({ h: r.score, g: r.cnnCalibrated * (r.pamPenalty ?? 1.0) }));
     if (pairs.length < 3) return null;
     const rankArr = (arr) => {
       const sorted = arr.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
@@ -2557,7 +2557,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
       {/* Heuristic vs GUARD-Net Scatter */}
       {!mobile && usesGuardNet && avgCNN != null && (() => {
         const scatterData = results.filter(r => r.cnnCalibrated != null).map(r => ({
-          heuristic: r.score, guardNet: r.cnnCalibrated, ensemble: r.ensembleScore || r.score,
+          heuristic: r.score, guardNet: r.cnnCalibrated * (r.pamPenalty ?? 1.0), ensemble: r.ensembleScore || r.score,
           label: r.label, drug: r.drug,
         }));
         const agreePct = (() => {
