@@ -190,3 +190,51 @@ class UncertaintyCandidate(BaseModel):
     spacer_seq: str
     uncertainty: float
     predicted_efficiency: float
+
+
+# ======================================================================
+# Spatially-addressed electrode array models
+# ======================================================================
+
+class PoolStatsSchema(BaseModel):
+    pool_id: str
+    targets: list[str]
+    n_targets: int
+    n_primers: int
+    high_risk_dimers: int
+    worst_dg: float
+
+
+class PoolingResultSchema(BaseModel):
+    pools: dict[str, list[str]]
+    pool_stats: dict[str, PoolStatsSchema]
+    total_high_risk_single_tube: int
+    total_high_risk_after_pooling: int
+    reduction_pct: float
+    electrode_layout: list[list[str]]
+    target_to_pool: dict[str, str]
+
+
+class KineticEstimateSchema(BaseModel):
+    target: str
+    t_rnp_formation: float
+    t_target_recognition: float
+    t_signal_generation: float
+    t_total: float
+    efficiency: float
+    is_weak: bool
+
+
+class KineticsResultSchema(BaseModel):
+    estimates: list[KineticEstimateSchema]
+    parameters: dict
+    insight: str
+
+
+class AmpliconPadSpecificitySchema(BaseModel):
+    labels: list[str]
+    matrix: list[list[float]]
+    n_targets: int
+    high_risk_pairs: list[dict]
+    co_amplicon_note: str
+    validation_note: str

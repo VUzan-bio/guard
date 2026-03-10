@@ -72,6 +72,11 @@ export async function getUmapData(jobId) {
   return request(`/api/results/${jobId}/umap`);
 }
 
+// Spatially-addressed electrode array: pools, kinetics, specificity
+export async function getPoolData(jobId) {
+  return request(`/api/results/${jobId}/pools`);
+}
+
 // Figures — returns URL string, not a fetch
 export function getFigureUrl(jobId, type) {
   return `/api/figures/${jobId}/${type}`;

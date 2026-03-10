@@ -359,6 +359,39 @@ async def export_results(
     )
 
 
+@router.get("/{job_id}/pools")
+async def get_pools(job_id: str) -> dict:
+    """Return primer pool assignments for the spatially-addressed electrode array."""
+    result = _get_completed_result(job_id)
+
+    dimer_matrix = result.get("primer_dimer_matrix")
+    dimer_labels = result.get("primer_dimer_labels")
+    dimer_report = result.get("primer_dimer_report")
+
+    from guard.multiplex.pooling import compute_primer_pools, compute_amplicon_pad_specificity
+    from guard.multiplex.kinetics import estimate_all_targets
+
+    # Compute pools
+    pooling = compute_primer_pools(
+        dimer_matrix=dimer_matrix,
+        dimer_labels=dimer_labels,
+        dimer_report=dimer_report,
+    )
+
+    # Compute kinetics
+    targets = list(pooling.target_to_pool.keys())
+    kinetics = estimate_all_targets(targets=targets)
+
+    # Compute amplicon-pad specificity
+    specificity = compute_amplicon_pad_specificity()
+
+    return {
+        "pooling": pooling.to_dict(),
+        "kinetics": kinetics,
+        "specificity": specificity,
+    }
+
+
 @router.get("/{job_id}/umap")
 async def get_umap_data(job_id: str) -> dict:
     """Return UMAP embedding coordinates for all candidates in a run."""
