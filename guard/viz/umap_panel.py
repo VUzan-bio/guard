@@ -30,8 +30,8 @@ def compute_panel_umap(
     embeddings: list[dict],
     panel_members: list[str],
     output_path: Path,
-    n_neighbors: int = 30,
-    min_dist: float = 0.3,
+    n_neighbors: int = 15,
+    min_dist: float = 0.05,
     metric: str = "cosine",
     random_state: int = 42,
 ) -> dict:
@@ -60,6 +60,14 @@ def compute_panel_umap(
         "UMAP" if HAS_UMAP else "PCA",
         n_total,
     )
+
+    # PCA pre-reduction: strip noise dimensions before UMAP
+    if emb_matrix.shape[1] > 30:
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=30, random_state=random_state)
+        emb_matrix = pca.fit_transform(emb_matrix)
+        logger.info("PCA pre-reduction: 128-dim → 30-dim (%.1f%% variance retained)",
+                     pca.explained_variance_ratio_.sum() * 100)
 
     if HAS_UMAP:
         effective_neighbors = min(n_neighbors, n_total - 1)

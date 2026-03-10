@@ -2094,6 +2094,7 @@ const UMAPPanel = ({ jobId }) => {
 
     const getColor = (p) => {
       if (colorBy === "drug") return DRUG_CANVAS[p.drug] || DRUG_CANVAS.OTHER;
+      if (colorBy === "gene") return GENE_COLORS[getGene(p.target_label)] || "#999";
       if (colorBy === "score") return gradientColor(p.score != null ? p.score : 0.5);
       if (colorBy === "gc") {
         const gc = p.gc_content != null ? p.gc_content : 0.5;
@@ -2156,8 +2157,11 @@ const UMAPPanel = ({ jobId }) => {
   if (loading) return null;
   if (!umapData) return null;
 
+  const GENE_COLORS = { rpoB: "#e6194b", katG: "#3cb44b", inhA: "#4363d8", embB: "#f58231", pncA: "#911eb4", gyrA: "#42d4f4", rrs: "#f032e6", IS6110: "#bfef45" };
+  const getGene = (label) => { if (!label) return "other"; const g = label.replace(/_.*/, ""); return GENE_COLORS[g] ? g : "other"; };
   const colorOpts = [
     { key: "drug", label: "Drug class" },
+    { key: "gene", label: "Gene" },
     { key: "score", label: "Activity" },
     { key: "gc", label: "GC%" },
     { key: "strategy", label: "Strategy" },
@@ -2214,7 +2218,7 @@ const UMAPPanel = ({ jobId }) => {
         <span><strong style={{ color: T.primary, fontFamily: MONO }}>{umapData.n_selected}</strong> selected ({((umapData.n_selected / umapData.n_total) * 100).toFixed(2)}%)</span>
         {umapData.stats?.panel_spread > 0 && <span>Panel spread: <strong style={{ fontFamily: MONO }}>{umapData.stats.panel_spread.toFixed(2)}</strong></span>}
         {umapData.stats?.coverage != null && <span>Space coverage: <strong style={{ fontFamily: MONO }}>{(umapData.stats.coverage * 100).toFixed(1)}%</strong></span>}
-        <span style={{ fontSize: "10px", color: T.textTer }}>{umapData.stats?.method || "UMAP"} · cosine · 128-dim</span>
+        <span style={{ fontSize: "10px", color: T.textTer }}>{umapData.stats?.method || "UMAP"} · cosine · PCA→30d</span>
       </div>
 
       {/* Legend */}
@@ -2224,6 +2228,13 @@ const UMAPPanel = ({ jobId }) => {
             <div key={drug} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
               <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{drug}</span>
+            </div>
+          ))
+        ) : colorBy === "gene" ? (
+          Object.entries(GENE_COLORS).filter(([g]) => umapData.points.some(p => getGene(p.target_label) === g)).map(([gene, color]) => (
+            <div key={gene} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+              <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500, fontFamily: MONO }}>{gene}</span>
             </div>
           ))
         ) : (
