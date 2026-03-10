@@ -1861,12 +1861,11 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
 const RISK_COLORS = { green: T.riskGreen, amber: T.riskAmber, red: T.riskRed };
 const RISK_BG = { green: T.riskGreenBg, amber: T.riskAmberBg, red: T.riskRedBg };
 /* GreenBlue colormap — single-cell omics UMAP aesthetic.
-   Stops: light gray → pale green → teal → blue → deep purple.
-   On dark (#0A0A0A) backgrounds for maximum contrast. */
+   Stops: light gray → pale green → teal → blue → deep purple. */
 const gradientColor = (t) => {
   t = Math.max(0, Math.min(1, t));
   const stops = [
-    { t: 0.00, r: 230, g: 230, b: 230 },  // #e6e6e6 — light gray (low)
+    { t: 0.00, r: 180, g: 185, b: 195 },  // #b4b9c3 — soft gray (low)
     { t: 0.25, r: 171, g: 221, b: 164 },  // #abdda4 — pale green
     { t: 0.50, r: 102, g: 194, b: 165 },  // #66c2a5 — teal
     { t: 0.75, r: 50,  g: 136, b: 189 },  // #3288bd — blue
@@ -1883,13 +1882,12 @@ const gradientColor = (t) => {
   const b = Math.round(lower.b + f * (upper.b - lower.b));
   return `rgb(${r},${g},${b})`;
 };
-const gradientCSS = "linear-gradient(90deg, #e6e6e6, #abdda4, #66c2a5, #3288bd, #5e4fa2)";
-const CHART_BG = "#0A0A0A";
-const CHART_TEXT = "#e0e0e0";
-const CHART_TEXT_SEC = "#888888";
-const CHART_GRID = "#1a1a2e";
+const gradientCSS = "linear-gradient(90deg, #b4b9c3, #abdda4, #66c2a5, #3288bd, #5e4fa2)";
+const CHART_TEXT = "#1f2937";
+const CHART_TEXT_SEC = "#6b7280";
+const CHART_GRID = "#e5e7eb";
 const PASS_GREEN = "#22c55e";
-const AXIS_COLORS = { efficiency: "#abdda4", discrimination: "#5e4fa2", primers: "#3288bd", safety: "#66c2a5", gc: "#e6e6e6" };
+const AXIS_COLORS = { efficiency: "#abdda4", discrimination: "#5e4fa2", primers: "#3288bd", safety: "#66c2a5", gc: "#b0b0b0" };
 const AXIS_LABELS = { efficiency: "Activity", discrimination: "Discrimination", primers: "Primers", safety: "Off-target", gc: "GC" };
 
 const RiskDot = ({ level, size = 12 }) => (
@@ -1992,16 +1990,16 @@ const RiskMatrix = ({ results }) => {
         <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Risk Assessment Matrix</div>
         <div style={{ fontSize: "12px", color: T.textTer }}>{sorted.length} targets</div>
       </div>
-      <div style={{ overflowX: "auto", backgroundColor: CHART_BG, padding: "8px 0" }}>
+      <div style={{ overflowX: "auto", padding: "8px 0" }}>
         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "2px 2px", fontSize: "12px" }}>
           <thead>
             <tr>
-              <th style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: mobile ? 100 : 140 }}>Target</th>
+              <th style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: mobile ? 100 : 140 }}>Target</th>
               {axes.map(a => (
-                <th key={a} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>{axisNames[a]}</th>
+                <th key={a} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>{axisNames[a]}</th>
               ))}
-              <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>Overall</th>
-              <th style={{ padding: "8px 14px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 50 }}>#</th>
+              <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>Overall</th>
+              <th style={{ padding: "8px 14px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 50 }}>#</th>
             </tr>
           </thead>
           <tbody>
@@ -2009,7 +2007,7 @@ const RiskMatrix = ({ results }) => {
               const risk = r.riskProfile || {};
               return (
                 <tr key={r.label}>
-                  <td style={{ padding: "4px 16px", fontWeight: 600, fontSize: "11px", color: CHART_TEXT, whiteSpace: "nowrap" }}>{r.label}</td>
+                  <td style={{ padding: "4px 16px", fontWeight: 600, fontSize: "11px", color: T.text, whiteSpace: "nowrap" }}>{r.label}</td>
                   {axes.map(a => (
                     <td key={a} style={{ padding: "3px 2px", textAlign: "center" }}><RiskHeatCell level={risk[a]} type={RISK_AXIS_TYPE[a]} /></td>
                   ))}
@@ -2067,12 +2065,12 @@ const ReadinessChart = ({ results }) => {
           ))}
         </div>
       </div>
-      <div style={{ backgroundColor: CHART_BG, borderRadius: "8px", padding: "8px 0" }}>
+      <div style={{ borderRadius: "8px", padding: "8px 0" }}>
       <ResponsiveContainer width="100%" height={Math.max(220, sorted.length * 32 + 60)}>
         <BarChart data={chartData} layout="vertical" barCategoryGap="20%" margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
-          <CartesianGrid horizontal={false} stroke={CHART_GRID} />
-          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: CHART_TEXT_SEC }} />
-          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: CHART_TEXT }} />
+          <CartesianGrid horizontal={false} stroke={T.borderLight} />
+          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer }} />
+          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: T.text }} />
           <Tooltip contentStyle={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }}
             formatter={(value, name) => [`${(value * 100).toFixed(0)}%`, AXIS_LABELS[name] || name]} />
           <Bar dataKey="efficiency" stackId="readiness" fill={AXIS_COLORS.efficiency} />
@@ -2123,8 +2121,8 @@ const UMAPPanel = ({ jobId }) => {
     ctx.scale(dpr, dpr);
     const pad = 36;
 
-    // Clear — dark background for UMAP
-    ctx.fillStyle = CHART_BG;
+    // Clear — light background for UMAP
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, displayW, displayH);
 
     const points = umapData.points;
@@ -2170,7 +2168,7 @@ const UMAPPanel = ({ jobId }) => {
       // Halo
       ctx.beginPath();
       ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillStyle = "rgba(79,70,229,0.12)";
       ctx.fill();
       // Dot
       ctx.beginPath();
@@ -2178,7 +2176,10 @@ const UMAPPanel = ({ jobId }) => {
       ctx.fillStyle = getColor(p);
       ctx.fill();
       ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(0,0,0,0.15)";
+      ctx.lineWidth = 0.5;
       ctx.stroke();
     }
   }, [umapData, colorBy, mobile]);
@@ -2456,7 +2457,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 Top-right quadrant = diagnostic-ready.{hasReadiness ? " Dot size reflects diagnostic readiness score (larger = higher readiness)." : " Dot size reflects primer availability."}
               </div>
             </div>
-            <div style={{ position: "relative", backgroundColor: CHART_BG, borderRadius: 8, padding: "12px 8px 4px 0" }}>
+            <div style={{ position: "relative", borderRadius: 8, padding: "12px 8px 4px 0" }}>
               <ResponsiveContainer width="100%" height={360}>
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
@@ -2482,15 +2483,15 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                   <Scatter data={scatterData} isAnimationActive={false}>
                     {scatterData.map((entry, i) => {
                       const dotR = hasReadiness ? Math.max(4, entry.readiness * 14) : (entry.hasPrimers ? 8 : 5);
-                      return <Cell key={i} fill={gradientColor(entry.readiness)} r={dotR} stroke="#fff" strokeWidth={2} opacity={0.85} />;
+                      return <Cell key={i} fill={gradientColor(entry.readiness)} r={dotR} stroke="rgba(0,0,0,0.1)" strokeWidth={1} opacity={0.85} />;
                     })}
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
               {/* Quadrant labels */}
               <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: "#66c2a5", opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
-              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: "#e6e6e6", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
-              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: "#e6e6e6", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
+              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: "#9ca3af", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
+              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: "#9ca3af", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
             </div>
             {/* Legend */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
@@ -2578,7 +2579,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 </div>
               </div>
             </div>
-            <div style={{ backgroundColor: CHART_BG, borderRadius: 8, padding: "12px 8px 4px 0" }}>
+            <div style={{ borderRadius: 8, padding: "12px 8px 4px 0" }}>
             <ResponsiveContainer width="100%" height={340}>
               <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
@@ -2604,7 +2605,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#333333" strokeDasharray="6 4" strokeWidth={1} opacity={0.6} />
                 <Scatter data={scatterData} isAnimationActive={false}>
                   {scatterData.map((entry, i) => (
-                    <Cell key={i} fill={gradientColor(entry.ensemble)} r={7} stroke="#fff" strokeWidth={2} opacity={0.85} />
+                    <Cell key={i} fill={gradientColor(entry.ensemble)} r={7} stroke="rgba(0,0,0,0.1)" strokeWidth={1} opacity={0.85} />
                   ))}
                 </Scatter>
               </ScatterChart>
@@ -3877,13 +3878,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
 
   const specificity = poolData?.specificity || null;
 
-  // Pool colors
-  const POOL_COLORS = { A: "#08519c", B: "#e6550d", C: "#2ca02c" };
-  const POOL_BG = { A: "#DBEAFE", B: "#FFF7ED", C: "#DCFCE7" };
+  // Pool colors — greenBlue gradient palette
+  const POOL_COLORS = { A: "#5e4fa2", B: "#3288bd", C: "#66c2a5" };
+  const POOL_BG = { A: "#f0eef8", B: "#e8f4fa", C: "#ecf8f4" };
 
-  // Drug colors for electrode pads
-  const PAD_DRUG_COLORS = { RIF: "#1E40AF", INH: "#92400E", EMB: "#6B21A8", PZA: "#166534", FQ: "#9F1239", AG: "#3730A3", CTRL: "#6B7280" };
-  const PAD_DRUG_BG = { RIF: "#DBEAFE", INH: "#FEF3C7", EMB: "#F3E8FF", PZA: "#F0FDF4", FQ: "#FFE4E6", AG: "#E0E7FF", CTRL: "#F3F4F6" };
+  // Drug colors — greenBlue-derived palette
+  const PAD_DRUG_COLORS = { RIF: "#5e4fa2", INH: "#3288bd", EMB: "#66c2a5", PZA: "#abdda4", FQ: "#8073b3", AG: "#4ba3cc", CTRL: "#9ca3af" };
+  const PAD_DRUG_BG = { RIF: "#f0eef8", INH: "#e8f4fa", EMB: "#ecf8f4", PZA: "#f2f9ee", FQ: "#f3f0fa", AG: "#eaf6fc", CTRL: "#f3f4f6" };
 
   // Target metadata helpers
   const targetDrug = (t) => {
@@ -3946,12 +3947,16 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             <line x1="95" y1="38" x2="135" y2="38" stroke="#9CA3AF" strokeWidth="1.5" markerEnd="url(#arrowGray)" />
 
             {/* RPA Pools */}
-            {["Pool A", "Pool B", "Pool C"].map((label, i) => (
+            {["Pool A", "Pool B", "Pool C"].map((label, i) => {
+              const poolStroke = ["#5e4fa2", "#3288bd", "#66c2a5"][i];
+              const poolFill = ["#f0eef8", "#e8f4fa", "#ecf8f4"][i];
+              return (
               <g key={label}>
-                <rect x="140" y={15 + i * 40} width="120" height="32" rx="6" fill={i === 0 ? "#DBEAFE" : i === 1 ? "#FFF7ED" : "#DCFCE7"} stroke={i === 0 ? "#08519c" : i === 1 ? "#e6550d" : "#2ca02c"} strokeWidth="1.5" />
-                <text x="200" y={35 + i * 40} textAnchor="middle" fontSize="10" fontWeight="600" fill={i === 0 ? "#08519c" : i === 1 ? "#e6550d" : "#2ca02c"}>RPA {label}</text>
+                <rect x="140" y={15 + i * 40} width="120" height="32" rx="6" fill={poolFill} stroke={poolStroke} strokeWidth="1.5" />
+                <text x="200" y={35 + i * 40} textAnchor="middle" fontSize="10" fontWeight="600" fill={poolStroke}>RPA {label}</text>
               </g>
-            ))}
+              );
+            })}
             <text x="200" y="145" textAnchor="middle" fontSize="9" fill="#6B7280">Amplification</text>
             <text x="200" y="158" textAnchor="middle" fontSize="9" fill="#9CA3AF">37 °C, 15-20 min</text>
 
@@ -3968,8 +3973,8 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             <text x="340" y="75" fontSize="8" fill="#9CA3AF" fontStyle="italic">capillary flow</text>
 
             {/* Stage C: Detection Array */}
-            <rect x="370" y="15" width="380" height="220" rx="10" fill="#FFF7ED" stroke="#e6550d" strokeWidth="1.5" strokeDasharray="6,3" />
-            <text x="560" y="35" textAnchor="middle" fontSize="11" fontWeight="700" fill="#e6550d">DETECTION ARRAY</text>
+            <rect x="370" y="15" width="380" height="220" rx="10" fill="#f7f8fc" stroke="#5e4fa2" strokeWidth="1.5" strokeDasharray="6,3" />
+            <text x="560" y="35" textAnchor="middle" fontSize="11" fontWeight="700" fill="#5e4fa2">DETECTION ARRAY</text>
 
             {/* Electrode pads — 5×3 grid */}
             {pooling.electrode_layout.map((row, ri) =>
@@ -4226,11 +4231,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             </thead>
             <tbody>
               {(kinetics.phases || []).map((phase, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: phase.is_bottleneck ? "#e6550d08" : "transparent" }}>
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: phase.is_bottleneck ? "#5e4fa208" : "transparent" }}>
                   <td style={{ padding: "8px 12px", fontWeight: phase.is_bottleneck ? 600 : 400 }}>
                     {phase.phase}
                     {phase.is_bottleneck && (
-                      <span style={{ fontSize: "9px", fontWeight: 700, color: "#e6550d", marginLeft: "8px", padding: "1px 6px", background: "#e6550d15", borderRadius: "4px" }}>RATE-LIMITING</span>
+                      <span style={{ fontSize: "9px", fontWeight: 700, color: "#5e4fa2", marginLeft: "8px", padding: "1px 6px", background: "#5e4fa215", borderRadius: "4px" }}>RATE-LIMITING</span>
                     )}
                   </td>
                   <td style={{ textAlign: "center", padding: "8px 12px", color: T.textSec, fontFamily: MONO }}>{phase.solution_bound}</td>
@@ -4283,7 +4288,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     <div style={{ fontStyle: "italic" }}>{p.source}</div>
                     {p.source_detail && <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{p.source_detail}</div>}
                   </td>
-                  <td style={{ padding: "6px 10px", fontSize: "10px", color: p.note ? "#e6550d" : T.textTer, fontStyle: p.note ? "italic" : "normal", maxWidth: 200 }}>
+                  <td style={{ padding: "6px 10px", fontSize: "10px", color: p.note ? "#5e4fa2" : T.textTer, fontStyle: p.note ? "italic" : "normal", maxWidth: 200 }}>
                     {p.note || "\u2014"}
                   </td>
                 </tr>
@@ -4293,12 +4298,12 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
         </div>
 
         {/* Key Insights callout */}
-        <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "14px 18px", marginBottom: "12px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E", fontFamily: HEADING, marginBottom: "8px" }}>Key Insights</div>
+        <div style={{ background: "#f0eef8", border: "1px solid #d4d0e8", borderRadius: "8px", padding: "14px 18px", marginBottom: "12px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#5e4fa2", fontFamily: HEADING, marginBottom: "8px" }}>Key Insights</div>
           {(kinetics.insights || []).map((ins, i) => (
             <div key={i} style={{ marginBottom: i < (kinetics.insights || []).length - 1 ? "8px" : 0 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E", opacity: 0.9 }}>{i + 1}. {ins.title}</div>
-              <p style={{ fontSize: "11px", color: "#92400E", lineHeight: 1.6, margin: "2px 0 0", opacity: 0.8 }}>{ins.text}</p>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#5e4fa2", opacity: 0.9 }}>{i + 1}. {ins.title}</div>
+              <p style={{ fontSize: "11px", color: "#4a3d8f", lineHeight: 1.6, margin: "2px 0 0", opacity: 0.8 }}>{ins.text}</p>
             </div>
           ))}
         </div>
@@ -5063,8 +5068,8 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <stop offset="100%" stopColor="#5e4fa2" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="wtAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#e6e6e6" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#e6e6e6" stopOpacity={0.03} />
+                        <stop offset="0%" stopColor="#9ca3af" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#9ca3af" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="overlapAreaFill" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#66c2a5" stopOpacity={0.15} />
@@ -5079,7 +5084,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
                           <div style={{ fontWeight: 600, fontSize: "11px", color: T.text, marginBottom: "4px" }}>Activity: {label}</div>
                           {payload.map(p => p.dataKey !== "overlap" && (
-                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#5e4fa2" : "#e6e6e6" }}>
+                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#5e4fa2" : "#9ca3af" }}>
                               {p.dataKey === "mut" ? "Mutant" : "Wildtype"}: {p.value?.toFixed(4)}
                             </div>
                           ))}
@@ -5087,10 +5092,10 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       );
                     }} />
                     <ReferenceLine x={meanMut} stroke="#5e4fa2" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#5e4fa2", fontWeight: 700 }} />
-                    <ReferenceLine x={meanWt} stroke="#e6e6e6" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#e6e6e6", fontWeight: 700 }} />
+                    <ReferenceLine x={meanWt} stroke="#9ca3af" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#9ca3af", fontWeight: 700 }} />
                     <Area type="monotone" dataKey="overlap" stroke="none" fill="url(#overlapAreaFill)" isAnimationActive={false} />
                     <Area type="monotone" dataKey="mut" stroke="#5e4fa2" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="wt" stroke="#e6e6e6" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
+                    <Area type="monotone" dataKey="wt" stroke="#9ca3af" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
                   </AreaChart>
                 </ResponsiveContainer>
                 {/* Custom legend + stats */}
@@ -5101,7 +5106,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Mutant (A<sub>MUT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "16px", height: "3px", background: "#e6e6e6", borderRadius: "2px", borderBottom: "1px dashed #e6e6e6" }} />
+                      <div style={{ width: "16px", height: "3px", background: "#9ca3af", borderRadius: "2px", borderBottom: "1px dashed #9ca3af" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Wildtype (A<sub>WT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -5116,7 +5121,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ WT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#e6e6e6", fontFamily: MONO }}>{meanWt}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#9ca3af", fontFamily: MONO }}>{meanWt}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>
