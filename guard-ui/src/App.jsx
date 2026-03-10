@@ -1285,17 +1285,45 @@ const HomePage = ({ goTo, connected }) => {
             marginBottom: "24px", overflow: "hidden",
             ...(pipeDone ? {} : { boxShadow: `0 2px 12px ${T.primary}1F` }),
           }}>
-            {/* Running state — single line, icon+name swipe up */}
+            {/* Running state — full step list with done/active/pending */}
             {!pipeDone && (
-              <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
-                <div style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", animation: "subtlePulse 2s ease-in-out infinite" }}>
-                  <ActiveIcon size={16} color={T.primary} strokeWidth={1.8} />
+              <div style={{ padding: "20px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING }}>Pipeline Running</div>
+                  <span style={{ fontFamily: MONO, fontSize: "12px", color: T.primary, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{pipeElapsed.toFixed(1)}s</span>
                 </div>
-                <div key={pipeStep} style={{ flex: 1, display: "flex", alignItems: "baseline", gap: "8px", animation: "stepSwipeUp 0.25s ease-out" }}>
-                  <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary }}>{activeModule.id}</span>
-                  <span style={{ fontSize: "13px", fontWeight: 600, color: T.primaryDark }}>{activeModule.name}</span>
-                </div>
-                <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
+                {MODULES.map((m, idx) => {
+                  const Icon = m.icon;
+                  const isDone = idx < pipeStep;
+                  const isActive = idx === pipeStep;
+                  const isPending = idx > pipeStep;
+                  const isLast = idx === MODULES.length - 1;
+                  return (
+                    <div key={m.id} style={{ display: "flex", gap: "0" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "20px", flexShrink: 0 }}>
+                        {isDone ? (
+                          <Check size={12} color={T.primary} strokeWidth={2} />
+                        ) : isActive ? (
+                          <div style={{ animation: "subtlePulse 2s ease-in-out infinite" }}>
+                            <Icon size={12} color={T.primary} strokeWidth={2} />
+                          </div>
+                        ) : (
+                          <Icon size={12} color="#ccc" strokeWidth={1.5} />
+                        )}
+                        {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "6px", background: isDone ? T.primary + "44" : "#e0e0e0" }} />}
+                      </div>
+                      <div style={{ flex: 1, paddingLeft: "8px", paddingBottom: isLast ? 0 : "2px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", height: "20px" }}>
+                          <span style={{ fontFamily: MONO, fontSize: "10px", color: isActive ? T.primary : isDone ? T.primary + "99" : "#bbb" }}>{m.id}</span>
+                          <span style={{ fontSize: "11px", fontWeight: isActive ? 700 : 500, color: isActive ? T.primaryDark : isDone ? "#333" : "#aaa" }}>{m.name}</span>
+                        </div>
+                        {isActive && (
+                          <div style={{ fontSize: "10px", color: T.primary, lineHeight: 1.4, padding: "1px 0 3px", fontStyle: "italic" }}>{m.execDesc}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1366,28 +1394,7 @@ const HomePage = ({ goTo, connected }) => {
         );
       })()}
 
-      {/* ═══ PERFORMANCE BANNER ═══ */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "16px" : "20px 28px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "12px" }}>GUARD 14-plex MDR-TB Panel Results</div>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: mobile ? "12px" : "24px" }}>
-          <div>
-            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>93.3%</div>
-            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>sensitivity across all drug classes</div>
-          </div>
-          <div>
-            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>14/14</div>
-            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>targets with designed primers</div>
-          </div>
-          <div>
-            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>6</div>
-            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>drug classes: RIF, INH, EMB, PZA, FQ, AG</div>
-          </div>
-          <div>
-            <div style={{ fontSize: "22px", fontWeight: 800, color: T.text, fontFamily: MONO }}>{"\u03C1"} = 0.55</div>
-            <div style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.4 }}>trans-cleavage prediction accuracy</div>
-          </div>
-        </div>
-      </div>
+      {/* Performance banner removed — pipeline progress is the hero element */}
 
       {/* ═══ HOW IT WORKS — 4-step simplified pipeline ═══ */}
       {sectionTitle("How It Works")}
