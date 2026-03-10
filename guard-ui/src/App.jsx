@@ -1298,12 +1298,15 @@ const HomePage = ({ goTo, connected }) => {
                   </div>
                   <div style={{ fontSize: "11px", color: T.primary + "BB", lineHeight: 1.4 }}>{activeModule.execDesc}</div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: "spin 1s linear infinite" }}>
-                    <circle cx="8" cy="8" r="6" fill="none" stroke={T.primary + "33"} strokeWidth="2" />
-                    <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px", flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: "spin 1s linear infinite" }}>
+                      <circle cx="8" cy="8" r="6" fill="none" stroke={T.primary + "33"} strokeWidth="2" />
+                      <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
+                  </div>
+                  <span style={{ fontSize: "10px", color: T.primary + "88", fontFamily: MONO }}>~5 min</span>
                 </div>
               </div>
             )}
