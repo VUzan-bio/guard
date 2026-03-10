@@ -1006,27 +1006,28 @@ class CandidateFilter:
         """Find the longest stretch where a subsequence is complementary
         to another subsequence (potential for self-folding / dimerization).
 
-        Uses O(n²) scanning with early exit once *threshold* is reached
-        (we only need to know pass/fail, not the exact max).
+        Uses pre-computed complement array and O(n²) scanning with early
+        exit once *threshold* is reached. Avoids dict lookups in inner loop.
         """
-        complement = {"A": "T", "T": "A", "G": "C", "C": "G"}
+        _comp = str.maketrans("ACGT", "TGCA")
+        comp = seq.translate(_comp)  # complement string
         n = len(seq)
         max_len = 0
+
+        # For each possible hairpin: seq[i:i+k] pairs with reverse of comp[j-k+1:j+1]
+        # We check if seq[i+k] == comp[j-k] (i.e. seq[i+k] is complement of seq[j-k])
+        seq_b = seq.encode()  # bytes are faster for indexing
+        comp_b = comp.encode()
 
         for i in range(n):
             for j in range(i + 4, n):  # minimum gap of 4 for hairpin loop
                 k = 0
-                while (
-                    i + k < j - k
-                    and j + k < n
-                    and complement.get(seq[i + k], "") == seq[j - k]
-                ):
+                while i + k < j - k and j + k < n and seq_b[i + k] == comp_b[j - k]:
                     k += 1
                 if k > max_len:
                     max_len = k
                     if max_len >= threshold:
-                        return max_len  # early exit — already fails filter
-
+                        return max_len
         return max_len
 
     _rnafold_available: Optional[bool] = None  # class-level cache
