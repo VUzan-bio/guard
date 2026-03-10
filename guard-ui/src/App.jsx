@@ -3760,32 +3760,55 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
   };
 
   const kinetics = poolData?.kinetics || {
-    estimates: [
-      { target: "IS6110_NON", t_rnp_formation: 2.2, t_target_recognition: 2.1, t_signal_generation: 3.8, t_total: 8.1, efficiency: 0.95, is_weak: false },
-      { target: "inhA_C-15T", t_rnp_formation: 2.2, t_target_recognition: 2.5, t_signal_generation: 3.5, t_total: 8.2, efficiency: 0.80, is_weak: false },
-      { target: "katG_S315T", t_rnp_formation: 2.2, t_target_recognition: 2.4, t_signal_generation: 3.6, t_total: 8.2, efficiency: 0.85, is_weak: false },
-      { target: "gyrA_D94G", t_rnp_formation: 2.2, t_target_recognition: 2.4, t_signal_generation: 3.6, t_total: 8.2, efficiency: 0.83, is_weak: false },
-      { target: "rpoB_S450L", t_rnp_formation: 2.2, t_target_recognition: 2.4, t_signal_generation: 3.5, t_total: 8.1, efficiency: 0.82, is_weak: false },
-      { target: "rrs_A1401G", t_rnp_formation: 2.2, t_target_recognition: 2.5, t_signal_generation: 3.5, t_total: 8.2, efficiency: 0.81, is_weak: false },
-      { target: "gyrA_A90V", t_rnp_formation: 2.2, t_target_recognition: 2.5, t_signal_generation: 3.4, t_total: 8.1, efficiency: 0.79, is_weak: false },
-      { target: "rpoB_H445Y", t_rnp_formation: 2.2, t_target_recognition: 2.6, t_signal_generation: 3.3, t_total: 8.1, efficiency: 0.78, is_weak: false },
-      { target: "embB_M306V", t_rnp_formation: 2.2, t_target_recognition: 2.6, t_signal_generation: 3.2, t_total: 8.0, efficiency: 0.76, is_weak: false },
-      { target: "rpoB_H445D", t_rnp_formation: 2.2, t_target_recognition: 2.7, t_signal_generation: 3.1, t_total: 8.0, efficiency: 0.75, is_weak: false },
-      { target: "rpoB_D435V", t_rnp_formation: 2.2, t_target_recognition: 2.7, t_signal_generation: 3.0, t_total: 7.9, efficiency: 0.73, is_weak: false },
-      { target: "rpoB_S450W", t_rnp_formation: 2.2, t_target_recognition: 2.9, t_signal_generation: 2.9, t_total: 8.0, efficiency: 0.70, is_weak: false },
-      { target: "katG_S315N", t_rnp_formation: 2.2, t_target_recognition: 2.9, t_signal_generation: 2.8, t_total: 7.9, efficiency: 0.68, is_weak: false },
-      { target: "embB_M306I", t_rnp_formation: 2.2, t_target_recognition: 3.1, t_signal_generation: 2.6, t_total: 7.9, efficiency: 0.65, is_weak: false },
-      { target: "pncA_H57D", t_rnp_formation: 2.2, t_target_recognition: 3.6, t_signal_generation: 2.2, t_total: 8.0, efficiency: 0.55, is_weak: true },
+    phases: [
+      { phase: "crRNA rehydration", solution_bound: "N/A", on_electrode: "2\u20135 min", description: "Dried crRNA dissolves from LIG surface into assay buffer", is_bottleneck: false },
+      { phase: "RNP formation", solution_bound: "0.5\u20131 min", on_electrode: "2\u20135 min", description: "Cas12a + crRNA \u2192 active RNP (in situ complexation)", is_bottleneck: false },
+      { phase: "Target recognition", solution_bound: "~10 sec", on_electrode: "1\u20133 min", description: "RNP binds cognate amplicon, R-loop formation, cis-cleavage activation", is_bottleneck: false },
+      { phase: "Surface trans-cleavage", solution_bound: "~5 min", on_electrode: "10\u201320 min", description: "Activated Cas12a cleaves MB-ssDNA reporters tethered to LIG electrode", is_bottleneck: true },
     ],
-    parameters: {
-      k_form: { value: "1.75e+05", unit: "M\u207b\u00b9s\u207b\u00b9", source: "Lesinski 2024" },
-      k_cis: { value: "0.03", unit: "s\u207b\u00b9", source: "Nalefski 2021" },
-      k_trans: { value: "~1.0", unit: "s\u207b\u00b9 per RNP", source: "Nalefski 2021" },
-      cas12a_conc: { value: "50 nM", unit: "nM", source: "\u2014" },
-      crrna_conc: { value: "~200 nM", unit: "nM (pre-dried)", source: "Bezinge 2023" },
-      mb_density: { value: "~10\u00b9\u00b2 molecules/cm\u00b2", unit: "molecules/cm\u00b2", source: "Typical SAM" },
+    totals: {
+      detection_solution: "~6\u20138 min", detection_electrode: "15\u201330 min",
+      rpa_time: "15\u201320 min", total_solution: "~23\u201328 min", total_electrode: "30\u201350 min",
+      who_tpp_target: "< 120 min", who_tpp_pass: true,
     },
-    insight: "In situ complexation reduces effective [RNP] during the first 5 minutes of detection by ~10-fold compared to pre-complexed format. For MDR-TB where sample concentration is typically >10\u00b3 copies/mL post-RPA, this delay is acceptable and improves overall assay reliability.",
+    parameters: [
+      { param: "k_form (RNP association)", value: "1.75 \u00d7 10\u2075 M\u207b\u00b9s\u207b\u00b9", source: "Lesinski et al. 2024", source_detail: "SPR measurement, Cas12a + HPV16 sgRNA, 25\u00b0C", note: "Solution-phase. On-electrode rate may differ due to crRNA rehydration." },
+      { param: "k_off (RNP dissociation)", value: "1.87 \u00d7 10\u207b\u2074 s\u207b\u00b9", source: "Lesinski et al. 2024", source_detail: "SPR measurement, K_D = 1.07 nM", note: null },
+      { param: "k_cis (cis-cleavage)", value: "0.03 s\u207b\u00b9", source: "Lesinski et al. 2024", source_detail: "First-order fit of dsDNA fluorescence reporter cleavage", note: null },
+      { param: "k_trans (solution, free ssDNA)", value: "~2.0 s\u207b\u00b9", source: "Nalefski et al. 2021", source_detail: "LbCas12a k_cat for C10 polycytidine, low-salt buffer", note: "Free ssDNA in solution. NOT applicable to surface-tethered reporters." },
+      { param: "k_trans (surface, estimated)", value: "0.01\u20130.1 s\u207b\u00b9", source: "Estimated", source_detail: "10\u2013100\u00d7 slower than solution due to tethered MB-ssDNA steric effects", note: "No direct measurement exists. Key experimental unknown for Year 1." },
+      { param: "[Cas12a]", value: "50 nM", source: "Design parameter", source_detail: "Typical E-CRISPR range: 10\u2013200 nM. Lesinski 2024 used 2 \u00b5M for characterization.", note: null },
+      { param: "[crRNA] on pad", value: "~200 nM equivalent", source: "Design parameter", source_detail: "Pre-dried on LIG. Effective concentration after rehydration unknown.", note: "Bezinge 2023 demonstrated crRNA-on-LIG but did not report concentration." },
+      { param: "MB-ssDNA probe density", value: "~10\u00b9\u2070\u201310\u00b9\u00b9 molecules/cm\u00b2", source: "Estimated for LIG", source_detail: "\u03c0-stacking attachment. Gold SAM ref: 10\u00b9\u00b2/cm\u00b2 (Steel 1998). LIG 10\u2013100\u00d7 lower.", note: "Probe density directly affects signal magnitude and time-to-detection." },
+    ],
+    insights: [
+      { title: "Rate-limiting step", text: "Surface trans-cleavage of tethered MB-ssDNA reporters dominates detection time \u2014 not RNP formation or target recognition. Optimizing probe density and electrode surface chemistry is the primary experimental lever for reducing time-to-result." },
+      { title: "In situ complexation", text: "Lesinski et al. 2024: reduces effective [RNP] during the first ~5 minutes by ~10-fold vs pre-complexed format. This is a feature \u2014 it prevents Cas12a from destroying target amplicons before detection begins." },
+      { title: "Experimental unknowns", text: "k_trans on LIG-tethered MB-ssDNA and crRNA rehydration kinetics have not been measured. These are Year 1 characterization priorities that directly inform cartridge design parameters for the CSEM reader." },
+    ],
+    year1_priorities: [
+      "k_trans on MB-ssDNA/LIG \u2014 determines detection time",
+      "crRNA rehydration kinetics \u2014 determines pad preparation protocol",
+      "Optimal [Cas12a] for in situ format \u2014 balance sensitivity vs background",
+      "Probe density optimization \u2014 balance signal intensity vs steric access",
+    ],
+    target_ranking: [
+      { target: "IS6110_NON", efficiency: 0.95, is_weak: false },
+      { target: "katG_S315T", efficiency: 0.85, is_weak: false },
+      { target: "gyrA_D94G", efficiency: 0.83, is_weak: false },
+      { target: "rpoB_S450L", efficiency: 0.82, is_weak: false },
+      { target: "rrs_A1401G", efficiency: 0.81, is_weak: false },
+      { target: "inhA_C-15T", efficiency: 0.80, is_weak: false },
+      { target: "gyrA_A90V", efficiency: 0.79, is_weak: false },
+      { target: "rpoB_H445Y", efficiency: 0.78, is_weak: false },
+      { target: "embB_M306V", efficiency: 0.76, is_weak: false },
+      { target: "rpoB_H445D", efficiency: 0.75, is_weak: false },
+      { target: "rpoB_D435V", efficiency: 0.73, is_weak: false },
+      { target: "rpoB_S450W", efficiency: 0.70, is_weak: false },
+      { target: "katG_S315N", efficiency: 0.68, is_weak: false },
+      { target: "embB_M306I", efficiency: 0.65, is_weak: false },
+      { target: "pncA_H57D", efficiency: 0.55, is_weak: true },
+    ],
   };
 
   const specificity = poolData?.specificity || null;
@@ -3825,9 +3848,6 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
   const coAmpliconGroups = [["rpoB_H445Y","rpoB_H445D"],["rpoB_S450L","rpoB_S450W"],["katG_S315T","katG_S315N"],["embB_M306V","embB_M306I"]];
   const isCoAmplicon = (t) => coAmpliconGroups.some(g => g.includes(t));
   const coAmpliconPartner = (t) => { const g = coAmpliconGroups.find(g => g.includes(t)); return g ? g.filter(x => x !== t)[0] : null; };
-
-  // Kinetics max time for bar scaling
-  const maxTime = Math.max(...kinetics.estimates.map(e => e.t_total), 15);
 
   return (
     <div>
@@ -4120,54 +4140,66 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          SECTION 4: IN SITU COMPLEXATION MODEL
+          SECTION 4: IN SITU COMPLEXATION MODEL (literature-verified)
           ════════════════════════════════════════════════════════════════ */}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>In Situ RNP Formation Kinetics</div>
         <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
           Cas12a protein and pre-dried crRNA form the active RNP complex on-pad during the assay (Lesinski et al. 2024).
-          This in situ format purposefully limits active Cas12a during early amplification stages, reducing cis-cleavage
-          competition with RPA. Time-to-detection depends on RNP formation rate (k<sub>form</sub>), target recognition
-          rate (k<sub>on</sub>), and trans-cleavage rate (k<sub>trans</sub>).
+          Solution-phase kinetics provide a lower bound on detection time. On-electrode estimates account for crRNA
+          rehydration, diffusion in porous LIG, and surface-tethered reporter cleavage — the dominant rate-limiting step.
         </p>
 
-        {/* Kinetic timeline — horizontal stacked bars */}
+        {/* Phase breakdown table — solution vs on-electrode */}
         <div style={{ overflowX: "auto", marginBottom: "16px" }}>
-          <div style={{ minWidth: 500 }}>
-            {/* Header */}
-            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr 50px", gap: "8px", marginBottom: "4px", fontSize: "9px", fontWeight: 700, color: T.textTer, textTransform: "uppercase" }}>
-              <span>Target</span>
-              <span style={{ display: "flex", gap: "4px" }}>
-                <span style={{ color: "#3B82F6" }}>RNP formation</span>
-                <span style={{ color: "#F59E0B" }}>Recognition</span>
-                <span style={{ color: "#10B981" }}>Signal gen.</span>
-              </span>
-              <span style={{ textAlign: "right" }}>Total</span>
-            </div>
-            {kinetics.estimates.map(e => {
-              const w1 = (e.t_rnp_formation / maxTime) * 100;
-              const w2 = (e.t_target_recognition / maxTime) * 100;
-              const w3 = (e.t_signal_generation / maxTime) * 100;
-              return (
-                <div key={e.target} style={{ display: "grid", gridTemplateColumns: "110px 1fr 50px", gap: "8px", marginBottom: "3px", alignItems: "center" }}>
-                  <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: e.is_weak ? 400 : 600, color: e.is_weak ? T.warning : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {e.target}
-                  </span>
-                  <div style={{ display: "flex", height: 16, borderRadius: "3px", overflow: "hidden", background: T.bgSub }}>
-                    <div style={{ width: `${w1}%`, background: "#3B82F6", minWidth: 2 }} title={`RNP: ${e.t_rnp_formation} min`} />
-                    <div style={{ width: `${w2}%`, background: "#F59E0B", minWidth: 2 }} title={`Recognition: ${e.t_target_recognition} min`} />
-                    <div style={{ width: `${w3}%`, background: "#10B981", minWidth: 2 }} title={`Signal: ${e.t_signal_generation} min`} />
-                  </div>
-                  <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 700, textAlign: "right", color: e.is_weak ? T.warning : T.text }}>
-                    ~{e.t_total} min{e.is_weak ? " *" : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+                <th style={{ textAlign: "left", padding: "8px 12px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Phase</th>
+                <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Solution (lower bound)</th>
+                <th style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>On-electrode (estimated)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(kinetics.phases || []).map((phase, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: phase.is_bottleneck ? "#e6550d08" : "transparent" }}>
+                  <td style={{ padding: "8px 12px", fontWeight: phase.is_bottleneck ? 600 : 400 }}>
+                    {phase.phase}
+                    {phase.is_bottleneck && (
+                      <span style={{ fontSize: "9px", fontWeight: 700, color: "#e6550d", marginLeft: "8px", padding: "1px 6px", background: "#e6550d15", borderRadius: "4px" }}>RATE-LIMITING</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "center", padding: "8px 12px", color: T.textSec, fontFamily: MONO }}>{phase.solution_bound}</td>
+                  <td style={{ textAlign: "center", padding: "8px 12px", fontWeight: 600, fontFamily: MONO }}>{phase.on_electrode}</td>
+                </tr>
+              ))}
+              {/* Detection total */}
+              <tr style={{ borderTop: `2px solid ${T.border}`, fontWeight: 700 }}>
+                <td style={{ padding: "8px 12px" }}>Detection total</td>
+                <td style={{ textAlign: "center", padding: "8px 12px", fontFamily: MONO }}>{kinetics.totals?.detection_solution || "~6\u20138 min"}</td>
+                <td style={{ textAlign: "center", padding: "8px 12px", fontFamily: MONO }}>{kinetics.totals?.detection_electrode || "15\u201330 min"}</td>
+              </tr>
+              <tr style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                <td style={{ padding: "8px 12px", color: T.textSec }}>+ RPA amplification</td>
+                <td style={{ textAlign: "center", padding: "8px 12px", color: T.textTer, fontFamily: MONO }}>{kinetics.totals?.rpa_time || "15\u201320 min"}</td>
+                <td style={{ textAlign: "center", padding: "8px 12px", color: T.textTer, fontFamily: MONO }}>{kinetics.totals?.rpa_time || "15\u201320 min"}</td>
+              </tr>
+              <tr style={{ borderTop: `2px solid ${T.border}`, fontWeight: 700, fontSize: "14px" }}>
+                <td style={{ padding: "10px 12px" }}>Assay total</td>
+                <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: MONO }}>{kinetics.totals?.total_solution || "~23\u201328 min"}</td>
+                <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: MONO }}>{kinetics.totals?.total_electrode || "30\u201350 min"}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        {/* Kinetic parameters table */}
+        {/* WHO TPP compliance */}
+        <div style={{ marginBottom: "16px", padding: "8px 14px", borderRadius: "6px", background: "#22c55e12", borderLeft: `3px solid ${T.success}`, fontSize: "12px", color: T.textSec }}>
+          WHO TPP target: {kinetics.totals?.who_tpp_target || "< 120 min"}. Estimated total: {kinetics.totals?.total_electrode || "30\u201350 min"} — <strong style={{ color: T.success }}>within target</strong> with 2-4× margin for optimization.
+        </div>
+
+        {/* Kinetic parameters table (literature-verified) */}
+        <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px", marginTop: "20px" }}>Kinetic Parameters</div>
         <div style={{ overflowX: "auto", marginBottom: "16px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
             <thead>
@@ -4175,27 +4207,74 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Parameter</th>
                 <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Value</th>
                 <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Source</th>
+                <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Note</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(kinetics.parameters).map(([key, p]) => (
-                <tr key={key} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                  <td style={{ padding: "6px 10px", fontFamily: MONO, fontWeight: 600 }}>{key.replace(/_/g, " ")}</td>
-                  <td style={{ padding: "6px 10px", fontFamily: MONO }}>{p.value} {p.unit && p.unit !== p.value ? p.unit : ""}</td>
-                  <td style={{ padding: "6px 10px", color: T.textTer, fontStyle: "italic" }}>{p.source}</td>
+              {(kinetics.parameters || []).map((p, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+                  <td style={{ padding: "6px 10px", fontWeight: 600, fontSize: "11px" }}>{p.param}</td>
+                  <td style={{ padding: "6px 10px", fontFamily: MONO, fontSize: "11px" }}>{p.value}</td>
+                  <td style={{ padding: "6px 10px", color: T.textTer, fontSize: "10px" }}>
+                    <div style={{ fontStyle: "italic" }}>{p.source}</div>
+                    {p.source_detail && <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{p.source_detail}</div>}
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "10px", color: p.note ? "#e6550d" : T.textTer, fontStyle: p.note ? "italic" : "normal", maxWidth: 200 }}>
+                    {p.note || "\u2014"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Key insight callout */}
-        <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "14px 18px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E", fontFamily: HEADING, marginBottom: "4px" }}>Key Insight</div>
-          <p style={{ fontSize: "11px", color: "#92400E", lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
-            {kinetics.insight}
-          </p>
+        {/* Key Insights callout */}
+        <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", padding: "14px 18px", marginBottom: "12px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E", fontFamily: HEADING, marginBottom: "8px" }}>Key Insights</div>
+          {(kinetics.insights || []).map((ins, i) => (
+            <div key={i} style={{ marginBottom: i < (kinetics.insights || []).length - 1 ? "8px" : 0 }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "#92400E", opacity: 0.9 }}>{i + 1}. {ins.title}</div>
+              <p style={{ fontSize: "11px", color: "#92400E", lineHeight: 1.6, margin: "2px 0 0", opacity: 0.8 }}>{ins.text}</p>
+            </div>
+          ))}
         </div>
+
+        {/* Year 1 Kinetic Characterization Plan */}
+        <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", padding: "14px 18px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "6px" }}>Year 1 Kinetic Characterization Plan</div>
+          <p style={{ fontSize: "10px", color: T.primaryDark, opacity: 0.8, margin: "0 0 6px" }}>Priority measurements for CSEM cartridge design:</p>
+          <ul style={{ margin: 0, paddingLeft: "18px" }}>
+            {(kinetics.year1_priorities || []).map((p, i) => (
+              <li key={i} style={{ fontSize: "10px", color: T.primaryDark, opacity: 0.85, lineHeight: 1.5 }}>{p}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Target ranking — relative order, not absolute minutes */}
+        {kinetics.target_ranking && kinetics.target_ranking.length > 0 && (
+          <div style={{ marginTop: "16px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Predicted Detection Order (relative)</div>
+            <p style={{ fontSize: "11px", color: T.textTer, marginBottom: "8px", lineHeight: 1.5, fontStyle: "italic" }}>
+              Ranked by predicted efficiency score (proxy for detection speed). Absolute per-target time estimates are not
+              shown — target-specific on-electrode kinetics are unknown pre-experimentally.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+              {kinetics.target_ranking.map((t, i) => (
+                <div key={t.target} style={{
+                  padding: "4px 10px", borderRadius: "6px", fontSize: "10px", fontFamily: MONO,
+                  background: t.is_weak ? T.warningLight : i === 0 ? T.successLight : T.bgSub,
+                  color: t.is_weak ? T.warning : i === 0 ? T.success : T.text,
+                  fontWeight: 600, border: `1px solid ${t.is_weak ? T.warning + "33" : i === 0 ? T.success + "33" : T.borderLight}`,
+                  display: "flex", alignItems: "center", gap: "4px",
+                }}>
+                  <span style={{ fontSize: "8px", color: T.textTer }}>#{i + 1}</span>
+                  {t.target}
+                  <span style={{ fontSize: "8px", color: T.textTer }}>{t.efficiency.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
