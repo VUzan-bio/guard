@@ -1659,7 +1659,7 @@ const HomePage = ({ goTo, connected }) => {
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
         {[
           { label: "Excellent", val: "≥ 10×", color: "#64748b", border: "#cbd5e1", desc: "Single-plex clinical. Robust across sample types." },
-          { label: "Good", val: "≥ 3×", color: "#64748b", border: "#cbd5e1", desc: "Multiplex panel. Fluorescence & lateral flow." },
+          { label: "Good", val: "≥ 3×", color: "#64748b", border: "#cbd5e1", desc: "Multiplex panel. Electrochemical & lateral flow." },
           { label: "Acceptable", val: "≥ 2×", color: "#94a3b8", border: "#e2e8f0", desc: "Requires confirmatory readout." },
           { label: "Insufficient", val: "< 2×", color: "#94a3b8", border: "#e2e8f0", desc: "Synthetic mismatch enhancement needed." },
         ].map(t => (
@@ -1707,8 +1707,8 @@ const HomePage = ({ goTo, connected }) => {
             ["Cis-cleavage", "Staggered dsDNA cut, 5' overhang"],
             ["Trans-cleavage", "Non-specific ssDNase (reporter activation)"],
             ["Temperature", "37 °C (RPA-compatible)"],
-            ["Readouts", "Fluorescence · lateral flow · electrochemical"],
-            ["Sensitivity", "Attomolar with RPA pre-amplification (solution-phase fluorescence; electrode sensitivity platform-dependent)"],
+            ["Readouts", "Electrochemical (SWV on LIG) · lateral flow · fluorescence"],
+            ["Sensitivity", "Attomolar with RPA pre-amplification (electrode sensitivity platform-dependent)"],
             ["Multiplexing", "Orthogonal reporters per crRNA in single tube"],
           ].map(([k, v]) => (
             <div key={k} style={{ display: "flex", gap: "8px", padding: "8px 12px", background: T.bgSub, borderRadius: "6px" }}>
@@ -1731,7 +1731,7 @@ const HomePage = ({ goTo, connected }) => {
           ["Off-target", "≤3 mismatches", "Bowtie2 against full genome"],
           ["RPA amplicon", "100–200 bp", "Optimal RPA range"],
           ["Primer Tm", "57–72 \u00B0C", "Primer melting temperature (not reaction temperature). RPA runs at 37\u00B0C; high Tm ensures stable primer hybridisation."],
-          ["Discrimination min", "2.0\u00D7", "Minimum acceptable. \u22653.0\u00D7 for fluorescence/LFA. \u22655.0\u00D7 for electrochemical readout."],
+          ["Discrimination min", "2.0\u00D7", "Minimum acceptable. \u22653.0\u00D7 for electrochemical/LFA. \u22655.0\u00D7 for robust clinical readout."],
         ].map(([param, value, rationale], i, arr) => (
           <div key={param} style={{ display: "flex", alignItems: "baseline", gap: mobile ? "8px" : "16px", padding: "8px 0", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none", flexWrap: mobile ? "wrap" : "nowrap" }}>
             <span style={{ fontSize: "12px", fontWeight: 600, color: T.text, minWidth: mobile ? "100%" : 130, flexShrink: 0 }}>{param}</span>
@@ -1851,15 +1851,17 @@ const PipelinePage = ({ jobId, connected, goTo }) => {
    ═══════════════════════════════════════════════════════════════════ */
 const RISK_COLORS = { green: T.riskGreen, amber: T.riskAmber, red: T.riskRed };
 const RISK_BG = { green: T.riskGreenBg, amber: T.riskAmberBg, red: T.riskRedBg };
-/* Moreland coolwarm (exact): perceptually uniform through Msh color space */
+/* GreenBlue colormap — single-cell omics UMAP aesthetic.
+   Stops: light gray → pale green → teal → blue → deep purple.
+   On dark (#0A0A0A) backgrounds for maximum contrast. */
 const gradientColor = (t) => {
   t = Math.max(0, Math.min(1, t));
   const stops = [
-    { t: 0.00, r: 59,  g: 76,  b: 192 },  // #3B4CC0 deep blue
-    { t: 0.25, r: 145, g: 170, b: 230 },  // #91AAE6 light blue
-    { t: 0.50, r: 221, g: 221, b: 221 },  // #DDDDDD neutral gray
-    { t: 0.75, r: 228, g: 145, b: 115 },  // #E49173 salmon
-    { t: 1.00, r: 180, g: 4,   b: 38  },  // #B40426 deep red
+    { t: 0.00, r: 230, g: 230, b: 230 },  // #e6e6e6 — light gray (low)
+    { t: 0.25, r: 171, g: 221, b: 164 },  // #abdda4 — pale green
+    { t: 0.50, r: 102, g: 194, b: 165 },  // #66c2a5 — teal
+    { t: 0.75, r: 50,  g: 136, b: 189 },  // #3288bd — blue
+    { t: 1.00, r: 94,  g: 79,  b: 162 },  // #5e4fa2 — deep purple (high)
   ];
   let lower = stops[0], upper = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -1872,9 +1874,13 @@ const gradientColor = (t) => {
   const b = Math.round(lower.b + f * (upper.b - lower.b));
   return `rgb(${r},${g},${b})`;
 };
-const gradientCSS = "linear-gradient(90deg, #3B4CC0, #91AAE6, #DDDDDD, #E49173, #B40426)";
+const gradientCSS = "linear-gradient(90deg, #e6e6e6, #abdda4, #66c2a5, #3288bd, #5e4fa2)";
+const CHART_BG = "#0A0A0A";
+const CHART_TEXT = "#e0e0e0";
+const CHART_TEXT_SEC = "#888888";
+const CHART_GRID = "#1a1a2e";
 const PASS_GREEN = "#22c55e";
-const AXIS_COLORS = { efficiency: "#E49173", discrimination: "#B40426", primers: "#3B4CC0", safety: "#91AAE6", gc: "#7B9FD4" };
+const AXIS_COLORS = { efficiency: "#abdda4", discrimination: "#5e4fa2", primers: "#3288bd", safety: "#66c2a5", gc: "#e6e6e6" };
 const AXIS_LABELS = { efficiency: "Activity", discrimination: "Discrimination", primers: "Primers", safety: "Off-target", gc: "GC" };
 
 const RiskDot = ({ level, size = 12 }) => (
@@ -1892,7 +1898,7 @@ const RiskHeatCell = ({ level, type = "quantitative" }) => {
     return (
       <div style={{
         width: 44, height: 28, borderRadius: 4, border: "2px solid #fff",
-        backgroundColor: passed ? "#3B4CC0" : "#B40426",
+        backgroundColor: passed ? "#3288bd" : "#5e4fa2",
         margin: "0 auto",
       }} />
     );
@@ -1977,16 +1983,16 @@ const RiskMatrix = ({ results }) => {
         <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Risk Assessment Matrix</div>
         <div style={{ fontSize: "12px", color: T.textTer }}>{sorted.length} targets</div>
       </div>
-      <div style={{ overflowX: "auto" }}>
+      <div style={{ overflowX: "auto", backgroundColor: CHART_BG, padding: "8px 0" }}>
         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "2px 2px", fontSize: "12px" }}>
           <thead>
             <tr>
-              <th style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: mobile ? 100 : 140 }}>Target</th>
+              <th style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: mobile ? 100 : 140 }}>Target</th>
               {axes.map(a => (
-                <th key={a} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>{axisNames[a]}</th>
+                <th key={a} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>{axisNames[a]}</th>
               ))}
-              <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>Overall</th>
-              <th style={{ padding: "8px 14px", textAlign: "center", fontWeight: 600, color: T.textTer, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 50 }}>#</th>
+              <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 52 }}>Overall</th>
+              <th style={{ padding: "8px 14px", textAlign: "center", fontWeight: 600, color: CHART_TEXT_SEC, fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", width: 50 }}>#</th>
             </tr>
           </thead>
           <tbody>
@@ -1994,7 +2000,7 @@ const RiskMatrix = ({ results }) => {
               const risk = r.riskProfile || {};
               return (
                 <tr key={r.label}>
-                  <td style={{ padding: "4px 16px", fontWeight: 600, fontSize: "11px", color: T.text, whiteSpace: "nowrap" }}>{r.label}</td>
+                  <td style={{ padding: "4px 16px", fontWeight: 600, fontSize: "11px", color: CHART_TEXT, whiteSpace: "nowrap" }}>{r.label}</td>
                   {axes.map(a => (
                     <td key={a} style={{ padding: "3px 2px", textAlign: "center" }}><RiskHeatCell level={risk[a]} type={RISK_AXIS_TYPE[a]} /></td>
                   ))}
@@ -2052,11 +2058,12 @@ const ReadinessChart = ({ results }) => {
           ))}
         </div>
       </div>
+      <div style={{ backgroundColor: CHART_BG, borderRadius: "8px", padding: "8px 0" }}>
       <ResponsiveContainer width="100%" height={Math.max(220, sorted.length * 32 + 60)}>
         <BarChart data={chartData} layout="vertical" barCategoryGap="20%" margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
-          <CartesianGrid horizontal={false} stroke={T.borderLight} />
-          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer }} />
-          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: T.textSec }} />
+          <CartesianGrid horizontal={false} stroke={CHART_GRID} />
+          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: CHART_TEXT_SEC }} />
+          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: CHART_TEXT }} />
           <Tooltip contentStyle={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }}
             formatter={(value, name) => [`${(value * 100).toFixed(0)}%`, AXIS_LABELS[name] || name]} />
           <Bar dataKey="efficiency" stackId="readiness" fill={AXIS_COLORS.efficiency} />
@@ -2066,6 +2073,7 @@ const ReadinessChart = ({ results }) => {
           <Bar dataKey="gc" stackId="readiness" fill={AXIS_COLORS.gc} />
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 };
@@ -2106,8 +2114,8 @@ const UMAPPanel = ({ jobId }) => {
     ctx.scale(dpr, dpr);
     const pad = 36;
 
-    // Clear
-    ctx.fillStyle = T.bg;
+    // Clear — dark background for UMAP
+    ctx.fillStyle = CHART_BG;
     ctx.fillRect(0, 0, displayW, displayH);
 
     const points = umapData.points;
@@ -2130,14 +2138,14 @@ const UMAPPanel = ({ jobId }) => {
         const gcNorm = 1 - Math.min(Math.abs(gc - 0.5) / 0.25, 1);
         return gradientColor(gcNorm);
       }
-      if (colorBy === "strategy") return p.detection_strategy === "direct" ? "#3b82f6" : "#a855f7";
+      if (colorBy === "strategy") return p.detection_strategy === "direct" ? "#3288bd" : "#5e4fa2";
       return gradientColor(0.5);
     };
 
     // Dense dot cloud for unselected points (like CITEseq UMAP style)
     const unselected = points.filter(p => !p.selected);
     const dotR = unselected.length > 10000 ? 1.8 : unselected.length > 2000 ? 2.2 : 2.8;
-    ctx.globalAlpha = 0.75;
+    ctx.globalAlpha = 0.4;
     for (const p of unselected) {
       ctx.beginPath();
       ctx.arc(scX(p.x), scY(p.y), dotR, 0, Math.PI * 2);
@@ -2153,7 +2161,7 @@ const UMAPPanel = ({ jobId }) => {
       // Halo
       ctx.beginPath();
       ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.fill();
       // Dot
       ctx.beginPath();
@@ -2359,7 +2367,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
             The pipeline evaluates every candidate on four axes:
           </p>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px 24px", fontSize: "12px" }}>
-            <div><strong>Score</strong> (0–1) — predicted Cas12a trans-cleavage activity. A score of 0.8 means the crRNA is expected to trigger strong collateral cleavage of the fluorescent reporter, producing a bright signal in ~10 min. Below 0.4, the guide may not generate a detectable signal within a clinically useful timeframe. {usesGuardNet ? "Computed as an ensemble of GUARD-Net (trained on 25K+ activity measurements) and heuristic biophysical features." : "Computed from position-weighted biophysical features."}</div>
+            <div><strong>Score</strong> (0–1) — predicted Cas12a trans-cleavage activity. A score of 0.8 means the crRNA is expected to trigger strong collateral cleavage of MB-ssDNA reporters, producing a measurable SWV signal decrease within 15–30 min. Below 0.4, the guide may not generate a detectable signal within a clinically useful timeframe. {usesGuardNet ? "Computed as an ensemble of GUARD-Net (trained on 25K+ activity measurements) and heuristic biophysical features." : "Computed from position-weighted biophysical features."}</div>
             <div><strong>Discrimination</strong> (×) — fold-difference in cleavage activity between the mutant (resistant) and wildtype (susceptible) template. A 5× ratio means the guide cleaves 5× faster on the mutant — so the assay signal from a resistant sample is 5× stronger than from a susceptible sample. ≥ 3× is diagnostic-grade. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Predicted by a gradient-boosted model trained on 6,136 EasyDesign pairs using 15 thermodynamic features." : "Predicted by heuristic position × destabilisation model."}</div>
             <div><strong>RPA Primers</strong> — isothermal amplification primers (37°C, no thermal cycler). RPA amplifies the target region in 15–20 min, then Cas12a detects the amplified product. A candidate without primers cannot be used as a complete assay.</div>
             <div><strong>Drug class</strong> — which antibiotic the mutation confers resistance to (e.g. RIF = rifampicin, INH = isoniazid). A 14-plex panel covers all 6 WHO priority drug classes for MDR/XDR-TB.</div>
@@ -2439,12 +2447,12 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 Top-right quadrant = diagnostic-ready.{hasReadiness ? " Dot size reflects diagnostic readiness score (larger = higher readiness)." : " Dot size reflects primer availability."}
               </div>
             </div>
-            <div style={{ position: "relative" }}>
+            <div style={{ position: "relative", backgroundColor: CHART_BG, borderRadius: 8, padding: "12px 8px 4px 0" }}>
               <ResponsiveContainer width="100%" height={360}>
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
-                  <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
-                  <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
+                  <XAxis type="number" dataKey="score" name="Score" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: CHART_TEXT_SEC }} label={{ value: "Efficiency Score", position: "insideBottom", offset: -12, fontSize: 11, fill: CHART_TEXT }} />
+                  <YAxis type="number" dataKey="disc" name="Discrimination" domain={[0, "auto"]} tick={{ fontSize: 10, fontFamily: MONO, fill: CHART_TEXT_SEC }} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: CHART_TEXT }} />
                   <Tooltip content={({ payload }) => {
                     if (!payload?.length) return null;
                     const d = payload[0]?.payload;
@@ -2460,8 +2468,8 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                       </div>
                     );
                   }} />
-                  <ReferenceLine x={0.4} stroke={T.danger} strokeDasharray="5 3" strokeWidth={1.5} />
-                  <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} />
+                  <ReferenceLine x={0.4} stroke="#333333" strokeDasharray="5 3" strokeWidth={1.5} />
+                  <ReferenceLine y={3} stroke="#333333" strokeDasharray="5 3" strokeWidth={1.5} />
                   <Scatter data={scatterData} isAnimationActive={false}>
                     {scatterData.map((entry, i) => {
                       const dotR = hasReadiness ? Math.max(4, entry.readiness * 14) : (entry.hasPrimers ? 8 : 5);
@@ -2471,9 +2479,9 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 </ScatterChart>
               </ResponsiveContainer>
               {/* Quadrant labels */}
-              <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.success, opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
-              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: T.danger, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
-              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: T.warning, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
+              <div style={{ position: "absolute", top: "24px", right: "28px", fontSize: "9px", fontWeight: 700, color: "#66c2a5", opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Diagnostic-ready</div>
+              <div style={{ position: "absolute", top: "24px", left: "60px", fontSize: "9px", fontWeight: 700, color: "#e6e6e6", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low score</div>
+              <div style={{ position: "absolute", bottom: "42px", right: "28px", fontSize: "9px", fontWeight: 700, color: "#e6e6e6", opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Low discrimination</div>
             </div>
             {/* Legend */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
@@ -2561,11 +2569,12 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 </div>
               </div>
             </div>
+            <div style={{ backgroundColor: CHART_BG, borderRadius: 8, padding: "12px 8px 4px 0" }}>
             <ResponsiveContainer width="100%" height={340}>
               <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={T.borderLight} />
-                <XAxis type="number" dataKey="heuristic" name="Heuristic" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "Heuristic Score", position: "insideBottom", offset: -12, fontSize: 11, fill: T.textSec }} />
-                <YAxis type="number" dataKey="guardNet" name="GUARD-Net" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: T.textTer }} label={{ value: "GUARD-Net (calibrated)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: T.textSec }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
+                <XAxis type="number" dataKey="heuristic" name="Heuristic" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: CHART_TEXT_SEC }} label={{ value: "Heuristic Score", position: "insideBottom", offset: -12, fontSize: 11, fill: CHART_TEXT }} />
+                <YAxis type="number" dataKey="guardNet" name="GUARD-Net" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: MONO, fill: CHART_TEXT_SEC }} label={{ value: "GUARD-Net (calibrated)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: CHART_TEXT }} />
                 <Tooltip content={({ payload }) => {
                   if (!payload?.length) return null;
                   const d = payload[0]?.payload;
@@ -2583,7 +2592,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                     </div>
                   );
                 }} />
-                <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke={T.textTer} strokeDasharray="6 4" strokeWidth={1} opacity={0.4} />
+                <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 1, y: 1 }]} stroke="#333333" strokeDasharray="6 4" strokeWidth={1} opacity={0.6} />
                 <Scatter data={scatterData} isAnimationActive={false}>
                   {scatterData.map((entry, i) => (
                     <Cell key={i} fill={gradientColor(entry.ensemble)} r={7} stroke="#fff" strokeWidth={2} opacity={0.85} />
@@ -2591,6 +2600,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
+            </div>
             {/* Legend */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -2850,9 +2860,9 @@ const generateInterpretation = (r) => {
   }
 
   // Overall assessment
-  if (eff >= 0.7) lines.push(`Strong candidate (activity score ${eff.toFixed(3)}). High predicted Cas12a trans-cleavage rate — expected to generate a clear fluorescent signal within 10–15 min in the DETECTR assay, well above the limit of detection.`);
-  else if (eff >= 0.5) lines.push(`Moderate candidate (activity score ${eff.toFixed(3)}). Predicted trans-cleavage is sufficient for detection but not optimal — the fluorescent signal may require 20–30 min to reach a confident positive call, or may produce a weaker band on lateral flow.`);
-  else lines.push(`Weak candidate (activity score ${eff.toFixed(3)}). Low predicted trans-cleavage rate — the collateral cleavage signal may be near the detection limit, risking false negatives. Consider alternatives from the top-K list or synthetic mismatch optimisation.`);
+  if (eff >= 0.7) lines.push(`Strong candidate (activity score ${eff.toFixed(3)}). High predicted Cas12a trans-cleavage rate — expected to produce a clear SWV signal decrease within 15–30 min on the electrochemical platform, well above the limit of detection.`);
+  else if (eff >= 0.5) lines.push(`Moderate candidate (activity score ${eff.toFixed(3)}). Predicted trans-cleavage is sufficient for detection but not optimal — the SWV signal decrease may require 30–45 min to reach a confident positive call on the electrochemical platform.`);
+  else lines.push(`Weak candidate (activity score ${eff.toFixed(3)}). Low predicted trans-cleavage rate — the electrochemical signal decrease may be near the detection limit, risking false negatives. Consider alternatives from the top-K list or synthetic mismatch optimisation.`);
 
   // PAM quality
   const pam = (r.pam || "").toUpperCase();
@@ -2885,12 +2895,13 @@ const generateInterpretation = (r) => {
       }
     }
     if (snpPos <= 8) {
-      if (disc >= 5) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides strong discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). The mismatch in the PAM-proximal seed region (pos 1\u20138) causes near-complete R-loop collapse on the wildtype template, ensuring high specificity.`);
-      else if (disc >= 3) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides diagnostic-grade discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). Seed region mismatches are highly destabilising for Cas12a binding.`);
-      else lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}) despite being in the seed region. The surrounding sequence context or mismatch chemistry may stabilise partial R-loop formation. Synthetic mismatch enhancement may improve this.`);
+      const rloopEffect = disc >= 10 ? "near-complete R-loop collapse" : disc >= 5 ? "substantial R-loop disruption" : disc >= 3 ? "moderate R-loop destabilization" : disc >= 2 ? "partial R-loop disruption" : "minimal R-loop disruption";
+      if (disc >= 5) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides strong discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). The mismatch in the PAM-proximal seed region (pos 1\u20138) causes ${rloopEffect} on the wildtype template, ensuring high specificity.`);
+      else if (disc >= 3) lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) provides diagnostic-grade discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). Seed region mismatches cause ${rloopEffect}, reducing Cas12a binding on the wildtype template.`);
+      else lines.push(`SNP at seed position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}) despite being in the seed region \u2014 ${rloopEffect}. The surrounding sequence context or mismatch chemistry may stabilise partial R-loop formation. Synthetic mismatch enhancement may improve this.`);
     } else {
-      if (disc >= 3) lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) provides ${disc.toFixed(1)}\u00D7 discrimination (${discSource}). Although outside the seed, the mismatch is sufficient for diagnostic-grade allele differentiation.`);
-      else lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}). PAM-distal mismatches are better tolerated by Cas12a \u2014 synthetic mismatch in the seed region could boost specificity.`);
+      if (disc >= 3) lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) provides ${disc.toFixed(1)}\u00D7 discrimination (${discSource}) with ${disc >= 10 ? "near-complete R-loop collapse" : disc >= 5 ? "substantial R-loop disruption" : "moderate R-loop destabilization"}. Although outside the seed, the mismatch is sufficient for diagnostic-grade allele differentiation.`);
+      else lines.push(`SNP at PAM-distal position ${snpPos} (${snpChange}${mmChem}) gives limited discrimination (${disc.toFixed(1)}\u00D7, ${discSource}) \u2014 ${disc >= 2 ? "partial R-loop disruption" : "minimal R-loop disruption"}. PAM-distal mismatches are better tolerated by Cas12a \u2014 synthetic mismatch in the seed region could boost specificity.`);
     }
   } else if (r.strategy === "Direct" && !wt) {
     lines.push(`Direct detection strategy. Discrimination ratio: ${disc.toFixed(1)}\u00D7 (${discSource}). WT spacer data unavailable for positional analysis.`);
@@ -2901,8 +2912,9 @@ const generateInterpretation = (r) => {
     let smPos = r.smPosition || null;
     let smChange = null;
     if (smPos && wt && spacer[smPos - 1] !== wt[smPos - 1]) smChange = `${wt[smPos - 1]}\u2192${spacer[smPos - 1]}`;
-    if (smPos && smChange) lines.push(`Synthetic mismatch at position ${smPos} (${smChange}) creates a double-mismatch penalty on the wildtype template. This engineered substitution boosts discrimination at the cost of ~15\u201320% reduced cleavage activity on the mutant target.`);
-    else lines.push("Synthetic mismatch applied \u2014 an engineered base substitution in the seed region creates a double-mismatch penalty on the wildtype template, boosting specificity.");
+    const smImprovement = r.smImprovementFactor ? ` (${r.smImprovementFactor.toFixed(1)}\u00D7 improvement)` : "";
+    if (smPos && smChange) lines.push(`Synthetic mismatch at position ${smPos} (${smChange}) creates a double-mismatch penalty on the wildtype template${smImprovement}. Activity cost depends on position and mismatch type (seed-proximal SM: 10\u201340% reduction; PAM-distal SM: 5\u201315% reduction; Liang et al. 2023).`);
+    else lines.push(`Synthetic mismatch applied \u2014 an engineered base substitution creates a double-mismatch penalty on the wildtype template, boosting specificity${smImprovement}. Activity cost is position-dependent (Liang et al. 2023).`);
   }
 
   // GC content
@@ -3216,7 +3228,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
       <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "14px" : "18px 22px", marginBottom: "16px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "6px" }}>Reading the table</div>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : hasML ? "1fr 1fr 1fr 1fr" : "1fr 1fr 1fr", gap: "6px 20px", fontSize: "12px", color: T.primaryDark, lineHeight: 1.5, opacity: 0.85 }}>
-          <div><strong>Score</strong> — predicted trans-cleavage activity (0–1). Higher = stronger fluorescent signal. {hasML ? `Ensemble of heuristic + ${hasGuardNet ? "GUARD-Net" : "CNN"}.` : "Heuristic composite."}</div>
+          <div><strong>Score</strong> — predicted trans-cleavage activity (0–1). Higher = stronger SWV signal decrease. {hasML ? `Ensemble of heuristic + ${hasGuardNet ? "GUARD-Net" : "CNN"}.` : "Heuristic composite."}</div>
           <div><strong>Disc</strong> — fold-difference in cleavage between MUT and WT templates. ≥ 3× = diagnostic-grade discrimination (specificity proxy: ~1-1/disc).</div>
           {hasML && <div><strong>{mlColLabel}</strong> — {hasGuardNet ? "GUARD-Net neural network" : "ML calibrated"} activity prediction (before ensemble).</div>}
           <div><strong>Expand</strong> — click any row for full interpretation, crRNA architecture, primers, and alternatives.</div>
@@ -3336,7 +3348,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                     <td style={{ padding: "10px 12px", fontWeight: 600, fontFamily: MONO, fontSize: "11px" }}>{r.label}</td>
                     <td style={{ padding: "10px 12px" }}><DrugBadge drug={r.drug} /></td>
                     <td style={{ padding: "10px 12px" }}><Badge variant={r.strategy === "Direct" ? "success" : "purple"}>{r.strategy}</Badge></td>
-                    {hasReadiness && <td style={{ padding: "10px 6px", textAlign: "center" }}>{r.readinessScore != null ? <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 6, fontFamily: MONO, fontWeight: 700, fontSize: "12px", backgroundColor: gradientColor(r.readinessScore), color: r.readinessScore > 0.3 && r.readinessScore < 0.7 ? "#333" : "#fff" }}>{r.readinessScore.toFixed(2)}</span> : "—"}</td>}
+                    {hasReadiness && <td style={{ padding: "10px 6px", textAlign: "center" }}>{r.readinessScore != null ? <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 6, fontFamily: MONO, fontWeight: 700, fontSize: "12px", backgroundColor: gradientColor(r.readinessScore), color: r.readinessScore < 0.3 ? "#333" : "#fff" }}>{r.readinessScore.toFixed(2)}</span> : "—"}</td>}
                     {hasReadiness && <td style={{ padding: "10px 6px", textAlign: "center" }}>{r.riskProfile && <RiskHeatCell level={r.riskProfile.overall} />}</td>}
                     <td style={{ padding: "10px 12px" }}><Seq s={r.spacer?.slice(0, 24)} /></td>
                     <td style={{ padding: "10px 12px", fontFamily: MONO, fontWeight: 700, color: (r.ensembleScore || r.score) > 0.8 ? T.primary : (r.ensembleScore || r.score) > 0.65 ? T.warning : T.danger }}>{(r.ensembleScore || r.score).toFixed(3)}</td>
@@ -3423,7 +3435,7 @@ const DiscriminationTab = ({ results }) => {
             is on resistant DNA versus normal DNA — for example, "5×" means the guide produces 5 times more signal on a resistant sample.
           </p>
           <p style={{ margin: 0 }}>
-            A ratio ≥ 3× is considered <strong>diagnostic-grade</strong> — reliable enough for clinical use with fluorescence or lateral-flow readout.
+            A ratio ≥ 3× is considered <strong>diagnostic-grade</strong> — reliable enough for clinical use with electrochemical (SWV) or lateral-flow readout.
             ≥ 2× is the minimum for any detection method. Below 2× the guide cannot reliably distinguish resistant from susceptible bacteria
             and requires synthetic mismatch enhancement.
           </p>
@@ -3656,7 +3668,7 @@ const PrimersTab = ({ results }) => {
           <p style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.6, margin: 0, opacity: 0.85 }}>
             RPA is an isothermal amplification method (37°C) that replaces PCR thermocycling. Each crRNA target needs a pair of
             30–35 nt primers flanking a 100–200 bp amplicon containing the crRNA binding site. The amplified product is then
-            detected by Cas12a <em>trans</em>-cleavage of a fluorescent reporter.
+            detected by Cas12a <em>trans</em>-cleavage of MB-ssDNA reporters on the electrochemical platform (SWV signal decrease on LIG electrodes).
           </p>
         </div>
       </div>
@@ -5027,7 +5039,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <div>
                     <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>MUT vs WT Predicted Activity</div>
                     <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5, maxWidth: "540px" }}>
-                      Density from <strong>{plotResults.length}</strong>/{results.filter(r => r.gene !== "IS6110").length} candidates passing <strong>{PRESET_LABELS[activePreset] || activePreset}</strong> thresholds (eff ≥ {effT}, disc ≥ {discT}×). Greater separation = better discrimination. WT activity derived from discrimination ratios (A<sub>WT</sub> = A<sub>MUT</sub> / disc).
+                      Density from <strong>{plotResults.length}</strong>/{results.filter(r => r.gene !== "IS6110").length} candidates passing <strong>{PRESET_LABELS[activePreset] || activePreset}</strong> thresholds (eff ≥ {effT}, disc ≥ {discT}×). Greater separation = better discrimination. WT activity derived from discrimination ratios (A<sub>WT</sub> = A<sub>MUT</sub> / disc). SWV signal decrease is proportional to predicted activity.
                     </div>
                   </div>
                   <Badge variant={separation >= 0.15 ? "success" : separation >= 0.08 ? "warning" : "danger"}>
@@ -5038,16 +5050,16 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <AreaChart data={combined} margin={{ top: 10, right: 15, bottom: 25, left: 15 }}>
                     <defs>
                       <linearGradient id="mutAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#B40426" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#B40426" stopOpacity={0.03} />
+                        <stop offset="0%" stopColor="#5e4fa2" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#5e4fa2" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="wtAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3B4CC0" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#3B4CC0" stopOpacity={0.03} />
+                        <stop offset="0%" stopColor="#e6e6e6" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#e6e6e6" stopOpacity={0.03} />
                       </linearGradient>
                       <linearGradient id="overlapAreaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8C6BB1" stopOpacity={0.2} />
-                        <stop offset="100%" stopColor="#8C6BB1" stopOpacity={0.05} />
+                        <stop offset="0%" stopColor="#66c2a5" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="#66c2a5" stopOpacity={0.03} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="x" type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} tickCount={11} axisLine={{ stroke: T.border }} tickLine={false} label={{ value: "Predicted cleavage activity", position: "insideBottom", offset: -12, fontSize: 10, fill: T.textSec }} />
@@ -5058,44 +5070,44 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <div style={{ ...tooltipStyle, padding: "10px 14px" }}>
                           <div style={{ fontWeight: 600, fontSize: "11px", color: T.text, marginBottom: "4px" }}>Activity: {label}</div>
                           {payload.map(p => p.dataKey !== "overlap" && (
-                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#B40426" : "#3B4CC0" }}>
+                            <div key={p.dataKey} style={{ fontSize: "11px", color: p.dataKey === "mut" ? "#5e4fa2" : "#e6e6e6" }}>
                               {p.dataKey === "mut" ? "Mutant" : "Wildtype"}: {p.value?.toFixed(4)}
                             </div>
                           ))}
                         </div>
                       );
                     }} />
-                    <ReferenceLine x={meanMut} stroke="#B40426" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#B40426", fontWeight: 700 }} />
-                    <ReferenceLine x={meanWt} stroke="#3B4CC0" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#3B4CC0", fontWeight: 700 }} />
+                    <ReferenceLine x={meanMut} stroke="#5e4fa2" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ MUT", position: "insideTopRight", fontSize: 9, fill: "#5e4fa2", fontWeight: 700 }} />
+                    <ReferenceLine x={meanWt} stroke="#e6e6e6" strokeDasharray="3 3" strokeWidth={1} label={{ value: "μ WT", position: "insideTopRight", fontSize: 9, fill: "#e6e6e6", fontWeight: 700 }} />
                     <Area type="monotone" dataKey="overlap" stroke="none" fill="url(#overlapAreaFill)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="mut" stroke="#B40426" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
-                    <Area type="monotone" dataKey="wt" stroke="#3B4CC0" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
+                    <Area type="monotone" dataKey="mut" stroke="#5e4fa2" strokeWidth={2.5} fill="url(#mutAreaFill)" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="wt" stroke="#e6e6e6" strokeWidth={2} fill="url(#wtAreaFill)" isAnimationActive={false} strokeDasharray="6 3" />
                   </AreaChart>
                 </ResponsiveContainer>
                 {/* Custom legend + stats */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", flexWrap: "wrap", gap: "12px" }}>
                   <div style={{ display: "flex", gap: "16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "16px", height: "3px", background: "#B40426", borderRadius: "2px" }} />
+                      <div style={{ width: "16px", height: "3px", background: "#5e4fa2", borderRadius: "2px" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Mutant (A<sub>MUT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "16px", height: "3px", background: "#3B4CC0", borderRadius: "2px", borderBottom: "1px dashed #3B4CC0" }} />
+                      <div style={{ width: "16px", height: "3px", background: "#e6e6e6", borderRadius: "2px", borderBottom: "1px dashed #e6e6e6" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Wildtype (A<sub>WT</sub>)</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                      <div style={{ width: "10px", height: "10px", background: "rgba(148,103,189,0.2)", borderRadius: "2px" }} />
+                      <div style={{ width: "10px", height: "10px", background: "rgba(102,194,165,0.15)", borderRadius: "2px" }} />
                       <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>Overlap zone ({overlapPct}%)</span>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: "20px" }}>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ MUT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#B40426", fontFamily: MONO }}>{meanMut}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#5e4fa2", fontFamily: MONO }}>{meanMut}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ WT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#3B4CC0", fontFamily: MONO }}>{meanWt}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#e6e6e6", fontFamily: MONO }}>{meanWt}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>
