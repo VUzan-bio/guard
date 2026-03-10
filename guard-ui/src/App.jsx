@@ -1903,41 +1903,37 @@ const RiskDot = ({ level, size = 12 }) => (
   }} />
 );
 
-/* Heatmap cell for Risk Assessment Matrix */
-const riskLevelToT = { green: 0.0, amber: 0.5, red: 1.0 };
+/* Heatmap cell for Risk Assessment Matrix — 3 discrete pastel colors */
+const RISK_CELL_COLORS = { green: "#B8E6C8", amber: "#FDDCB0", red: "#F5A3A3" };
+const RISK_CELL_PASS = "#a7d8b8";
 const RiskHeatCell = ({ level, type = "quantitative" }) => {
-  if (type === "binary") {
-    const passed = level === "green";
-    return (
-      <div style={{
-        width: 44, height: 28, borderRadius: 4, border: "2px solid #fff",
-        backgroundColor: passed ? "#3288bd" : "#5e4fa2",
-        margin: "0 auto",
-      }} />
-    );
-  }
-  const t = riskLevelToT[level] ?? 0.5;
-  const color = gradientColor(t);
+  const bg = type === "binary"
+    ? (level === "green" ? RISK_CELL_PASS : RISK_CELL_COLORS.red)
+    : (RISK_CELL_COLORS[level] || RISK_CELL_COLORS.amber);
   return (
     <div style={{
-      width: 44, height: 28, borderRadius: 4, border: "2px solid #fff",
-      backgroundColor: color, margin: "0 auto",
+      width: 44, height: 28, borderRadius: 6, border: "2px solid #fff",
+      backgroundColor: bg, margin: "0 auto",
     }} />
   );
 };
 
-const PriorityBadge = ({ rank }) => (
-  <span style={{
-    display: "inline-flex", alignItems: "center", justifyContent: "center",
-    width: 24, height: 24, borderRadius: "50%", fontSize: "11px", fontWeight: 800,
-    fontFamily: MONO,
-    background: rank <= 3 ? T.primaryLight : T.bgSub,
-    color: rank <= 3 ? T.primary : T.textSec,
-    border: rank <= 3 ? `1.5px solid ${T.primary}44` : `1px solid ${T.border}`,
-  }}>
-    {rank}
-  </span>
-);
+const PriorityBadge = ({ rank }) => {
+  const isTop3 = rank <= 3;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      width: isTop3 ? 28 : 24, height: isTop3 ? 28 : 24, borderRadius: "50%",
+      fontSize: isTop3 ? "13px" : "11px", fontWeight: isTop3 ? 700 : 400,
+      fontFamily: MONO,
+      background: isTop3 ? "#5e4fa2" : "transparent",
+      color: isTop3 ? "#fff" : T.textSec,
+      border: isTop3 ? "2px solid #5e4fa2" : `1px solid ${T.border}`,
+    }}>
+      {rank}
+    </span>
+  );
+};
 
 const ExperimentalPriorityCard = ({ results }) => {
   const top3 = [...results].filter(r => r.experimentalPriority != null)
@@ -2025,13 +2021,19 @@ const RiskMatrix = ({ results }) => {
           </tbody>
         </table>
       </div>
-      {/* Gradient legend */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 24px 14px", flexWrap: "wrap" }}>
-        <span style={{ fontSize: "10px", color: T.textTer }}>Risk / Low</span>
-        <div style={{ width: 160, height: 10, borderRadius: 5, background: gradientCSS }} />
-        <span style={{ fontSize: "10px", color: T.textTer }}>Safe / High</span>
-        <div style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: PASS_GREEN, marginLeft: 12 }} />
-        <span style={{ fontSize: "10px", color: T.textTer }}>Pass (binary)</span>
+      {/* Discrete legend */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "10px 24px 14px", flexWrap: "wrap" }}>
+        {[
+          { color: RISK_CELL_COLORS.green, label: "Safe" },
+          { color: RISK_CELL_COLORS.amber, label: "Moderate" },
+          { color: RISK_CELL_COLORS.red, label: "Risk" },
+          { color: RISK_CELL_PASS, label: "Pass (binary)" },
+        ].map(s => (
+          <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ width: 16, height: 12, borderRadius: 3, backgroundColor: s.color }} />
+            <span style={{ fontSize: "10px", color: T.textTer }}>{s.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -3847,7 +3849,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       { param: "k_off (RNP dissociation)", value: "1.87 \u00d7 10\u207b\u2074 s\u207b\u00b9", source: "Lesinski et al. 2024", source_detail: "SPR measurement, K_D = 1.07 nM", note: null },
       { param: "k_cis (cis-cleavage)", value: "0.03 s\u207b\u00b9", source: "Lesinski et al. 2024", source_detail: "First-order fit of dsDNA fluorescence reporter cleavage", note: null },
       { param: "k_trans (solution, free ssDNA)", value: "~2.0 s\u207b\u00b9", source: "Nalefski et al. 2021", source_detail: "LbCas12a k_cat for C10 polycytidine, low-salt buffer", note: "Free ssDNA in solution. NOT applicable to surface-tethered reporters." },
-      { param: "k_trans (surface, estimated)", value: "0.01\u20130.1 s\u207b\u00b9", source: "Estimated", source_detail: "10\u2013100\u00d7 slower than solution due to tethered MB-ssDNA steric effects", note: "No direct measurement exists. Key experimental unknown for Year 1." },
+      { param: "k_trans (surface, estimated)", value: "0.01\u20130.1 s\u207b\u00b9", source: "Estimated", source_detail: "10\u2013100\u00d7 slower than solution due to tethered MB-ssDNA steric effects", note: "No direct measurement exists. Key experimental unknown." },
       { param: "[Cas12a]", value: "50 nM", source: "Design parameter", source_detail: "Typical E-CRISPR range: 10\u2013200 nM. Lesinski 2024 used 2 \u00b5M for characterization.", note: null },
       { param: "[crRNA] on pad", value: "~200 nM equivalent", source: "Design parameter", source_detail: "Pre-dried on LIG. Effective concentration after rehydration unknown.", note: "Bezinge 2023 demonstrated crRNA-on-LIG but did not report concentration." },
       { param: "MB-ssDNA probe density", value: "~10\u00b9\u2070\u201310\u00b9\u00b9 molecules/cm\u00b2", source: "Estimated for LIG", source_detail: "\u03c0-stacking attachment. Gold SAM ref: 10\u00b9\u00b2/cm\u00b2 (Steel 1998). LIG 10\u2013100\u00d7 lower.", note: "Probe density directly affects signal magnitude and time-to-detection." },
@@ -3855,7 +3857,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     insights: [
       { title: "Rate-limiting step", text: "Surface trans-cleavage of tethered MB-ssDNA reporters dominates detection time \u2014 not RNP formation or target recognition. Optimizing probe density and electrode surface chemistry is the primary experimental lever for reducing time-to-result." },
       { title: "In situ complexation", text: "Lesinski et al. 2024: reduces effective [RNP] during the first ~5 minutes by ~10-fold vs pre-complexed format. This is a feature \u2014 it prevents Cas12a from destroying target amplicons before detection begins." },
-      { title: "Experimental unknowns", text: "k_trans on LIG-tethered MB-ssDNA and crRNA rehydration kinetics have not been measured. These are Year 1 characterization priorities that directly inform cartridge design parameters for the CSEM reader." },
+      { title: "Experimental unknowns", text: "k_trans on LIG-tethered MB-ssDNA and crRNA rehydration kinetics have not been measured. These are key characterization priorities that directly inform chip design parameters." },
     ],
     year1_priorities: [
       "k_trans on MB-ssDNA/LIG \u2014 determines detection time",
@@ -3936,105 +3938,116 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
         </div>
       </div>
 
-      {/* Architecture diagram — inline SVG */}
+      {/* Integrated PoC chip diagram — single device */}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
-        <div style={{ overflowX: "auto" }}>
-          <svg viewBox="0 0 780 340" style={{ width: "100%", maxWidth: 780, display: "block", margin: "0 auto" }} fontFamily={FONT}>
-            {/* Background */}
-            <rect x="0" y="0" width="780" height="340" fill="white" rx="8" />
+        <div style={{ display: "flex", justifyContent: "center", width: "100%", overflowX: "auto" }}>
+          <svg viewBox="0 0 720 400" style={{ width: "100%", maxWidth: 720, display: "block" }} fontFamily={FONT}>
+            {/* Chip shadow */}
+            <defs>
+              <filter id="chipShadow" x="-2%" y="-2%" width="104%" height="104%">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.08" />
+              </filter>
+              <marker id="arrowGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L8,3 L0,6" fill="none" stroke="#9CA3AF" strokeWidth="1" />
+              </marker>
+            </defs>
 
-            {/* Stage A: Amplification */}
-            <text x="30" y="30" fontSize="11" fontWeight="700" fill="#6B7280">SAMPLE</text>
-            <text x="30" y="45" fontSize="9" fill="#9CA3AF">(DNA extract)</text>
+            {/* Chip body */}
+            <rect x="10" y="10" width="700" height="380" rx="16" ry="16" fill="#fafafa" stroke="#e0e0e0" strokeWidth="1.5" filter="url(#chipShadow)" />
+            <text x="30" y="36" fontSize="10" fill="#999" fontWeight="600" letterSpacing="0.5">GUARD MDR-TB DIAGNOSTIC CHIP</text>
 
-            {/* Arrow from sample */}
-            <line x1="95" y1="38" x2="135" y2="38" stroke="#9CA3AF" strokeWidth="1.5" markerEnd="url(#arrowGray)" />
+            {/* Sample input port */}
+            <rect x="30" y="58" width="80" height="28" rx="6" fill="#fff" stroke="#ccc" strokeWidth="1" />
+            <text x="70" y="76" textAnchor="middle" fontSize="9" fill="#666" fontWeight="600">SAMPLE IN</text>
+            <line x1="70" y1="86" x2="70" y2="105" stroke="#ccc" strokeWidth="1" markerEnd="url(#arrowGray)" />
 
-            {/* RPA Pools */}
-            {["Pool A", "Pool B", "Pool C"].map((label, i) => {
-              const poolStroke = ["#5e4fa2", "#3288bd", "#66c2a5"][i];
-              const poolFill = ["#f0eef8", "#e8f4fa", "#ecf8f4"][i];
-              return (
-              <g key={label}>
-                <rect x="140" y={15 + i * 40} width="120" height="32" rx="6" fill={poolFill} stroke={poolStroke} strokeWidth="1.5" />
-                <text x="200" y={35 + i * 40} textAnchor="middle" fontSize="10" fontWeight="600" fill={poolStroke}>RPA {label}</text>
+            {/* RPA chambers — left side */}
+            {[
+              { pool: "Pool A", y: 110, color: "#5e4fa2", bg: "#f0eef8" },
+              { pool: "Pool B", y: 175, color: "#3288bd", bg: "#e8f4fa" },
+              { pool: "Pool C", y: 240, color: "#66c2a5", bg: "#ecf8f4" },
+            ].map(p => (
+              <g key={p.pool}>
+                <rect x="25" y={p.y} width="110" height="50" rx="8" fill={p.bg} stroke={p.color} strokeWidth="1.5" />
+                <text x="80" y={p.y + 22} textAnchor="middle" fontSize="10" fontWeight="600" fill={p.color}>RPA {p.pool}</text>
+                <text x="80" y={p.y + 36} textAnchor="middle" fontSize="8" fill="#888">
+                  {p.pool === "Pool A" ? "8 primers" : "10 primers"}
+                </text>
+                {/* Capillary channel */}
+                <line x1="135" y1={p.y + 25} x2="255" y2={p.y + 25} stroke={p.color} strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
               </g>
-              );
-            })}
-            <text x="200" y="145" textAnchor="middle" fontSize="9" fill="#6B7280">Amplification</text>
-            <text x="200" y="158" textAnchor="middle" fontSize="9" fill="#9CA3AF">37 °C, 15-20 min</text>
-
-            {/* Arrows from pools to detection */}
-            {[0, 1, 2].map(i => (
-              <line key={`pa${i}`} x1="260" y1={31 + i * 40} x2="320" y2={100} stroke="#9CA3AF" strokeWidth="1" strokeDasharray="4,3" markerEnd="url(#arrowGray)" />
             ))}
+            <text x="80" y="310" textAnchor="middle" fontSize="8" fill="#aaa">37 °C · 15–20 min</text>
+            <text x="195" y="150" textAnchor="middle" fontSize="7" fill="#aaa" fontStyle="italic">+ Cas12a</text>
+            <text x="195" y="162" textAnchor="middle" fontSize="7" fill="#bbb" fontStyle="italic">capillary flow</text>
 
-            {/* Cas12a addition */}
-            <text x="290" y="185" textAnchor="middle" fontSize="9" fill="#6B7280">+ Cas12a in</text>
-            <text x="290" y="198" textAnchor="middle" fontSize="9" fill="#9CA3AF">distribution buffer</text>
-
-            {/* Capillary flow label */}
-            <text x="340" y="75" fontSize="8" fill="#9CA3AF" fontStyle="italic">capillary flow</text>
-
-            {/* Stage C: Detection Array */}
-            <rect x="370" y="15" width="380" height="220" rx="10" fill="#f7f8fc" stroke="#5e4fa2" strokeWidth="1.5" strokeDasharray="6,3" />
-            <text x="560" y="35" textAnchor="middle" fontSize="11" fontWeight="700" fill="#5e4fa2">DETECTION ARRAY</text>
+            {/* Detection array frame — right side */}
+            <rect x="260" y="55" width={5 * 58 + 6 * 8 + 30} height={3 * 50 + 4 * 8 + 55} rx="12" ry="12" fill="#fff" stroke="#e0e0e0" strokeWidth="1" />
+            <text x="275" y="76" fontSize="9" fill="#999" fontWeight="600" letterSpacing="0.3">DETECTION ARRAY</text>
 
             {/* Electrode pads — 5×3 grid */}
             {pooling.electrode_layout.map((row, ri) =>
               row.map((target, ci) => {
-                const px = 395 + ci * 70;
-                const py = 50 + ri * 60;
+                const px = 275 + ci * 66;
+                const py = 88 + ri * 58;
                 const drug = targetDrug(target);
                 const pool = pooling.target_to_pool[target] || "?";
                 const isCtrl = target === "IS6110_NON";
                 const isPncA = target === "pncA_H57D";
-                const shortLabel = target.replace("IS6110_NON", "IS6110").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1\n$2");
                 const parts = target.split("_");
+                const padColor = isCtrl ? "#9CA3AF" : (PAD_DRUG_COLORS[drug] || "#6B7280");
                 return (
                   <g key={`pad-${ri}-${ci}`}>
-                    <rect x={px} y={py} width="58" height="48" rx="4"
-                      fill={isCtrl ? "#F3F4F6" : PAD_DRUG_BG[drug] || "#F3F4F6"}
-                      stroke={isPncA ? T.danger : isCtrl ? "#9CA3AF" : PAD_DRUG_COLORS[drug] || "#6B7280"}
-                      strokeWidth={isPncA ? 2 : 1.2}
-                      strokeDasharray={isPncA ? "3,2" : "none"} />
-                    <text x={px + 29} y={py + 18} textAnchor="middle" fontSize="8" fontWeight="700" fill={PAD_DRUG_COLORS[drug] || "#6B7280"}>{parts[0]}</text>
-                    <text x={px + 29} y={py + 30} textAnchor="middle" fontSize="7.5" fontWeight="500" fill={PAD_DRUG_COLORS[drug] || "#6B7280"}>{parts[1] || ""}</text>
-                    {isCtrl && <text x={px + 29} y={py + 42} textAnchor="middle" fontSize="7" fill="#9CA3AF">CTRL</text>}
-                    {!isCtrl && <circle cx={px + 50} cy={py + 42} r="3" fill={POOL_COLORS[pool] || "#999"} />}
+                    <rect x={px} y={py} width="54" height="46" rx="8" ry="8"
+                      fill={isCtrl ? "#f5f5f5" : (PAD_DRUG_BG[drug] || "#F3F4F6")}
+                      stroke={isPncA ? "#ef4444" : padColor}
+                      strokeWidth={isPncA ? 1.5 : 1}
+                      strokeDasharray={isPncA ? "4 3" : "none"} />
+                    {/* Inner circle — electrode well */}
+                    <circle cx={px + 27} cy={py + 18} r="10" fill={isCtrl ? "#eee" : padColor + "20"} stroke={padColor + "40"} strokeWidth="0.5" />
+                    <text x={px + 27} y={py + 21} textAnchor="middle" fontSize="7" fontWeight="700" fill={padColor}>{parts[0]}</text>
+                    <text x={px + 27} y={py + 33} textAnchor="middle" fontSize="6.5" fontWeight="500" fill={padColor}>{parts[1] || ""}</text>
+                    {isCtrl && <text x={px + 27} y={py + 42} textAnchor="middle" fontSize="6" fill="#9CA3AF">CTRL</text>}
+                    {!isCtrl && <circle cx={px + 46} cy={py + 40} r="3" fill={POOL_COLORS[pool] || "#999"} />}
                   </g>
                 );
               })
             )}
 
-            <text x="560" y="245" textAnchor="middle" fontSize="8" fill="#9CA3AF">15 LIG electrode pads with pre-dried crRNA + MB-ssDNA</text>
+            <text x={275 + 5 * 66 / 2} y={88 + 3 * 58 + 15} textAnchor="middle" fontSize="7" fill="#bbb">15 LIG electrode pads · pre-dried crRNA + MB-ssDNA</text>
 
-            {/* SWV readout */}
-            <text x="390" y="280" fontSize="10" fontWeight="600" fill="#6B7280">SWV readout per pad</text>
-            <line x1="525" y1="276" x2="575" y2="276" stroke="#9CA3AF" strokeWidth="1.5" markerEnd="url(#arrowGray)" />
-            <text x="580" y="280" fontSize="10" fontWeight="600" fill="#374151">CSEM multiplexed potentiostat</text>
+            {/* SWV readout contacts at bottom */}
+            {[...Array(15)].map((_, i) => (
+              <rect key={`ct-${i}`} x={280 + i * 22} y={88 + 3 * 58 + 25} width="14" height="5" rx="1.5" fill="#d0d0d0" />
+            ))}
+            <text x={275 + 5 * 66 / 2} y={88 + 3 * 58 + 48} textAnchor="middle" fontSize="8" fill="#aaa">SWV readout contacts</text>
 
-            {/* Pool legend */}
+            {/* Legend at bottom of chip */}
             {Object.entries(POOL_COLORS).map(([id, col], i) => (
               <g key={`pl-${id}`}>
-                <circle cx={395 + i * 80} cy={305} r="5" fill={col} />
-                <text x={404 + i * 80} y={309} fontSize="9" fill="#6B7280">Pool {id}</text>
+                <circle cx={30 + i * 80} cy={365} r="4" fill={col} />
+                <text x={38 + i * 80} y={369} fontSize="8" fill="#888">Pool {id}</text>
               </g>
             ))}
-
-            {/* Arrow marker */}
-            <defs>
-              <marker id="arrowGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <path d="M0,0 L8,3 L0,6" fill="none" stroke="#9CA3AF" strokeWidth="1" />
-              </marker>
-            </defs>
+            <g>
+              <circle cx={280} cy={365} r="3.5" fill="#3288bd" />
+              <text x={288} y={369} fontSize="8" fill="#888">Direct</text>
+            </g>
+            <g>
+              <circle cx={340} cy={365} r="3.5" fill="none" stroke="#3288bd" strokeWidth="1" />
+              <text x={348} y={369} fontSize="8" fill="#888">Proximity</text>
+            </g>
+            <g>
+              <rect x={410} y={361} width="10" height="8" rx="2" fill="none" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" />
+              <text x={424} y={369} fontSize="8" fill="#888">Gap</text>
+            </g>
           </svg>
         </div>
 
         {/* Key stats row */}
         <div style={{ display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap", justifyContent: "center" }}>
           {[
-            { label: "3 stages", desc: "Amplification → Distribution → Detection" },
+            { label: "Integrated", desc: "Single paper-based device" },
             { label: `${Object.keys(pooling.pools).length} pools`, desc: "Amplification sub-pools" },
             { label: "15 pads", desc: "LIG electrode array" },
             { label: "In situ", desc: "RNP complexation on-pad" },
@@ -4226,7 +4239,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 14, gap: 8, fontSize: "11px", color: T.textTer }}>
             <span>SWV readout per pad</span>
             <svg width="40" height="2"><line x1="0" y1="1" x2="40" y2="1" stroke="#aaa" strokeWidth="1" /></svg>
-            <span style={{ fontWeight: 600, color: T.textSec }}>CSEM potentiostat</span>
+            <span style={{ fontWeight: 600, color: T.textSec }}>Multiplexed potentiostat</span>
           </div>
         </div>
 
@@ -6655,7 +6668,7 @@ const ResearchPage = ({ connected }) => {
       {/* ═══ Section 5: Platform Roadmap ═══ */}
       <CollapsibleSection title="Platform Roadmap" defaultOpen={false}>
         <p style={{ fontSize: "12px", color: RS.muted, marginBottom: "16px", lineHeight: 1.7 }}>
-          Planned capabilities aligned with PhD milestones. Each module builds on experimental data collected during the doctoral programme.
+          Planned capabilities aligned with development milestones. Each module builds on experimental data collected during validation studies.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
           {[
@@ -6663,28 +6676,28 @@ const ResearchPage = ({ connected }) => {
               icon: <RefreshCw size={18} />,
               title: "Active Learning Loop",
               desc: "Feed experimental measurements back into GUARD-Net. Fluorescence or electrochemical data recalibrates the ensemble, closing the gap between in silico and platform-specific signal.",
-              milestone: "PhD Year 1 — Experimental validation",
+              milestone: "Phase 1 — Experimental validation",
               ready: true,
             },
             {
               icon: <Zap size={18} />,
               title: "Electrochemical Transfer Function",
               desc: "Model the relationship between solution-phase trans-cleavage and surface-tethered MB reporter degradation on LIG electrodes.",
-              milestone: "PhD Year 2 — Electrode characterisation",
+              milestone: "Phase 2 — Electrode characterisation",
               ready: false,
             },
             {
               icon: <Grid3x3 size={18} />,
               title: "Spatial Multiplexing Optimiser",
               desc: "Assign targets to electrode pads on the spatially addressed array, minimising electrochemical crosstalk. Replaces solution-phase M8 when using in-situ complexation.",
-              milestone: "PhD Year 2–3 — Array fabrication",
+              milestone: "Phase 2–3 — Array fabrication",
               ready: false,
             },
             {
               icon: <FlaskConical size={18} />,
               title: "Nuclease Adaptation Engine",
               desc: "Swap Cas12a variants via transfer learning. Freeze sequence encoders, fine-tune RLPA attention and output heads on variant-specific data.",
-              milestone: "PhD Year 3 — Variant screening",
+              milestone: "Phase 3 — Variant screening",
               ready: false,
             },
           ].map((card, i) => (

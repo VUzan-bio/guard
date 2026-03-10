@@ -175,7 +175,7 @@ KINETIC_PARAMS = [
         "value": "0.01\u20130.1 s\u207b\u00b9",
         "source": "Estimated",
         "source_detail": "10-100\u00d7 slower than solution due to tethered MB-ssDNA steric effects",
-        "note": "No direct measurement exists. Key experimental unknown for Year 1.",
+        "note": "No direct measurement exists. Key experimental unknown.",
     },
     {
         "param": "[Cas12a]",
@@ -225,14 +225,13 @@ KEY_INSIGHTS = [
         "title": "Experimental unknowns",
         "text": (
             "k_trans on LIG-tethered MB-ssDNA and crRNA rehydration kinetics "
-            "have not been measured. These are Year 1 characterization "
-            "priorities that directly inform cartridge design parameters "
-            "for the CSEM reader."
+            "have not been measured. These are key characterization "
+            "priorities that directly inform chip design parameters."
         ),
     },
 ]
 
-YEAR1_PRIORITIES = [
+CHARACTERIZATION_PRIORITIES = [
     "k_trans on MB-ssDNA/LIG \u2014 determines detection time",
     "crRNA rehydration kinetics \u2014 determines pad preparation protocol",
     "Optimal [Cas12a] for in situ format \u2014 balance sensitivity vs background",
@@ -251,7 +250,7 @@ def get_kinetics_data(
       - Phase breakdown with solution vs on-electrode ranges
       - Assay totals with WHO TPP compliance
       - Literature-verified parameter table
-      - Key insights and Year 1 priorities
+      - Key insights and characterization priorities
       - Target ranking by predicted detection speed (relative order only)
     """
     if targets is None:
@@ -271,7 +270,7 @@ def get_kinetics_data(
         "totals": totals.to_dict(),
         "parameters": KINETIC_PARAMS,
         "insights": KEY_INSIGHTS,
-        "year1_priorities": YEAR1_PRIORITIES,
+        "year1_priorities": CHARACTERIZATION_PRIORITIES,
         "target_ranking": ranked,
     }
 

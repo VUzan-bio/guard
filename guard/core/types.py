@@ -167,7 +167,7 @@ class ValidationStatus(str, Enum):
 class AssayType(str, Enum):
     """Supported detection modalities."""
     FLUORESCENCE = "fluorescence"           # standard CRISPR-Cas12a trans-cleavage
-    ELECTROCHEMICAL = "electrochemical"     # electrochemical biosensor (CSEM)
+    ELECTROCHEMICAL = "electrochemical"     # electrochemical biosensor
     LATERAL_FLOW = "lateral_flow"           # lateral flow assay
     COLORIMETRIC = "colorimetric"           # colorimetric (AuNP)
 
