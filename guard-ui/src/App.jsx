@@ -30,12 +30,12 @@ const T = {
   bg: "#FFFFFF", bgSub: "#F7F9FC", bgHover: "#EEF2F7",
   border: "#E3E8EF", borderLight: "#F0F3F7",
   text: "#111827", textSec: "#6B7280", textTer: "#9CA3AF",
-  primary: "#4F46E5", primaryLight: "#EEF2FF", primaryDark: "#312E81", primarySub: "#E0E7FF",
+  primary: "#2563EB", primaryLight: "#DBEAFE", primaryDark: "#1E40AF", primarySub: "#BFDBFE",
   success: "#16A34A", successLight: "#DCFCE7",
   warning: "#D97706", warningLight: "#FEF3C7",
   danger: "#DC2626", dangerLight: "#FEE2E2",
   purple: "#2563EB", purpleLight: "#DBEAFE",
-  sidebar: "#FAFBFD", sidebarActive: "#EEF2FF", sidebarHover: "#F3F4F6", sidebarText: "#374151",
+  sidebar: "#FAFBFD", sidebarActive: "#DBEAFE", sidebarHover: "#F3F4F6", sidebarText: "#374151",
   riskGreen: "#6BBF8A", riskGreenBg: "#E8F5EC",
   riskAmber: "#E8A855", riskAmberBg: "#FDF2E0",
   riskRed: "#E07070", riskRedBg: "#FBEAEA",
@@ -219,7 +219,7 @@ const BIBLIOGRAPHY = [
 const DRUG_COLORS = {
   RIF: { bg: "#DBEAFE", text: "#1E40AF" }, INH: { bg: "#FEF3C7", text: "#92400E" },
   EMB: { bg: "#DBEAFE", text: "#1E40AF" }, FQ: { bg: "#FFE4E6", text: "#9F1239" },
-  AG: { bg: "#E0E7FF", text: "#3730A3" }, PZA: { bg: "#F0FDF4", text: "#166534" },
+  AG: { bg: "#DBEAFE", text: "#1E40AF" }, PZA: { bg: "#F0FDF4", text: "#166534" },
 };
 const DEFAULT_DRUG = { bg: "#F3F4F6", text: "#6B7280" };
 
@@ -2096,7 +2096,7 @@ const ReadinessChart = ({ results }) => {
 /* ═══════════════════════════════════════════════════════════════════
    UMAP EMBEDDING PANEL
    ═══════════════════════════════════════════════════════════════════ */
-const DRUG_CANVAS = { RIF: "#2563EB", INH: "#D97706", EMB: "#2563EB", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#6B7280" };
+const DRUG_CANVAS = { RIF: "#2563EB", INH: "#D97706", EMB: "#2563EB", FQ: "#E11D48", AG: "#2563EB", PZA: "#16A34A", OTHER: "#6B7280" };
 
 const UMAPPanel = ({ jobId }) => {
   const [umapData, setUmapData] = useState(null);
@@ -3481,7 +3481,7 @@ const DiscriminationTab = ({ results }) => {
 
       {/* Discrimination chart — drug-colored bars, sorted desc */}
       {(() => {
-        const DRUG_DC = { RIF: "#2563EB", INH: "#D97706", EMB: "#2563EB", FQ: "#E11D48", AG: "#4F46E5", PZA: "#16A34A", OTHER: "#9CA3AF" };
+        const DRUG_DC = { RIF: "#2563EB", INH: "#D97706", EMB: "#2563EB", FQ: "#E11D48", AG: "#2563EB", PZA: "#16A34A", OTHER: "#9CA3AF" };
         const DRUG_DC_LIGHT = { RIF: "rgba(37,99,235,0.15)", INH: "rgba(217,119,6,0.15)", EMB: "rgba(124,58,237,0.15)", FQ: "rgba(225,29,72,0.15)", AG: "rgba(79,70,229,0.15)", PZA: "rgba(22,163,74,0.15)", OTHER: "rgba(156,163,175,0.15)" };
         const sorted = [...directCands].sort((a, b) => b.disc - a.disc);
         const discChart = sorted.map((r) => ({ name: r.label, disc: +r.disc, score: r.score, drug: r.drug }));
