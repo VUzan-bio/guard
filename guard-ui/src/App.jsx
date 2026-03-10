@@ -1285,45 +1285,26 @@ const HomePage = ({ goTo, connected }) => {
             marginBottom: "24px", overflow: "hidden",
             ...(pipeDone ? {} : { boxShadow: `0 2px 12px ${T.primary}1F` }),
           }}>
-            {/* Running state — full step list with done/active/pending */}
+            {/* Running state — module + detail swipe up */}
             {!pipeDone && (
-              <div style={{ padding: "20px 24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING }}>Pipeline Running</div>
-                  <span style={{ fontFamily: MONO, fontSize: "12px", color: T.primary, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>{pipeElapsed.toFixed(1)}s</span>
+              <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: "14px" }}>
+                <div style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", animation: "subtlePulse 2s ease-in-out infinite" }}>
+                  <ActiveIcon size={16} color={T.primary} strokeWidth={1.8} />
                 </div>
-                {MODULES.map((m, idx) => {
-                  const Icon = m.icon;
-                  const isDone = idx < pipeStep;
-                  const isActive = idx === pipeStep;
-                  const isPending = idx > pipeStep;
-                  const isLast = idx === MODULES.length - 1;
-                  return (
-                    <div key={m.id} style={{ display: "flex", gap: "0" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "20px", flexShrink: 0 }}>
-                        {isDone ? (
-                          <Check size={12} color={T.primary} strokeWidth={2} />
-                        ) : isActive ? (
-                          <div style={{ animation: "subtlePulse 2s ease-in-out infinite" }}>
-                            <Icon size={12} color={T.primary} strokeWidth={2} />
-                          </div>
-                        ) : (
-                          <Icon size={12} color="#ccc" strokeWidth={1.5} />
-                        )}
-                        {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "6px", background: isDone ? T.primary + "44" : "#e0e0e0" }} />}
-                      </div>
-                      <div style={{ flex: 1, paddingLeft: "8px", paddingBottom: isLast ? 0 : "2px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", height: "20px" }}>
-                          <span style={{ fontFamily: MONO, fontSize: "10px", color: isActive ? T.primary : isDone ? T.primary + "99" : "#bbb" }}>{m.id}</span>
-                          <span style={{ fontSize: "11px", fontWeight: isActive ? 700 : 500, color: isActive ? T.primaryDark : isDone ? "#333" : "#aaa" }}>{m.name}</span>
-                        </div>
-                        {isActive && (
-                          <div style={{ fontSize: "10px", color: T.primary, lineHeight: 1.4, padding: "1px 0 3px", fontStyle: "italic" }}>{m.execDesc}</div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                <div key={pipeStep} style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2px", animation: "stepSwipeUp 0.25s ease-out" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                    <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary }}>{activeModule.id}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: T.primaryDark }}>{activeModule.name}</span>
+                  </div>
+                  <div style={{ fontSize: "11px", color: T.primary + "BB", lineHeight: 1.4 }}>{activeModule.execDesc}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: "spin 1s linear infinite" }}>
+                    <circle cx="8" cy="8" r="6" fill="none" stroke={T.primary + "33"} strokeWidth="2" />
+                    <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
+                </div>
               </div>
             )}
 
