@@ -1,15 +1,7 @@
-# GUARD Platform — Slim Docker build for Railway (4GB image limit)
-# Single container: FastAPI serves both API and built frontend
+# GUARD Platform — Slim Docker build for Railway
+# API-only container: frontend is deployed separately on Vercel
 
-# Stage 1: Build frontend
-FROM node:20-alpine AS frontend
-WORKDIR /build
-COPY guard-ui/package*.json ./
-RUN npm ci
-COPY guard-ui/ ./
-RUN npm run build
-
-# Stage 2: Build Python packages that need compilers
+# Stage 1: Build Python packages that need compilers
 FROM python:3.11-slim AS builder
 WORKDIR /build
 
@@ -21,9 +13,10 @@ COPY pyproject.toml README.md ./
 COPY guard/ ./guard/
 # Install CPU-only PyTorch first (small ~200MB vs ~2GB for CUDA)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-RUN pip install --no-cache-dir -e ".[primers,api,viz,disc,ml]"
+# disc covers scikit-learn + lightgbm; skip ml extra (umap-learn/numba not needed at runtime)
+RUN pip install --no-cache-dir -e ".[primers,api,viz,disc]"
 
-# Stage 3: Lean runtime (no compilers)
+# Stage 2: Lean runtime (no compilers)
 FROM python:3.11-slim
 WORKDIR /app
 
@@ -52,10 +45,11 @@ RUN pip install --no-cache-dir --no-deps -e .
 # Build Bowtie2 index
 RUN bowtie2-build data/references/H37Rv.fasta data/references/H37Rv
 
-# Frontend
-COPY --from=frontend /build/dist ./guard-ui/dist
-
 RUN mkdir -p results/api results/panels results/validation
+
+# Memory optimisation for constrained Railway containers
+ENV MALLOC_TRIM_THRESHOLD_=0
+ENV PYTORCH_NO_CUDA_MEMORY_CACHING=1
 
 # Railway sets $PORT dynamically via env var
 ENV PORT=8000

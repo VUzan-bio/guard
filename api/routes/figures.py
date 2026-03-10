@@ -11,9 +11,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-import matplotlib
-matplotlib.use("Agg")  # Non-interactive backend — must be before pyplot import
-
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 
@@ -68,11 +65,14 @@ def _get_cached_or_generate(job_id: str, fig_type: str, generator: Any) -> Respo
             headers={"Cache-Control": "max-age=3600"},
         )
 
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     fig = generator()
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=300, bbox_inches="tight")
-    import matplotlib.pyplot as plt
     plt.close(fig)
     buf.seek(0)
     png_bytes = buf.read()

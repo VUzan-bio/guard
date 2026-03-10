@@ -72,7 +72,7 @@ class AppState:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self._jobs: dict[str, PipelineJob] = {}
         self._lock = threading.Lock()
-        self._executor = ThreadPoolExecutor(max_workers=2)
+        self._executor = ThreadPoolExecutor(max_workers=1)
         self._rehydrate_from_disk()
 
     def submit_job(self, job: PipelineJob) -> str:
