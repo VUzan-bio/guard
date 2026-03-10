@@ -1033,11 +1033,17 @@ class GUARDPipeline:
                             else:
                                 wt_template_base = ref_base
                         elif gcodon == rc_ref:
-                            # Minus-strand gene
+                            # Minus-strand gene: coding strand IS the minus strand.
+                            # ref_base is in coding orientation (= on minus strand).
+                            # comp_ref = ref base on plus strand (genomic).
                             comp_ref = str(_Seq(ref_base).complement())
-                            if as_primer.direction == "rev":
-                                wt_template_base = str(_Seq(comp_ref).complement())
+                            if as_primer.direction == "fwd":
+                                # Fwd primer hybridizes to minus strand (coding)
+                                # WT template = ref on minus strand = ref_base
+                                wt_template_base = ref_base
                             else:
+                                # Rev primer hybridizes to plus strand
+                                # WT template = ref on plus strand = comp_ref
                                 wt_template_base = comp_ref
                         else:
                             wt_template_base = str(_Seq(ref_base).complement()) if as_primer.direction == "fwd" else ref_base

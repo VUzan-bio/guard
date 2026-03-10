@@ -806,17 +806,23 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
 /* ═══════════════════════════════════════════════════════════════════
    COLLAPSIBLE SECTION HELPER
    ═══════════════════════════════════════════════════════════════════ */
-const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
+const CollapsibleSection = ({ title, children, defaultOpen = false, badge }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ marginBottom: "16px", border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
       <button onClick={() => setOpen(!open)} style={{
         display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "12px 16px",
         background: T.bgSub, border: "none", cursor: "pointer", fontFamily: FONT, fontSize: "13px",
-        fontWeight: 600, color: T.text, textAlign: "left",
+        fontWeight: 600, color: T.text, textAlign: "left", justifyContent: "space-between",
       }}>
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        {title}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {title}
+          {badge && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: badge.bg || T.primaryLight, color: badge.color || T.primary, fontFamily: MONO }}>{badge.text}</span>
+          )}
+        </div>
+        <span style={{ fontSize: 10, color: T.textTer, fontWeight: 400 }}>{open ? "collapse" : "expand"}</span>
       </button>
       {open && <div style={{ padding: "16px" }}>{children}</div>}
     </div>
@@ -3916,9 +3922,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
 
   return (
     <div>
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 1: ASSAY ARCHITECTURE OVERVIEW
-          ════════════════════════════════════════════════════════════════ */}
+      <CollapsibleSection title="Spatially-Addressed Electrode Array" defaultOpen={true}>
       <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "16px" : "20px 24px", marginBottom: "24px", display: "flex", gap: "14px", alignItems: "flex-start" }}>
         <Grid3x3 size={20} color={T.primaryDark} style={{ flexShrink: 0, marginTop: 2 }} />
         <div>
@@ -4044,9 +4048,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 2: PRIMER SUB-POOLING STRATEGY
-          ════════════════════════════════════════════════════════════════ */}
+      {/* Cross-reactivity summary */}
+      <div style={{ padding: "10px 16px", background: "#22c55e08", borderLeft: `3px solid ${T.success}`, borderRadius: 4, fontSize: "12px", color: T.textSec, lineHeight: 1.6, marginBottom: "4px" }}>
+        <strong style={{ color: T.text }}>Cross-reactivity:</strong> Amplicon-to-pad specificity validated by Bowtie2 alignment — no off-target activation predicted above 3× background. Co-amplicon pairs (rpoB_H445Y/H445D, katG_S315T/S315N, embB_M306V/M306I, rpoB_S450L/S450W) share amplicons but have distinct crRNAs targeting different SNP positions.
+      </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Amplification Sub-Pools" defaultOpen={true} badge={{ text: `${Object.keys(pooling.pools).length} pools`, bg: "#ecf8f4", color: "#66c2a5" }}>
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Amplification Sub-Pools</div>
         <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
@@ -4105,15 +4113,14 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           <strong style={{ color: T.success }}>Reduction: {pooling.reduction_pct}%</strong>
         </div>
       </div>
+      </CollapsibleSection>
 
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 3: ELECTRODE ARRAY LAYOUT
-          ════════════════════════════════════════════════════════════════ */}
+      <CollapsibleSection title="Detection Array Layout" defaultOpen={true} badge={{ text: "15 pads", bg: "#e8f4fa", color: "#3288bd" }}>
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
           <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Detection Array Layout</div>
           <div style={{ display: "flex", gap: "4px" }}>
-            {["drug", "pool", "strategy"].map(mode => (
+            {["drug", "pool", "strategy", "readiness"].map(mode => (
               <button key={mode} onClick={() => setColorBy(mode)} style={{
                 padding: "4px 12px", borderRadius: "6px", fontSize: "10px", fontWeight: 600, cursor: "pointer", border: `1px solid ${colorBy === mode ? T.primary : T.border}`,
                 background: colorBy === mode ? T.primaryLight : T.bg, color: colorBy === mode ? T.primaryDark : T.textSec, fontFamily: FONT, textTransform: "capitalize",
@@ -4127,8 +4134,19 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           of shared-amplicon targets, (3) IS6110 control positioned for earliest readout.
         </p>
 
-        {/* 5×3 Grid of electrode pads */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "center", marginBottom: "16px" }}>
+        {/* 5×3 Grid of electrode pads — chip frame */}
+        <div style={{ border: "2px solid #d1d5db", borderRadius: "16px", padding: mobile ? "16px 12px" : "24px 20px", background: "#fafbfc", position: "relative", marginBottom: "16px" }}>
+          {/* Flow input indicators */}
+          {!mobile && <div style={{ position: "absolute", left: -32, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", gap: 14 }}>
+            {Object.entries(POOL_COLORS).map(([id, col]) => (
+              <div key={id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 20, height: 3, background: col, borderRadius: 2 }} />
+                <span style={{ fontSize: "7px", color: col, fontWeight: 700 }}>{id}</span>
+              </div>
+            ))}
+          </div>}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px", alignItems: "center" }}>
           {pooling.electrode_layout.map((row, ri) => (
             <div key={ri} style={{ display: "flex", gap: "6px" }}>
               {row.map((target, ci) => {
@@ -4141,7 +4159,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 const parts = target.split("_");
 
                 let borderCol, bgCol;
-                if (colorBy === "drug") {
+                if (colorBy === "readiness") {
+                  const gc = gradientColor(score);
+                  borderCol = gc;
+                  bgCol = gc + "22";
+                } else if (colorBy === "drug") {
                   borderCol = PAD_DRUG_COLORS[drug] || "#6B7280";
                   bgCol = PAD_DRUG_BG[drug] || "#F3F4F6";
                 } else if (colorBy === "pool") {
@@ -4157,19 +4179,19 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     onMouseEnter={() => setHoveredPad(target)}
                     onMouseLeave={() => setHoveredPad(null)}
                     style={{
-                      width: mobile ? 60 : 90, height: mobile ? 55 : 68, borderRadius: "8px",
+                      width: mobile ? 60 : 90, height: mobile ? 55 : 72, borderRadius: "10px",
                       border: `2px solid ${isPncA ? T.danger : borderCol}`,
                       borderStyle: isPncA ? "dashed" : "solid",
-                      background: bgCol, opacity: 0.6 + score * 0.4,
+                      background: bgCol, opacity: colorBy === "readiness" ? 1 : (0.6 + score * 0.4),
                       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                       cursor: "pointer", position: "relative", transition: "all 0.15s",
-                      boxShadow: hoveredPad === target ? "0 2px 12px rgba(0,0,0,0.12)" : "none",
-                      transform: hoveredPad === target ? "scale(1.05)" : "scale(1)",
+                      boxShadow: hoveredPad === target ? "0 4px 16px rgba(0,0,0,0.15)" : "inset 0 1px 3px rgba(0,0,0,0.05)",
+                      transform: hoveredPad === target ? "scale(1.06)" : "scale(1)",
                     }}>
-                    <div style={{ fontSize: mobile ? "8px" : "10px", fontWeight: 700, fontFamily: MONO, color: borderCol, textAlign: "center", lineHeight: 1.2 }}>
+                    <div style={{ fontSize: mobile ? "8px" : "10px", fontWeight: 700, fontFamily: MONO, color: colorBy === "readiness" ? T.text : borderCol, textAlign: "center", lineHeight: 1.2 }}>
                       {parts[0]}
                     </div>
-                    <div style={{ fontSize: mobile ? "7px" : "9px", fontWeight: 500, fontFamily: MONO, color: borderCol, textAlign: "center" }}>
+                    <div style={{ fontSize: mobile ? "7px" : "9px", fontWeight: 500, fontFamily: MONO, color: colorBy === "readiness" ? T.textSec : borderCol, textAlign: "center" }}>
                       {parts[1] || ""}
                     </div>
                     <div style={{ fontSize: "7px", marginTop: "2px", display: "flex", alignItems: "center", gap: "2px" }}>
@@ -4198,6 +4220,14 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               })}
             </div>
           ))}
+          </div>
+
+          {/* Readout connector */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 14, gap: 8, fontSize: "11px", color: T.textTer }}>
+            <span>SWV readout per pad</span>
+            <svg width="40" height="2"><line x1="0" y1="1" x2="40" y2="1" stroke="#aaa" strokeWidth="1" /></svg>
+            <span style={{ fontWeight: 600, color: T.textSec }}>CSEM potentiostat</span>
+          </div>
         </div>
 
         {/* Legend */}
@@ -4205,12 +4235,20 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ fontSize: "12px" }}>●</span> Direct detection</span>
           <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ fontSize: "12px" }}>◐</span> Proximity detection</span>
           <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 16, height: 10, border: `2px dashed ${T.danger}`, borderRadius: 3, display: "inline-block" }} /> Panel gap</span>
+          {colorBy === "readiness" && (
+            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div style={{ width: 60, height: 8, borderRadius: 4, background: gradientCSS }} />
+              <span>Readiness</span>
+            </span>
+          )}
         </div>
+        <p style={{ fontSize: "10px", color: T.textTer, marginTop: "8px", textAlign: "center", fontStyle: "italic" }}>
+          Layout optimized for: (1) IS6110 control at P1 for earliest capillary arrival, (2) shared-amplicon targets on adjacent pads, (3) drug classes grouped for visual interpretation.
+        </p>
       </div>
+      </CollapsibleSection>
 
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 4: IN SITU COMPLEXATION MODEL (literature-verified)
-          ════════════════════════════════════════════════════════════════ */}
+      <CollapsibleSection title="In Situ RNP Formation Kinetics" defaultOpen={false} badge={{ text: kinetics.totals?.total_electrode || "30\u201350 min", bg: "#22c55e20", color: "#22c55e" }}>
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>In Situ RNP Formation Kinetics</div>
         <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
@@ -4267,36 +4305,6 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           WHO TPP target: {kinetics.totals?.who_tpp_target || "< 120 min"}. Estimated total: {kinetics.totals?.total_electrode || "30\u201350 min"} — <strong style={{ color: T.success }}>within target</strong> with 2-4× margin for optimization.
         </div>
 
-        {/* Kinetic parameters table (literature-verified) */}
-        <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px", marginTop: "20px" }}>Kinetic Parameters</div>
-        <div style={{ overflowX: "auto", marginBottom: "16px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-            <thead>
-              <tr style={{ borderBottom: `2px solid ${T.border}` }}>
-                <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Parameter</th>
-                <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Value</th>
-                <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Source</th>
-                <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 700, color: T.textSec }}>Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(kinetics.parameters || []).map((p, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
-                  <td style={{ padding: "6px 10px", fontWeight: 600, fontSize: "11px" }}>{p.param}</td>
-                  <td style={{ padding: "6px 10px", fontFamily: MONO, fontSize: "11px" }}>{p.value}</td>
-                  <td style={{ padding: "6px 10px", color: T.textTer, fontSize: "10px" }}>
-                    <div style={{ fontStyle: "italic" }}>{p.source}</div>
-                    {p.source_detail && <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{p.source_detail}</div>}
-                  </td>
-                  <td style={{ padding: "6px 10px", fontSize: "10px", color: p.note ? "#5e4fa2" : T.textTer, fontStyle: p.note ? "italic" : "normal", maxWidth: 200 }}>
-                    {p.note || "\u2014"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
         {/* Key Insights callout */}
         <div style={{ background: "#f0eef8", border: "1px solid #d4d0e8", borderRadius: "8px", padding: "14px 18px", marginBottom: "12px" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#5e4fa2", fontFamily: HEADING, marginBottom: "8px" }}>Key Insights</div>
@@ -4308,128 +4316,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           ))}
         </div>
 
-        {/* Year 1 Kinetic Characterization Plan */}
-        <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "8px", padding: "14px 18px" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "6px" }}>Year 1 Kinetic Characterization Plan</div>
-          <p style={{ fontSize: "10px", color: T.primaryDark, opacity: 0.8, margin: "0 0 6px" }}>Priority measurements for CSEM cartridge design:</p>
-          <ul style={{ margin: 0, paddingLeft: "18px" }}>
-            {(kinetics.year1_priorities || []).map((p, i) => (
-              <li key={i} style={{ fontSize: "10px", color: T.primaryDark, opacity: 0.85, lineHeight: 1.5 }}>{p}</li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Target ranking — relative order, not absolute minutes */}
-        {kinetics.target_ranking && kinetics.target_ranking.length > 0 && (
-          <div style={{ marginTop: "16px" }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Predicted Detection Order (relative)</div>
-            <p style={{ fontSize: "11px", color: T.textTer, marginBottom: "8px", lineHeight: 1.5, fontStyle: "italic" }}>
-              Ranked by predicted efficiency score (proxy for detection speed). Absolute per-target time estimates are not
-              shown — target-specific on-electrode kinetics are unknown pre-experimentally.
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {kinetics.target_ranking.map((t, i) => (
-                <div key={t.target} style={{
-                  padding: "4px 10px", borderRadius: "6px", fontSize: "10px", fontFamily: MONO,
-                  background: t.is_weak ? T.warningLight : i === 0 ? T.successLight : T.bgSub,
-                  color: t.is_weak ? T.warning : i === 0 ? T.success : T.text,
-                  fontWeight: 600, border: `1px solid ${t.is_weak ? T.warning + "33" : i === 0 ? T.success + "33" : T.borderLight}`,
-                  display: "flex", alignItems: "center", gap: "4px",
-                }}>
-                  <span style={{ fontSize: "8px", color: T.textTer }}>#{i + 1}</span>
-                  {t.target}
-                  <span style={{ fontSize: "8px", color: T.textTer }}>{t.efficiency.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+      </CollapsibleSection>
 
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 5: PRIMER DIMER ANALYSIS — PER-POOL
-          ════════════════════════════════════════════════════════════════ */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Primer Dimer Analysis — Per-Pool <span style={{ fontSize: "10px", fontWeight: 500, color: T.textTer, marginLeft: "8px" }}>POST-OPTIMIZATION</span></div>
-        <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
-          Thermodynamic primer-dimer prediction using SantaLucia nearest-neighbour parameters (2004).
-          Within-pool dimers are the only actionable interactions — cross-pool dimers can never form because primers
-          in different chambers never meet. The heatmap groups primers by pool assignment.
-        </p>
-        {dimerMatrix && dimerLabels ? (
-          <>
-            <div style={{ overflowX: "auto", marginBottom: "16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: `60px repeat(${dimerLabels.length}, 1fr)`, gap: "1px", fontSize: "8px", minWidth: dimerLabels.length * 28 + 60 }}>
-                <div />
-                {dimerLabels.map((lbl) => (
-                  <div key={`dh-${lbl}`} style={{ textAlign: "center", fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "3px 1px", overflow: "hidden", textOverflow: "ellipsis", writingMode: "vertical-lr", transform: "rotate(180deg)", height: "50px" }}>{lbl}</div>
-                ))}
-                {dimerLabels.map((rowLbl, i) => {
-                  const rowTarget = rowLbl.rsplit ? rowLbl.substring(0, rowLbl.lastIndexOf("_")) : rowLbl.replace(/_[FR]$/, "");
-                  const rowPool = pooling.target_to_pool[rowTarget] || "?";
-                  return (
-                  <React.Fragment key={`dr-${rowLbl}`}>
-                    <div style={{ fontFamily: MONO, fontWeight: 600, color: POOL_COLORS[rowPool] || T.textTer, padding: "3px 4px", display: "flex", alignItems: "center", fontSize: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rowLbl}</div>
-                    {dimerLabels.map((colLbl, j) => {
-                      const colTarget = colLbl.replace(/_[FR]$/, "");
-                      const colPool = pooling.target_to_pool[colTarget] || "?";
-                      const samePool = rowPool === colPool;
-                      const dg = dimerMatrix[i][j];
-                      let bg = T.successLight;
-                      let textColor = T.success;
-                      if (!samePool) {
-                        bg = "#F9FAFB"; textColor = "#D1D5DB";
-                      } else if (dg < -6.0) { bg = "#FEE2E2"; textColor = "#DC2626"; }
-                      else if (dg < -4.0) { bg = "#FEF3C7"; textColor = "#D97706"; }
-                      else if (dg < -2.0) { bg = "#F0FDF4"; textColor = "#16A34A"; }
-                      return (
-                        <div key={`dc-${i}-${j}`} style={{ background: bg, borderRadius: "2px", height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", fontFamily: MONO, color: textColor, fontWeight: 600, opacity: samePool ? 1 : 0.4 }}
-                          title={samePool ? `${rowLbl} × ${colLbl}: ΔG = ${dg.toFixed(1)} kcal/mol (Pool ${rowPool})` : `${rowLbl} × ${colLbl}: cross-pool (irrelevant)`}>
-                          {samePool && i !== j && dg < -2.0 ? dg.toFixed(1) : !samePool ? "" : ""}
-                        </div>
-                      );
-                    })}
-                  </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Legend */}
-            <div style={{ display: "flex", gap: "16px", fontSize: "10px", color: T.textSec, marginBottom: "12px", flexWrap: "wrap" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#FEE2E2", border: "1px solid #FECACA" }} /> &lt; −6.0 HIGH risk</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#FEF3C7", border: "1px solid #FDE68A" }} /> &lt; −4.0 MODERATE</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: T.successLight, border: `1px solid ${T.success}33` }} /> Clean</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#F9FAFB", border: `1px solid #E5E7EB` }} /> Cross-pool (N/A)</span>
-            </div>
-
-            {/* Per-pool summary */}
-            <div style={{ background: T.bgSub, borderRadius: "8px", padding: "14px 18px", border: `1px solid ${T.borderLight}` }}>
-              {Object.entries(pooling.pool_stats).map(([id, s]) => (
-                <div key={id} style={{ fontSize: "11px", color: T.textSec, marginBottom: "4px" }}>
-                  <span style={{ fontWeight: 700, color: POOL_COLORS[id] }}>Pool {id}:</span>{" "}
-                  {s.n_primers} primers · {s.high_risk_dimers} within-pool HIGH-risk pairs{s.worst_dg < -4 ? ` · worst ΔG: ${s.worst_dg} kcal/mol` : ""}
-                </div>
-              ))}
-              <div style={{ borderTop: `1px solid ${T.borderLight}`, paddingTop: "8px", marginTop: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-                <strong style={{ color: T.text }}>Single-tube (original):</strong> {pooling.total_high_risk_single_tube} HIGH-risk pairs.{" "}
-                <strong style={{ color: T.text }}>After pooling:</strong> {pooling.total_high_risk_after_pooling} HIGH-risk pairs{" "}
-                (<strong style={{ color: T.success }}>{pooling.reduction_pct}% reduction</strong>).{" "}
-                Remaining within-pool dimers can be addressed by: (1) shifting primer 3′ end by 1-2 nt,
-                (2) reducing primer concentration in affected pool, or (3) adding competitive blocker oligos.
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ padding: "20px", textAlign: "center", color: T.textTer, fontSize: "12px", background: T.bgSub, borderRadius: "8px" }}>
-            Primer dimer analysis not available — run a full pipeline to generate thermodynamic dimer predictions.
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 6: AS-RPA DISCRIMINATION (ENHANCED)
-          ════════════════════════════════════════════════════════════════ */}
       {results.some(r => r.asrpaDiscrimination) && (
+      <CollapsibleSection title="AS-RPA Thermodynamic Discrimination" defaultOpen={false} badge={{ text: `${proximityCount} proximity`, bg: "#e8f4fa", color: "#3288bd" }}>
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
           <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>AS-RPA Thermodynamic Discrimination</div>
           <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "8px", lineHeight: 1.6 }}>
@@ -4487,69 +4378,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             Discrimination ratios computed via Boltzmann conversion: exp(ΔΔG / RT) at 37 °C. Ratios &gt; 100× capped — kinetic effects dominate at high ΔΔG.
           </div>
         </div>
+      </CollapsibleSection>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════
-          SECTION 7: AMPLICON-TO-PAD SPECIFICITY
-          ════════════════════════════════════════════════════════════════ */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>Amplicon-to-Pad Specificity</div>
-        <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
-          In the spatially-addressed format, the relevant cross-reactivity is: can amplicon X (from target A) activate
-          the crRNA on pad B? Diagonal = cognate match (expected). Off-diagonal cells with &gt;75% similarity are flagged.
-          Co-amplicon pairs share the amplicon but have DIFFERENT crRNAs targeting different SNP positions.
-        </p>
-
-        {specificity ? (
-          <>
-            <div style={{ overflowX: "auto", marginBottom: "16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: `80px repeat(${specificity.labels.length}, 1fr)`, gap: "1px", fontSize: "7px", minWidth: specificity.labels.length * 28 + 80 }}>
-                <div style={{ fontSize: "8px", fontWeight: 600, color: T.textTer, padding: "4px" }}>Amplicon ↓ / Pad →</div>
-                {specificity.labels.map((lbl) => (
-                  <div key={`sh-${lbl}`} style={{ textAlign: "center", fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "2px 1px", overflow: "hidden", writingMode: "vertical-lr", transform: "rotate(180deg)", height: "55px", fontSize: "7px" }}>{lbl}</div>
-                ))}
-                {specificity.labels.map((rowLbl, i) => (
-                  <React.Fragment key={`sr-${rowLbl}`}>
-                    <div style={{ fontFamily: MONO, fontWeight: 600, color: T.textTer, padding: "2px 4px", display: "flex", alignItems: "center", fontSize: "7px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rowLbl}</div>
-                    {specificity.labels.map((_, j) => {
-                      const sim = specificity.matrix[i][j];
-                      const isDiag = i === j;
-                      let bg, textColor;
-                      if (isDiag) { bg = "#DCFCE7"; textColor = "#16A34A"; }
-                      else if (sim > 0.75) { bg = "#FEF3C7"; textColor = "#D97706"; }
-                      else if (sim > 0.5) { bg = "#FEF9C3"; textColor = "#A16207"; }
-                      else { bg = "#F9FAFB"; textColor = "#D1D5DB"; }
-                      return (
-                        <div key={`sc-${i}-${j}`} style={{ background: bg, borderRadius: "2px", height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7px", fontFamily: MONO, color: textColor, fontWeight: isDiag ? 700 : 500 }}
-                          title={`${rowLbl} amplicon → ${specificity.labels[j]} pad: ${(sim * 100).toFixed(0)}% similarity`}>
-                          {isDiag ? "✓" : sim > 0.3 ? (sim * 100).toFixed(0) : ""}
-                        </div>
-                      );
-                    })}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-            {/* Legend */}
-            <div style={{ display: "flex", gap: "16px", fontSize: "10px", color: T.textSec, marginBottom: "12px", flexWrap: "wrap" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#DCFCE7", border: "1px solid #BBF7D0" }} /> Cognate (diagonal)</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#FEF3C7", border: "1px solid #FDE68A" }} /> &gt; 75% (flagged)</span>
-              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: 12, height: 12, borderRadius: 2, background: "#F9FAFB", border: `1px solid #E5E7EB` }} /> &lt; 50% (safe)</span>
-            </div>
-            <div style={{ background: T.bgSub, borderRadius: "8px", padding: "14px 18px", border: `1px solid ${T.borderLight}`, fontSize: "11px", color: T.textSec, lineHeight: 1.6 }}>
-              {specificity.validation_note}
-            </div>
-          </>
-        ) : (
-          <div style={{ padding: "20px", textAlign: "center", color: T.textTer, fontSize: "12px", background: T.bgSub, borderRadius: "8px" }}>
-            Cross-reactivity matrix checked during optimization — {directCount + proximityCount} targets validated for sequence orthogonality.
-          </div>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════
-          PANEL COMPOSITION (kept from original)
-          ════════════════════════════════════════════════════════════════ */}
+      <CollapsibleSection title="Panel Composition" defaultOpen={true} badge={{ text: `${results.length} targets`, bg: "#f0eef8", color: "#5e4fa2" }}>
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px", marginBottom: "24px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "16px" }}>Panel Composition</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px" }}>
@@ -4614,12 +4446,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           );
         })()}
       </div>
+      </CollapsibleSection>
 
-      {/* IS6110 Control — reframed for dedicated pad */}
+      <CollapsibleSection title="Species Identification Control" defaultOpen={true} badge={{ text: controlIncluded ? "IS6110 included" : "pending", bg: controlIncluded ? "#22c55e20" : "#f59e0b20", color: controlIncluded ? "#22c55e" : "#f59e0b" }}>
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
           <Shield size={18} color={controlIncluded ? T.success : T.warning} />
-          <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Species Identification Control — Dedicated Pad</span>
+          <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>IS6110 — Dedicated Pad</span>
         </div>
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.6, margin: "0 0 16px" }}>
           <strong>IS6110</strong> is a transposable element present in 6–16 copies per <em>M. tuberculosis</em> genome.
@@ -4633,6 +4466,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             : "IS6110 control not in current result set — it will be automatically added during panel assembly"}
         </div>
       </div>
+      </CollapsibleSection>
     </div>
   );
 };
