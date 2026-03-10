@@ -1029,12 +1029,19 @@ class CandidateFilter:
 
         return max_len
 
-    @staticmethod
-    def _compute_mfe(spacer: str) -> Optional[float]:
+    _rnafold_available: Optional[bool] = None  # class-level cache
+
+    @classmethod
+    def _compute_mfe(cls, spacer: str) -> Optional[float]:
         """Compute minimum free energy using ViennaRNA RNAfold.
 
-        Returns None if ViennaRNA is not installed.
+        Returns None if ViennaRNA is not installed. Caches the availability
+        check to avoid repeated subprocess spawns on systems without RNAfold.
         """
+        # Fast path: already know RNAfold is missing
+        if cls._rnafold_available is False:
+            return None
+
         try:
             result = subprocess.run(
                 ["RNAfold", "--noPS"],
@@ -1043,11 +1050,13 @@ class CandidateFilter:
                 text=True,
                 timeout=10,
             )
+            cls._rnafold_available = True
             lines = result.stdout.strip().split("\n")
             if len(lines) >= 2:
                 mfe_str = lines[1].split("(")[-1].rstrip(")")
                 return float(mfe_str.strip())
         except FileNotFoundError:
+            cls._rnafold_available = False
             logger.debug("ViennaRNA not installed, skipping MFE filter")
         except (subprocess.TimeoutExpired, ValueError, IndexError):
             logger.warning("RNAfold failed for spacer: %s", spacer)

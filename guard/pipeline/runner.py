@@ -37,7 +37,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Optional
 
@@ -432,13 +431,14 @@ class GUARDPipeline:
         # always retained. Cap at 50 per target — more than enough for downstream selection.
         MAX_CANDIDATES_PER_TARGET = 50
 
-        def _filter_one(label_sr):
-            label, sr = label_sr
+        for label, sr in scan_results.items():
             candidates = sr.all_candidates
-            n_before = len(candidates)
+            total_before_filter += len(candidates)
             if not candidates:
-                return label, [], 0, 0
-            # Pre-sort by PAM activity weight (best first) and cap
+                filtered_by_target[label] = []
+                continue
+            # Pre-sort by PAM activity weight (best first) and cap to avoid
+            # combinatorial explosion with expanded PAMs (9 PAMs × 6 lengths)
             candidates = sorted(
                 candidates,
                 key=lambda c: getattr(c, "pam_activity_weight", 1.0),
@@ -448,14 +448,7 @@ class GUARDPipeline:
             if not filtered:
                 logger.warning("All %d candidates filtered for %s", len(candidates), label)
                 filtered = candidates
-            return label, filtered, n_before, len(filtered)
-
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            results = pool.map(_filter_one, scan_results.items())
-
-        for label, filtered, n_before, n_after in results:
-            total_before_filter += n_before
-            total_after_filter += n_after
+            total_after_filter += len(filtered)
             filtered_by_target[label] = filtered
 
         n_rejected_m3 = total_before_filter - total_after_filter
