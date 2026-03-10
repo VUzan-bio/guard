@@ -545,50 +545,51 @@ class GUARDPipeline:
                             emb_entry["drug"] = drug_by_label.get(emb_entry["target_label"])
 
                     # --- UMAP: broad PAM scan for dense background ---
-                    # The normal pipeline only keeps ~230 candidates (SNP overlap
-                    # + proximity cap). For a dense UMAP we scan ±5kb around each
-                    # target on the full genome, all 6 spacer lengths, both strands
-                    # → ~30K-40K background spacers for a CITEseq-density scatter.
-                    from guard.candidates.scanner import iupac_match, _gc
+                    # Scan ±5kb genome windows × 6 spacer lengths × 2 strands
+                    # per target using fast regex PAM matching → ~34K background.
+                    import re as _re
+                    from guard.candidates.scanner import _gc
                     from types import SimpleNamespace
 
                     collected_spacers = {e["spacer_seq"] for e in self.ml_scorer._collected_embeddings}
-                    bg_spacers: list[tuple] = []  # (spacer, pam, target_label, drug, gc)
+                    bg_spacers: list[tuple] = []
                     _RC = str.maketrans("ACGT", "TGCA")
-                    UMAP_WINDOW = 5000  # bp each side of mutation
-                    sp_lengths = self.scanner.lengths  # (18, 19, 20, 21, 22, 23)
+                    UMAP_WINDOW = 5000
+                    sp_lengths = self.scanner.lengths  # (18..23)
 
-                    # Try to use the full genome for wider windows
+                    # Build a single regex for all PAM patterns (fast)
+                    _IUPAC = {"V": "[ACG]", "N": "[ACGT]", "K": "[GT]",
+                              "Y": "[CT]", "R": "[AG]", "W": "[AT]",
+                              "S": "[GC]", "M": "[AC]", "B": "[CGT]",
+                              "D": "[AGT]", "H": "[ACT]"}
+                    pam_alts = []
+                    for pd in self.scanner.pams:
+                        rx = "".join(_IUPAC.get(c, c) for c in pd.pattern)
+                        pam_alts.append(rx)
+                    pam_re = _re.compile("|".join(f"(?={p})" for p in pam_alts))
+
                     genome = self._load_genome_seq()
+                    max_sp = max(sp_lengths)
 
                     for target in targets:
                         drug = drug_by_label.get(target.label, "OTHER")
-
-                        # Use genome ±5kb if available, else fall back to flanking
                         if genome and hasattr(target, "flanking_start"):
                             center = target.flanking_start + len(target.flanking_seq) // 2
-                            start = max(0, center - UMAP_WINDOW)
-                            end = min(len(genome), center + UMAP_WINDOW)
-                            region = genome[start:end]
+                            region = genome[max(0, center - UMAP_WINDOW):
+                                           min(len(genome), center + UMAP_WINDOW)]
                         else:
                             region = target.flanking_seq.upper()
 
-                        seqs = [region, region[::-1].translate(_RC)]
-                        for seq_strand in seqs:
-                            for i in range(len(seq_strand) - 4):
-                                pam4 = seq_strand[i:i+4]
-                                is_pam = False
-                                for pd in self.scanner.pams:
-                                    if iupac_match(pam4, pd.pattern):
-                                        is_pam = True
-                                        break
-                                if not is_pam:
-                                    continue
+                        for seq_strand in [region, region[::-1].translate(_RC)]:
+                            slen = len(seq_strand)
+                            for m in pam_re.finditer(seq_strand):
+                                sp_start = m.start() + 4
+                                pam4 = seq_strand[m.start():sp_start]
                                 for sp_len in sp_lengths:
-                                    sp_end = i + 4 + sp_len
-                                    if sp_end > len(seq_strand):
+                                    sp_end = sp_start + sp_len
+                                    if sp_end > slen:
                                         continue
-                                    spacer = seq_strand[i+4:sp_end]
+                                    spacer = seq_strand[sp_start:sp_end]
                                     if spacer in collected_spacers:
                                         continue
                                     collected_spacers.add(spacer)
