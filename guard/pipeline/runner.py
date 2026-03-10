@@ -135,7 +135,7 @@ class GUARDPipeline:
         organism = _ORGANISM_PRESETS.get(
             config.organism, OrganismPreset.GENERIC_HIGH_GC
         )
-        self.filter = CandidateFilter(organism=organism)
+        self.filter = CandidateFilter(organism=organism, check_structure=False)
 
         # Module 4: Off-target screener
         from guard.offtarget.screener import ScreeningDatabase
