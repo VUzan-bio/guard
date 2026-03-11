@@ -1063,6 +1063,7 @@ const HomePage = ({ goTo, connected }) => {
 
   const finishInlinePipeline = (jobId) => {
     setPipeDone(true);
+    setShowLog(true);
     if (pipeTimerRef.current) clearInterval(pipeTimerRef.current);
 
     if (connected) {
@@ -1070,20 +1071,23 @@ const HomePage = ({ goTo, connected }) => {
         if (data?.module_stats?.length) setPipeStats(data.module_stats);
       });
     } else {
+      const m5Detail = scorer === "guard_net"
+        ? "241 candidates scored — GUARD-Net efficiency (0.125–0.608) · GUARD-Net discrimination (0.288–0.959) · Ensemble α=0.05 (0.288–0.942)"
+        : "241 candidates scored — Heuristic (0.125–0.608) · SeqCNN calibrated T=1.1 (0.288–0.959) · Ensemble α=0.05 (0.288–0.942)";
       setPipeStats([
-        { module_id: "M1", detail: "14 mutations resolved on H37Rv", candidates_out: 14, duration_ms: 1 },
-        { module_id: "M2", detail: "34,364 positions scanned, 1,837 PAM sites, 238 candidates", candidates_out: 238, duration_ms: 74 },
-        { module_id: "M3", detail: "238 → 213 (25 removed: GC, homopolymer, Tm)", candidates_out: 213, duration_ms: 87 },
-        { module_id: "M4", detail: "213 → 183 (30 off-target hits, Bowtie2)", candidates_out: 183, duration_ms: 846 },
-        { module_id: "M5", detail: "213 scored (range 0.325–0.831)", candidates_out: 213, duration_ms: 4 },
-        { module_id: "M5.5", detail: "213 MUT/WT spacer pairs generated", candidates_out: 213, duration_ms: 3 },
-        { module_id: "M6", detail: "54 evaluated, 42 enhanced (seed pos 2–6)", candidates_out: 42, duration_ms: 34 },
-        { module_id: "M6.5", detail: "54 above 2× threshold (48 diagnostic-grade)", candidates_out: 54, duration_ms: 2 },
-        { module_id: "M7", detail: "14 selected (simulated annealing, 10K iterations)", candidates_out: 14, duration_ms: 3500 },
-        { module_id: "M8", detail: "28 primers designed, 378 dimer checks", candidates_out: 14, duration_ms: 3300 },
-        { module_id: "M8.5", detail: "0 crRNA-primer conflicts", candidates_out: 14, duration_ms: 15 },
-        { module_id: "M9", detail: "14 targets + IS6110 control = 15-plex", candidates_out: 15, duration_ms: 15 },
-        { module_id: "M10", detail: "JSON + TSV + FASTA exported", candidates_out: 15, duration_ms: 1 },
+        { module_id: "M1",   detail: "14 WHO catalogue mutations → genomic coordinates on H37Rv (NC_000962.3)", candidates_out: 14,  duration_ms: 1 },
+        { module_id: "M2",   detail: "34,364 positions scanned → 1,797 PAM sites → 334 candidates",             candidates_out: 334, duration_ms: 98 },
+        { module_id: "M3",   detail: "334 → 241 (93 removed: GC, homopolymer, Tm)",                             candidates_out: 241, duration_ms: 8 },
+        { module_id: "M4",   detail: "241 → 222 (19 off-target hits, Bowtie2 ≤3 mismatches)",                   candidates_out: 222, duration_ms: 680 },
+        { module_id: "M5",   detail: m5Detail,                                                                   candidates_out: 241, duration_ms: 10300 },
+        { module_id: "M5.5", detail: "241 MUT/WT spacer pairs generated (84 direct, 157 proximity)",             candidates_out: 241, duration_ms: 4 },
+        { module_id: "M6",   detail: "84 candidates evaluated, 66 enhanced (seed positions 2–6)",                candidates_out: 66,  duration_ms: 72 },
+        { module_id: "M6.5", detail: "241 → 84 above 2× threshold (84 diagnostic-grade ≥3×)",                   candidates_out: 84,  duration_ms: 59 },
+        { module_id: "M7",   detail: "241 → 14 selected (simulated annealing, 10,000 iterations)",               candidates_out: 14,  duration_ms: 2400 },
+        { module_id: "M8",   detail: "14/14 primer pairs designed (6 standard, 8 AS-RPA)",                       candidates_out: 14,  duration_ms: 2400 },
+        { module_id: "M8.5", detail: "AS-RPA disc: 8 scored | Dimer check: 78 flagged pairs",                    candidates_out: 14,  duration_ms: 234 },
+        { module_id: "M9",   detail: "14 candidates + IS6110 species control → final 15-channel panel",          candidates_out: 15,  duration_ms: 10 },
+        { module_id: "M10",  detail: "JSON + TSV + FASTA structured output",                                     candidates_out: 15,  duration_ms: 1 },
       ]);
     }
   };
@@ -1096,6 +1100,24 @@ const HomePage = ({ goTo, connected }) => {
       if (pipePollRef.current) clearInterval(pipePollRef.current);
     };
   }, []);
+
+  /* Scorer-aware modules — M5 adapts to selected scoring model */
+  const effectiveModules = useMemo(() => MODULES.map(m =>
+    m.id === "M5" && scorer === "guard_net"
+      ? {
+          ...m,
+          name: "GUARD-Net Scoring",
+          execDesc: "GUARD-Net (CNN + RNA-FM + RLPA) inference for efficiency and discrimination scoring",
+          substeps: [
+            "Loading GUARD-Net checkpoint (235K params, CNN + RNA-FM + RLPA)",
+            "Computing RNA-FM embeddings (640-dim, frozen)",
+            "Running multi-scale CNN branch (kernels 3/5/7)",
+            "Applying R-loop propagation attention (RLPA, 34×34)",
+            "Predicting efficiency + discrimination scores per candidate",
+          ],
+        }
+      : m
+  ), [scorer]);
 
   const sectionTitle = (text) => (
     <div style={{ fontSize: mobile ? "18px" : "22px", fontWeight: 800, color: T.text, marginBottom: "12px", marginTop: mobile ? "32px" : "48px", letterSpacing: "-0.02em", fontFamily: HEADING }}>{text}</div>
@@ -1166,8 +1188,8 @@ const HomePage = ({ goTo, connected }) => {
           <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "10px" }}>Scoring Model</div>
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
             {[
-              { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features. Fast, interpretable, no GPU required.", tag: "Baseline" },
-              { id: "guard_net", label: "GUARD-Net", desc: "Dual-branch CNN + RNA-FM with R-loop propagation attention. Trained on 25K+ cis- and trans-cleavage measurements. \u03C1 = 0.55 on diagnostic trans-cleavage prediction.", tag: "Recommended" },
+              { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features.", tag: "Baseline" },
+              { id: "guard_net", label: "GUARD-Net", desc: "Dual-branch CNN & RNA-FM with R-loop propagation attention.", tag: "Recommended" },
             ].map(s => (
               <button key={s.id} onClick={() => setScorer(s.id)} style={{
                 padding: "16px", borderRadius: "10px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
@@ -1398,22 +1420,21 @@ const HomePage = ({ goTo, connected }) => {
 
       {/* ═══ INLINE PIPELINE EXECUTION ═══ */}
       {pipeJobId && (() => {
-        const activeModule = MODULES[pipeStep] || MODULES[0];
+        const activeModule = effectiveModules[pipeStep] || effectiveModules[0];
         const ActiveIcon = activeModule.icon;
         const statMap = {};
         pipeStats.forEach(s => { statMap[s.module_id] = s; });
-        const totalDuration = pipeStats.reduce((s, m) => s + (m.duration_ms || 0), 0);
         const fmtDur = (ms) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
         const m2Out = statMap["M2"]?.candidates_out || 0;
         const finalSize = statMap["M9"]?.candidates_out || statMap["M7"]?.candidates_out || 0;
 
         return (
           <div style={{
-            background: pipeDone ? "#ffffff" : `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primarySub} 100%)`,
-            border: `1px solid ${pipeDone ? T.border : T.primary + "88"}`,
+            background: `linear-gradient(135deg, ${T.primaryLight} 0%, ${T.primarySub} 100%)`,
+            border: `1px solid ${T.primary + "88"}`,
             borderRadius: "10px",
             marginBottom: "24px", overflow: "hidden",
-            ...(pipeDone ? {} : { boxShadow: `0 2px 12px ${T.primary}1F` }),
+            boxShadow: `0 2px 12px ${T.primary}1F`,
           }}>
             {/* Running state — module + dynamic substep cycling */}
             {!pipeDone && (() => {
@@ -1423,7 +1444,7 @@ const HomePage = ({ goTo, connected }) => {
               const subDur = stepEstSec / subs.length;
               const subIdx = Math.min(Math.floor(stepElapsed / Math.max(subDur, 0.5)), subs.length - 1);
               const intraStep = Math.min(0.95, 1 - Math.exp(-2.5 * stepElapsed / stepEstSec));
-              const pct = ((pipeStep + intraStep) / MODULES.length) * 100;
+              const pct = ((pipeStep + intraStep) / effectiveModules.length) * 100;
               return (
                 <div style={{ padding: "20px 24px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -1445,9 +1466,9 @@ const HomePage = ({ goTo, connected }) => {
                           <circle cx="8" cy="8" r="6" fill="none" stroke={T.primary + "33"} strokeWidth="2" />
                           <path d="M8 2a6 6 0 0 1 6 6" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" />
                         </svg>
-                        <span style={{ fontFamily: MONO, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
+                        <span style={{ fontFamily: FONT, fontSize: "11px", color: T.primary, fontVariantNumeric: "tabular-nums" }}>{pipeElapsed.toFixed(1)}s</span>
                       </div>
-                      <span style={{ fontSize: "10px", color: T.primary + "88", fontFamily: MONO }}>~{(() => { const remaining = MODULES.slice(pipeStep).reduce((s, m) => s + (m.estSec || 10), 0); return remaining >= 60 ? `${Math.ceil(remaining / 60)} min` : `${remaining}s`; })()}</span>
+                      <span style={{ fontSize: "10px", color: T.primary + "88", fontFamily: FONT }}>~{(() => { const remaining = effectiveModules.slice(pipeStep).reduce((s, m) => s + (m.estSec || 10), 0); return remaining >= 60 ? `${Math.ceil(remaining / 60)} min` : `${remaining}s`; })()}</span>
                     </div>
                   </div>
                   {/* Progress bar — outside keyed divs for smooth transitions */}
@@ -1463,9 +1484,12 @@ const HomePage = ({ goTo, connected }) => {
               <div style={{ padding: "24px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: 700, color: "#111", fontFamily: HEADING }}>Pipeline Complete</div>
-                    <div style={{ fontSize: "12px", color: "#999", fontFamily: MONO, marginTop: "2px" }}>
-                      {totalDuration > 0 ? fmtDur(totalDuration) : `${pipeElapsed.toFixed(1)}s`}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <FlaskConical size={16} color={T.primary} strokeWidth={1.8} />
+                      <div style={{ fontSize: "15px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING }}>Pipeline Complete</div>
+                    </div>
+                    <div style={{ fontSize: "12px", color: T.primary + "AA", fontFamily: FONT, marginTop: "4px", paddingLeft: "24px" }}>
+                      {pipeElapsed.toFixed(1)}s
                       {m2Out > 0 && ` · ${m2Out} candidates`}
                       {finalSize > 0 && ` · ${finalSize} selected`}
                     </div>
@@ -1481,38 +1505,38 @@ const HomePage = ({ goTo, connected }) => {
                     onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                     onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                   >
-                    View Results →
+                    View Results
                   </button>
                 </div>
 
                 {/* Logs toggle */}
                 <button onClick={() => setShowLog(!showLog)} style={{
                   background: "none", border: "none", cursor: "pointer", fontFamily: FONT,
-                  fontSize: "11px", color: "#999", display: "flex", alignItems: "center", gap: "4px", padding: 0,
+                  fontSize: "11px", color: T.primary + "99", display: "flex", alignItems: "center", gap: "4px", padding: 0,
                 }}>
                   <ChevronDown size={12} style={{ transform: showLog ? "rotate(180deg)" : "none", transition: "0.2s" }} />
                   {showLog ? "Hide" : "Show"} execution log
                 </button>
 
                 {showLog && (
-                  <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${T.borderLight}` }}>
-                    {MODULES.map((m, idx) => {
+                  <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: `1px solid ${T.primary}22` }}>
+                    {effectiveModules.map((m, idx) => {
                       const st = statMap[m.id];
                       const Icon = m.icon;
-                      const isLast = idx === MODULES.length - 1;
+                      const isLast = idx === effectiveModules.length - 1;
                       return (
                         <div key={m.id} style={{ display: "flex", gap: "0" }}>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "20px", flexShrink: 0 }}>
-                            <Icon size={12} color="#111" strokeWidth={1.5} style={{ opacity: 0.6 }} />
-                            {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "6px", background: "#e0e0e0" }} />}
+                            <Icon size={12} color={T.primary} strokeWidth={1.5} style={{ opacity: 0.7 }} />
+                            {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "6px", background: T.primary + "30" }} />}
                           </div>
                           <div style={{ flex: 1, paddingLeft: "8px", paddingBottom: isLast ? 0 : "2px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "6px", height: "20px" }}>
-                              <span style={{ fontFamily: MONO, fontSize: "10px", color: "#999" }}>{m.id}</span>
-                              <span style={{ fontSize: "11px", fontWeight: 500, color: "#333" }}>{m.name}</span>
-                              {st && <span style={{ fontFamily: MONO, fontSize: "10px", color: "#bbb", marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
+                              <span style={{ fontFamily: MONO, fontSize: "10px", color: T.primary + "88" }}>{m.id}</span>
+                              <span style={{ fontSize: "11px", fontWeight: 500, color: T.primaryDark, fontFamily: FONT }}>{m.name}</span>
+                              {st && <span style={{ fontFamily: FONT, fontSize: "10px", color: T.primary + "99", marginLeft: "auto" }}>{fmtDur(st.duration_ms)}</span>}
                             </div>
-                            {st && <div style={{ fontSize: "10px", color: "#999", lineHeight: 1.4, padding: "1px 0 3px" }}>{st.detail}</div>}
+                            {st && <div style={{ fontSize: "10px", color: T.primary + "88", lineHeight: 1.4, padding: "1px 0 3px", fontFamily: FONT }}>{st.detail}</div>}
                           </div>
                         </div>
                       );
@@ -1539,7 +1563,7 @@ const HomePage = ({ goTo, connected }) => {
           <div key={c.title} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
               <div style={{ width: 32, height: 32, borderRadius: "8px", background: T.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: "14px", fontWeight: 800, color: T.primaryDark, fontFamily: MONO }}>{c.step}</span>
+                <span style={{ fontSize: "14px", fontWeight: 800, color: T.primaryDark, fontFamily: FONT }}>{c.step}</span>
               </div>
               <c.icon size={20} color={T.primary} strokeWidth={1.8} />
               <span style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>{c.title}</span>
