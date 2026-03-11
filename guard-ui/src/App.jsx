@@ -2139,50 +2139,91 @@ const ReadinessChart = ({ results }) => {
   if (!hasReadiness) return null;
   const sorted = [...results].filter(r => r.readinessScore != null)
     .sort((a, b) => b.readinessScore - a.readinessScore);
-  const W_EFF = 0.20, W_DISC = 0.40, W_PRIMER = 0.15, W_SAFETY = 0.15, W_GC = 0.10;
+  const axes = ["efficiency", "discrimination", "primers", "safety", "gc"];
   const chartData = sorted.map(r => {
     const c = r.readinessComponents || {};
-    return {
-      name: r.label, drug: r.drug, readiness: r.readinessScore,
-      risk: r.riskProfile?.overall || "amber",
-      efficiency: +(c.efficiency * W_EFF || 0).toFixed(3),
-      discrimination: +(c.discrimination * W_DISC || 0).toFixed(3),
-      primers: +(c.primers * W_PRIMER || 0).toFixed(3),
-      safety: +(c.safety * W_SAFETY || 0).toFixed(3),
-      gc: +(c.gc * W_GC || 0).toFixed(3),
-    };
+    return { name: r.label, drug: r.drug, readiness: r.readinessScore, ...Object.fromEntries(axes.map(a => [a, +(c[a] || 0).toFixed(3)])) };
   });
+  const [hovRow, setHovRow] = useState(null);
+  const [hovCol, setHovCol] = useState(null);
   return (
     <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "8px" }}>
         <div>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Diagnostic Readiness Score</div>
-          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Multi-axis composite (percentile-ranked within panel). Discrimination is 40% of the score.</div>
+          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Multi-axis composite (percentile-ranked within panel). Circle size and opacity encode per-axis percentile.</div>
         </div>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          {Object.entries(AXIS_COLORS).map(([key, color]) => (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: T.textSec }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
+        <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
+          {axes.map(key => (
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "10px", color: T.textSec }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", backgroundColor: AXIS_COLORS[key] }} />
               {AXIS_LABELS[key]}
             </div>
           ))}
         </div>
       </div>
-      <div style={{ borderRadius: "8px", padding: "8px 0" }}>
-      <ResponsiveContainer width="100%" height={Math.max(220, sorted.length * 32 + 60)}>
-        <BarChart data={chartData} layout="vertical" barCategoryGap="20%" margin={{ top: 5, right: 60, bottom: 5, left: 10 }}>
-          <CartesianGrid horizontal={false} stroke={T.borderLight} />
-          <XAxis type="number" domain={[0, 1]} tick={{ fontSize: 10, fill: T.textTer }} />
-          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 9, fill: T.text }} />
-          <Tooltip contentStyle={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 11 }}
-            formatter={(value, name) => [`${(value * 100).toFixed(0)}%`, AXIS_LABELS[name] || name]} />
-          <Bar dataKey="efficiency" stackId="readiness" fill={AXIS_COLORS.efficiency} />
-          <Bar dataKey="discrimination" stackId="readiness" fill={AXIS_COLORS.discrimination} />
-          <Bar dataKey="primers" stackId="readiness" fill={AXIS_COLORS.primers} />
-          <Bar dataKey="safety" stackId="readiness" fill={AXIS_COLORS.safety} />
-          <Bar dataKey="gc" stackId="readiness" fill={AXIS_COLORS.gc} />
-        </BarChart>
-      </ResponsiveContainer>
+      {/* Heatmap dot grid */}
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "0 12px 10px 0", fontSize: "10px", fontWeight: 600, color: T.textTer, width: "120px" }}>Candidate</th>
+              {axes.map(a => (
+                <th key={a} style={{ textAlign: "center", padding: "0 4px 10px", fontSize: "10px", fontWeight: 600, color: hovCol === a ? T.text : T.textTer, transition: "color 0.15s", cursor: "default" }}
+                  onMouseEnter={() => setHovCol(a)} onMouseLeave={() => setHovCol(null)}>
+                  {AXIS_LABELS[a]}
+                </th>
+              ))}
+              <th style={{ textAlign: "center", padding: "0 4px 10px 16px", fontSize: "10px", fontWeight: 700, color: T.textSec, borderLeft: `1px solid ${T.borderLight}` }}>Overall</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chartData.map((row, ri) => {
+              const isHov = hovRow === ri;
+              return (
+                <tr key={row.name} onMouseEnter={() => setHovRow(ri)} onMouseLeave={() => setHovRow(null)}
+                  style={{ background: isHov ? T.bgHover : ri % 2 === 0 ? "transparent" : T.bgSub, transition: "background 0.15s" }}>
+                  <td style={{ padding: "6px 12px 6px 0", fontSize: "11px", fontFamily: MONO, fontWeight: 600, color: T.text, whiteSpace: "nowrap" }}>{row.name}</td>
+                  {axes.map(a => {
+                    const v = row[a];
+                    const size = 8 + v * 20;
+                    return (
+                      <td key={a} style={{ textAlign: "center", padding: "6px 4px", position: "relative" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", position: "relative" }}
+                          title={`${AXIS_LABELS[a]}: ${(v * 100).toFixed(0)}%`}>
+                          <div style={{
+                            width: size, height: size, borderRadius: "50%",
+                            backgroundColor: AXIS_COLORS[a],
+                            opacity: 0.2 + v * 0.7,
+                            transition: "all 0.2s ease",
+                            transform: (hovCol === a || isHov) ? "scale(1.15)" : "scale(1)",
+                          }} />
+                          {v >= 0.5 && (
+                            <span style={{ position: "absolute", fontSize: "7px", fontWeight: 700, color: "#fff", pointerEvents: "none" }}>
+                              {(v * 100).toFixed(0)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: "center", padding: "6px 4px 6px 16px", borderLeft: `1px solid ${T.borderLight}` }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ width: "48px", height: "6px", borderRadius: "3px", background: T.borderLight, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${row.readiness * 100}%`, borderRadius: "3px",
+                          background: row.readiness >= 0.7 ? `linear-gradient(90deg, ${T.success}88, ${T.success})` : row.readiness >= 0.4 ? `linear-gradient(90deg, ${T.warning}88, ${T.warning})` : `linear-gradient(90deg, ${T.danger}88, ${T.danger})`,
+                          transition: "width 0.3s ease" }} />
+                      </div>
+                      <span style={{ fontSize: "11px", fontFamily: MONO, fontWeight: 700, color: row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger, minWidth: "28px" }}>
+                        {(row.readiness * 100).toFixed(0)}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -2456,12 +2497,12 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   /* Adaptyv-style grouped stat section */
   const StatGroup = ({ title, items }) => (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: "11px", fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>{title}</div>
+      <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px" }}>{title}</div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: 0 }}>
         {items.map((s, i) => (
-          <div key={s.l} style={{ paddingLeft: i > 0 ? "16px" : 0, borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
-            <div style={{ fontSize: "10px", fontWeight: 500, color: T.textTer, marginBottom: "4px" }}>{s.l}</div>
-            <div style={{ fontSize: mobile ? "18px" : "22px", fontWeight: 800, color: T.text, fontFamily: MONO, lineHeight: 1.2 }}>{s.v}</div>
+          <div key={s.l} style={{ paddingLeft: i > 0 ? "16px" : 0, borderLeft: i > 0 ? `1px solid ${T.borderLight}` : "none" }}>
+            <div style={{ fontSize: "10px", fontWeight: 500, color: T.textTer, marginBottom: "6px" }}>{s.l}</div>
+            <div style={{ fontSize: mobile ? "18px" : "22px", fontWeight: 700, color: T.text, fontFamily: MONO, lineHeight: 1.2 }}>{s.v}</div>
             {s.sub && <div style={{ fontSize: "10px", color: T.textTer, marginTop: "3px" }}>{s.sub}</div>}
           </div>
         ))}
@@ -2490,25 +2531,25 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         </div>
       </div>
 
-      {/* Grouped stat bar — full width responsive grid */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px 16px" : "24px 32px", marginBottom: "24px", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr auto 1fr auto 1fr auto 1fr", gap: mobile ? "20px" : "0", alignItems: "start", width: "100%", boxSizing: "border-box" }}>
+      {/* Grouped stat bar — glass morphism */}
+      <div style={{ background: "rgba(255,255,255,0.6)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: `1px solid rgba(255,255,255,0.7)`, borderRadius: "16px", padding: mobile ? "20px 16px" : "28px 36px", marginBottom: "24px", display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr auto 1fr auto 1fr auto 1fr", gap: mobile ? "20px" : "0", alignItems: "start", width: "100%", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)" }}>
         <StatGroup title="Panel" items={[
           { l: "Candidates", v: results.length },
           { l: "Drug classes", v: drugs.length },
           { l: "Detection", v: `${directCount} / ${proximityCount}`, sub: "direct / proximity" },
         ]} />
-        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: T.border, margin: mobile ? 0 : "0 16px" }} />
+        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: `linear-gradient(${mobile ? "90deg" : "180deg"}, transparent, ${T.borderLight}, transparent)`, margin: mobile ? 0 : "0 20px" }} />
         <StatGroup title="Primers" items={[
           { l: "Designed", v: `${withPrimers}/${results.length}` },
           { l: "Coverage", v: `${results.length ? Math.round(withPrimers / results.length * 100) : 0}%` },
         ]} />
-        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: T.border, margin: mobile ? 0 : "0 16px" }} />
+        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: `linear-gradient(${mobile ? "90deg" : "180deg"}, transparent, ${T.borderLight}, transparent)`, margin: mobile ? 0 : "0 20px" }} />
         <StatGroup title="Discrimination" items={[
           { l: "Avg. ratio", v: `${avgDisc}×` },
           { l: "Diagnostic-grade", v: highDisc, sub: "≥ 3× threshold" },
           { l: "Model", v: directResults.some(r => r.discMethod === "neural") ? "Neural" : directResults.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "Learned" : "Heuristic", sub: directResults.some(r => r.discMethod === "neural") ? "GUARD-Net disc head · 235K" : directResults.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "XGBoost · 15 features" : "position × destab" },
         ]} />
-        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: T.border, margin: mobile ? 0 : "0 16px" }} />
+        <div style={{ width: mobile ? "100%" : "1px", height: mobile ? "1px" : "100%", background: `linear-gradient(${mobile ? "90deg" : "180deg"}, transparent, ${T.borderLight}, transparent)`, margin: mobile ? 0 : "0 20px" }} />
         <StatGroup title="Predicted Activity" items={[
           { l: "Avg. activity", v: usesGuardNet && avgEnsemble ? avgEnsemble : avgScore },
           { l: "Range", v: `${minScore} – ${maxScore}`, sub: "min – max" },
@@ -3555,39 +3596,46 @@ const DiscriminationTab = ({ results }) => {
         </div>
       </div>
 
-      {/* Threshold cards */}
+      {/* Threshold cards — glass style */}
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px", marginBottom: "24px" }}>
         {[
-          { label: "Excellent", val: "≥ 10×", count: excellent, color: "#16a34a", bg: "#f0fdf4", desc: "Clinical deployment ready" },
-          { label: "Good", val: "≥ 3×", count: good, color: T.primary, bg: T.primaryLight, desc: "Diagnostic-grade" },
-          { label: "Acceptable", val: "≥ 2×", count: acceptable, color: "#d97706", bg: "#fffbeb", desc: "Needs confirmation" },
-          { label: "Insufficient", val: "< 2×", count: insufficient, color: "#dc2626", bg: "#fef2f2", desc: "SM enhancement required" },
+          { label: "Excellent", val: "≥ 10×", count: excellent, color: "#16a34a", desc: "Clinical deployment ready" },
+          { label: "Good", val: "≥ 3×", count: good, color: T.primary, desc: "Diagnostic-grade" },
+          { label: "Acceptable", val: "≥ 2×", count: acceptable, color: "#d97706", desc: "Needs confirmation" },
+          { label: "Insufficient", val: "< 2×", count: insufficient, color: "#dc2626", desc: "SM enhancement required" },
         ].map(t => (
-          <div key={t.label} style={{ background: t.bg, borderRadius: "10px", padding: "16px", border: `1px solid ${T.borderLight}` }}>
+          <div key={t.label} style={{ background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderRadius: "12px", padding: "16px 18px", border: `1px solid rgba(255,255,255,0.7)`, boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+            <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>{t.label}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <div style={{ fontSize: "14px", fontWeight: 800, color: t.color }}>{t.val}</div>
-              <div style={{ fontSize: "20px", fontWeight: 800, color: t.color, fontFamily: MONO }}>{t.count}</div>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: T.textSec }}>{t.val}</div>
+              <div style={{ fontSize: "22px", fontWeight: 700, color: T.text, fontFamily: MONO }}>{t.count}</div>
             </div>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: T.text, marginTop: "4px" }}>{t.label}</div>
-            <div style={{ fontSize: "11px", color: T.textSec, marginTop: "2px" }}>{t.desc}</div>
+            <div style={{ fontSize: "10px", color: T.textTer, marginTop: "6px" }}>{t.desc}</div>
+            <div style={{ marginTop: "8px", height: "3px", borderRadius: "2px", background: T.borderLight, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${directCands.length ? (t.count / directCands.length) * 100 : 0}%`, borderRadius: "2px", background: t.color, transition: "width 0.3s" }} />
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Discrimination chart — drug-colored bars, sorted desc */}
+      {/* Discrimination chart — horizontal lollipop */}
       {(() => {
         const DRUG_DC = { RIF: "#2563EB", INH: "#D97706", EMB: "#2563EB", FQ: "#E11D48", AG: "#2563EB", PZA: "#16A34A", OTHER: "#9CA3AF" };
-        const DRUG_DC_LIGHT = { RIF: "rgba(37,99,235,0.15)", INH: "rgba(217,119,6,0.15)", EMB: "rgba(124,58,237,0.15)", FQ: "rgba(225,29,72,0.15)", AG: "rgba(79,70,229,0.15)", PZA: "rgba(22,163,74,0.15)", OTHER: "rgba(156,163,175,0.15)" };
         const sorted = [...directCands].sort((a, b) => b.disc - a.disc);
         const discChart = sorted.map((r) => ({ name: r.label, disc: +r.disc, score: r.score, drug: r.drug }));
         const diagGrade = discChart.filter(d => d.disc >= 3).length;
+        const maxDisc = Math.max(...discChart.map(d => d.disc), 12);
+        const thresholds = [
+          { val: 2, label: "2× min", color: T.danger },
+          { val: 3, label: "3× diagnostic", color: T.warning },
+          { val: 10, label: "10× excellent", color: T.success },
+        ].filter(t => t.val <= maxDisc);
         return (
           <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "20px" : "28px 32px", marginBottom: "24px" }}>
-            <div style={{ marginBottom: "16px" }}>
+            <div style={{ marginBottom: "20px" }}>
               <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Discrimination Ratio — Direct Detection</div>
               <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>
                 {directCands.length} candidates using crRNA mismatch discrimination. Sorted highest to lowest.
-                The ratio indicates how many times stronger the signal is on resistant vs susceptible DNA.
               </div>
               <div style={{ fontSize: "10px", color: T.textTer, marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: directCands.some(r => r.discMethod === "neural") ? "#3b82f6" : directCands.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "#22c55e" : T.warning }} />
@@ -3599,48 +3647,68 @@ const DiscriminationTab = ({ results }) => {
                 }
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={340}>
-              <ComposedChart data={discChart} barCategoryGap="25%">
-                <CartesianGrid vertical={false} stroke={T.borderLight} />
-                <XAxis dataKey="name" tick={{ fontSize: 8, fill: T.textTer, fontFamily: MONO }} angle={-50} textAnchor="end" height={65} axisLine={{ stroke: T.border }} tickLine={false} interval={0} />
-                <YAxis tick={{ fontSize: 10, fill: T.textTer, fontFamily: MONO }} axisLine={false} tickLine={false} label={{ value: "Discrimination (×)", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: T.textTer }, offset: 0 }} />
-                <Tooltip content={({ payload }) => {
-                  if (!payload?.length) return null;
-                  const d = payload[0]?.payload;
-                  if (!d) return null;
+            {/* Horizontal lollipop chart */}
+            <div style={{ position: "relative", paddingLeft: "120px", paddingRight: "52px" }}>
+              {/* Threshold vertical lines */}
+              {thresholds.map(t => {
+                const pct = (t.val / maxDisc) * 100;
+                return (
+                  <div key={t.val} style={{ position: "absolute", left: `calc(120px + (100% - 172px) * ${pct / 100})`, top: 0, bottom: 0, width: 0, borderLeft: `1.5px dashed ${t.color}33`, zIndex: 0, pointerEvents: "none" }}>
+                    <span style={{ position: "absolute", top: -16, left: "50%", transform: "translateX(-50%)", fontSize: "9px", fontWeight: 600, color: `${t.color}99`, whiteSpace: "nowrap" }}>{t.label}</span>
+                  </div>
+                );
+              })}
+              {/* Rows */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", position: "relative", zIndex: 1, paddingTop: "10px" }}>
+                {discChart.map((d) => {
+                  const pct = Math.min((d.disc / maxDisc) * 100, 100);
+                  const status = d.disc >= 10 ? "excellent" : d.disc >= 3 ? "good" : d.disc >= 2 ? "acceptable" : "insufficient";
+                  const statusColor = status === "excellent" ? T.success : status === "good" ? T.primary : status === "acceptable" ? T.warning : T.danger;
                   return (
-                    <div style={{ ...tooltipStyle, padding: "12px 16px" }}>
-                      <div style={{ fontWeight: 700, fontSize: "12px", color: DRUG_DC[d.drug] || T.text }}>{d.name}</div>
-                      <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Discrimination: <strong style={{ color: T.text }}>{d.disc.toFixed(1)}×</strong></div>
-                      <div style={{ fontSize: "11px", color: T.textSec }}>Score: {d.score.toFixed(3)} · {d.drug}</div>
-                      <div style={{ marginTop: "4px" }}><Badge variant={d.disc >= 10 ? "success" : d.disc >= 3 ? "primary" : d.disc >= 2 ? "warning" : "danger"}>{d.disc >= 10 ? "Excellent" : d.disc >= 3 ? "Good" : d.disc >= 2 ? "Acceptable" : "Insufficient"}</Badge></div>
+                    <div key={d.name} style={{ display: "flex", alignItems: "center", height: "30px", marginLeft: "-120px", marginRight: "-52px" }}>
+                      <div style={{ width: "120px", flexShrink: 0, fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "12px", textAlign: "right" }}>{d.name}</div>
+                      <div style={{ flex: 1, position: "relative", height: "30px", display: "flex", alignItems: "center" }}>
+                        {/* Track line */}
+                        <div style={{ position: "absolute", left: 0, right: 0, height: "1px", background: T.borderLight }} />
+                        {/* Gradient stem */}
+                        <div style={{ position: "absolute", left: 0, width: `${pct}%`, height: "3px", borderRadius: "1.5px",
+                          background: `linear-gradient(90deg, ${statusColor}11, ${statusColor}66)`,
+                        }} />
+                        {/* Dot */}
+                        <div style={{
+                          position: "absolute", left: `${pct}%`,
+                          width: "14px", height: "14px", borderRadius: "50%",
+                          background: `radial-gradient(circle at 40% 35%, ${statusColor}dd, ${statusColor})`,
+                          border: "2px solid #fff",
+                          boxShadow: `0 0 0 1px ${statusColor}22, 0 2px 6px ${statusColor}18`,
+                          transform: "translateX(-7px)",
+                          transition: "transform 0.15s ease",
+                        }} />
+                      </div>
+                      {/* Value */}
+                      <div style={{ width: "52px", flexShrink: 0, textAlign: "right", fontSize: "11px", fontFamily: MONO, fontWeight: 700, color: statusColor }}>
+                        {d.disc.toFixed(1)}×
+                      </div>
                     </div>
                   );
-                }} />
-                <ReferenceLine y={3} stroke={T.warning} strokeDasharray="5 3" strokeWidth={1.5} label={{ value: "3× diagnostic", position: "left", style: { fontSize: 10, fill: T.warning, fontWeight: 600 } }} />
-                <ReferenceLine y={2} stroke={T.danger} strokeDasharray="4 4" strokeWidth={1} label={{ value: "2× minimum", position: "left", style: { fontSize: 10, fill: T.danger, fontWeight: 500 } }} />
-                <Bar dataKey="disc" radius={[4, 4, 0, 0]} isAnimationActive={false}>
-                  {discChart.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_DC_LIGHT[entry.drug] || DRUG_DC_LIGHT.OTHER} stroke={DRUG_DC[entry.drug] || DRUG_DC.OTHER} strokeWidth={1} />
-                  ))}
-                </Bar>
-                <Scatter dataKey="disc" r={5} isAnimationActive={false}>
-                  {discChart.map((entry, i) => (
-                    <Cell key={i} fill={DRUG_DC[entry.drug] || DRUG_DC.OTHER} stroke="#fff" strokeWidth={1.5} />
-                  ))}
-                </Scatter>
-              </ComposedChart>
-            </ResponsiveContainer>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
+                })}
+              </div>
+            </div>
+            {/* Legend */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "16px", flexWrap: "wrap", paddingTop: "12px", borderTop: `1px solid ${T.borderLight}` }}>
               {[...new Set(directCands.map(r => r.drug))].map(d => (
-                <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "3px", background: DRUG_DC[d] || DRUG_DC.OTHER }} />
+                <div key={d} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: DRUG_DC[d] || DRUG_DC.OTHER }} />
                   <span style={{ fontSize: "10px", color: T.textSec, fontWeight: 500 }}>{d}</span>
                 </div>
               ))}
-              <span style={{ fontSize: "10px", color: T.textTer }}>|</span>
-              <span style={{ fontSize: "10px", color: T.warning, fontWeight: 600 }}>3× diagnostic</span>
-              <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600 }}>2× minimum</span>
+              <div style={{ width: "1px", height: "12px", background: T.borderLight }} />
+              {[{ c: T.success, l: "≥ 10× Excellent" }, { c: T.primary, l: "≥ 3× Good" }, { c: T.warning, l: "≥ 2× Acceptable" }, { c: T.danger, l: "< 2× Insufficient" }].map(s => (
+                <div key={s.l} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: 8, height: 2, borderRadius: 1, background: s.c }} />
+                  <span style={{ fontSize: "9px", color: T.textTer }}>{s.l}</span>
+                </div>
+              ))}
             </div>
             {(() => {
               const bestDisc = discChart[0];
