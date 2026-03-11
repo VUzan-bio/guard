@@ -4117,11 +4117,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     ],
   };
 
-  // Electrode layout — 5×3 grid, per-pad one-pot
+  // Electrode layout — 7×2 grid (14-plex chip)
   const electrodeLayout = [
-    ["IS6110_NON","rpoB_S450L","rpoB_H445Y","rpoB_H445D","rpoB_D435V"],
-    ["rpoB_S450W","katG_S315T","katG_S315N","inhA_C-15T","embB_M306V"],
-    ["embB_M306I","pncA_H57D","gyrA_D94G","gyrA_A90V","rrs_A1401G"],
+    ["IS6110","IS1081","rpoB_S531L","rpoB_H526Y","katG_S315T","inhA_C-15T","embB_M306V"],
+    ["pncA","gyrA_D94G","gyrA_A90V","gyrB","rrs_A1401G","eis_C-14T","RNaseP"],
   ];
 
   // Drug colors for pads
