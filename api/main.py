@@ -193,7 +193,7 @@ async def health() -> dict:
 
 @app.get("/")
 async def root():
-    return RedirectResponse("https://guard-design.app")
+    return JSONResponse({"status": "ok", "app": "https://guard-design.app"})
 
 
 # Serve frontend static files if built.
