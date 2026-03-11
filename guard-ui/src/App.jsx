@@ -4261,10 +4261,8 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           echemTime={echemTime}
           echemKtrans={echemKtrans}
           echemGamma0_mol={echemGamma0_mol}
-          T={T}
           HEADING={HEADING}
           MONO={MONO}
-          mobile={mobile}
         />
       </CollapsibleSection>
 
