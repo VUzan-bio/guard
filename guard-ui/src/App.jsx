@@ -2146,109 +2146,152 @@ const ReadinessChart = ({ results }) => {
   });
   const [hovIdx, setHovIdx] = useState(null);
 
-  const DRUG_LINE = { RIF: "#3288bd", INH: "#66c2a5", EMB: "#abdda4", PZA: "#d4a017", FQ: "#f46d43", AG: "#d53e4f", OTHER: "#9CA3AF", CTRL: "#9CA3AF" };
+  // UMAP-style gradient colors per drug class
+  const DRUG_LINE = { RIF: "#2563EB", INH: "#D97706", EMB: "#0D9488", PZA: "#16A34A", FQ: "#E11D48", AG: "#F97316", OTHER: "#6B7280", CTRL: "#6B7280" };
 
-  // SVG dimensions
-  const W = 600, H = 320, padL = 110, padR = 60, padT = 30, padB = 50;
+  // Full-width responsive SVG — use viewBox for scaling
+  const W = 900, H = 400, padL = 100, padR = 80, padT = 24, padB = 40;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
   const axisX = axes.map((_, i) => padL + (i / (axes.length - 1)) * plotW);
 
   return (
-    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "28px 32px", marginBottom: "24px" }}>
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "8px" }}>
+    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "24px 24px 20px", marginBottom: "24px" }}>
+      <div style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "8px" }}>
         <div>
           <div style={{ fontSize: "15px", fontWeight: 700, color: T.text, fontFamily: HEADING }}>Diagnostic Readiness Score</div>
-          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Parallel coordinates — each line is one candidate across 5 readiness axes. Strong candidates stay high. Colored by drug class.</div>
+          <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px" }}>Each line is one candidate across 5 readiness axes. Strong candidates stay high. Colored by drug class.</div>
         </div>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           {Object.entries(DRUG_LINE).filter(([k]) => chartData.some(r => r.drug === k)).map(([d, c]) => (
             <div key={d} style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: T.textSec }}>
-              <span style={{ display: "inline-block", width: 12, height: 3, borderRadius: 2, backgroundColor: c }} />
+              <span style={{ display: "inline-block", width: 14, height: 3, borderRadius: 2, backgroundColor: c }} />
               {d}
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", maxWidth: W, height: "auto" }}>
-          {/* Axis lines + labels */}
-          {axes.map((a, i) => (
+      {/* Full-width SVG — viewBox scales to container */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} preserveAspectRatio="xMidYMid meet">
+        {/* Soft background bands for readability */}
+        {[0, 1, 2, 3].map(i => (
+          <rect key={i} x={padL} y={padT + i * (plotH / 4)} width={plotW} height={plotH / 4}
+            fill={i % 2 === 0 ? "rgba(0,0,0,0.015)" : "transparent"} />
+        ))}
+
+        {/* Axis lines */}
+        {axes.map((a, i) => (
+          <g key={a}>
+            <line x1={axisX[i]} y1={padT} x2={axisX[i]} y2={padT + plotH} stroke="#E5E7EB" strokeWidth={1} />
+            {/* Axis label */}
+            <text x={axisX[i]} y={padT + plotH + 24} textAnchor="middle" fontSize={11} fontWeight={600} fill="#6B7280" fontFamily="monospace">{AXIS_LABELS[a]}</text>
+            {/* Tick marks at 0%, 25%, 50%, 75%, 100% */}
+            {[0, 0.25, 0.5, 0.75, 1].map(v => {
+              const ty = padT + plotH * (1 - v);
+              return (
+                <g key={v}>
+                  <line x1={axisX[i] - 3} y1={ty} x2={axisX[i] + 3} y2={ty} stroke="#D1D5DB" strokeWidth={0.5} />
+                  {i === 0 && <text x={axisX[0] - 8} y={ty + 3} textAnchor="end" fontSize={9} fill="#9CA3AF">{Math.round(v * 100)}</text>}
+                </g>
+              );
+            })}
+          </g>
+        ))}
+
+        {/* 50% reference line */}
+        <line x1={axisX[0]} y1={padT + plotH / 2} x2={axisX[axes.length - 1]} y2={padT + plotH / 2} stroke="#E5E7EB" strokeWidth={0.7} strokeDasharray="6,4" />
+
+        {/* Candidate polylines — non-hovered first (dimmed), then hovered on top */}
+        {chartData.map((row, ri) => {
+          if (hovIdx != null && hovIdx === ri) return null; // draw hovered last
+          const lineColor = DRUG_LINE[row.drug] || "#6B7280";
+          const points = axes.map((a, i) => `${axisX[i]},${padT + plotH * (1 - row[a])}`).join(" ");
+          return (
+            <polyline key={row.name} points={points} fill="none"
+              stroke={lineColor} strokeWidth={1.5}
+              strokeOpacity={hovIdx != null ? 0.08 : 0.5}
+              strokeLinejoin="round" strokeLinecap="round"
+              style={{ transition: "stroke-opacity 0.25s", cursor: "pointer" }}
+              onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}
+            />
+          );
+        })}
+
+        {/* Hovered line (on top, bold) */}
+        {hovIdx != null && (() => {
+          const row = chartData[hovIdx];
+          const lineColor = DRUG_LINE[row.drug] || "#6B7280";
+          const points = axes.map((a, i) => `${axisX[i]},${padT + plotH * (1 - row[a])}`).join(" ");
+          return (
+            <polyline points={points} fill="none" stroke={lineColor} strokeWidth={3}
+              strokeOpacity={1} strokeLinejoin="round" strokeLinecap="round" />
+          );
+        })()}
+
+        {/* Dots at axis intersections for hovered line */}
+        {hovIdx != null && axes.map((a, i) => {
+          const row = chartData[hovIdx];
+          const y = padT + plotH * (1 - row[a]);
+          const lineColor = DRUG_LINE[row.drug] || "#6B7280";
+          return (
             <g key={a}>
-              <line x1={axisX[i]} y1={padT} x2={axisX[i]} y2={padT + plotH} stroke={T.borderLight} strokeWidth={1} />
-              <text x={axisX[i]} y={padT + plotH + 18} textAnchor="middle" fontSize={10} fontWeight={600} fill={T.textTer} fontFamily={MONO}>{AXIS_LABELS[a]}</text>
-              {/* Tick labels: 0, 50, 100 */}
-              <text x={axisX[i] - 6} y={padT + plotH + 2} textAnchor="end" fontSize={8} fill={T.textTer}>0</text>
-              <text x={axisX[i] - 6} y={padT + plotH / 2 + 2} textAnchor="end" fontSize={8} fill={T.textTer}>50</text>
-              <text x={axisX[i] - 6} y={padT + 4} textAnchor="end" fontSize={8} fill={T.textTer}>100</text>
+              <circle cx={axisX[i]} cy={y} r={5} fill={lineColor} stroke="#fff" strokeWidth={2} />
+              <text x={axisX[i] + (i === axes.length - 1 ? -10 : 10)} y={y - 8} textAnchor={i === axes.length - 1 ? "end" : "start"} fontSize={10} fontWeight={700} fill="#374151" fontFamily="monospace">{(row[a] * 100).toFixed(0)}%</text>
             </g>
-          ))}
-          {/* Horizontal reference lines at 0.5 (50%) */}
-          <line x1={axisX[0]} y1={padT + plotH / 2} x2={axisX[axes.length - 1]} y2={padT + plotH / 2} stroke={T.borderLight} strokeWidth={0.5} strokeDasharray="4,4" />
+          );
+        })}
 
-          {/* Candidate lines — dim ones first, hovered on top */}
-          {chartData.map((row, ri) => {
-            const isHov = hovIdx === ri;
-            const lineColor = DRUG_LINE[row.drug] || "#9CA3AF";
-            const points = axes.map((a, i) => `${axisX[i]},${padT + plotH * (1 - row[a])}`).join(" ");
-            return (
-              <polyline key={row.name} points={points} fill="none"
-                stroke={isHov ? lineColor : lineColor}
-                strokeWidth={isHov ? 2.5 : 1.3}
-                strokeOpacity={hovIdx != null ? (isHov ? 1 : 0.12) : 0.55}
-                strokeLinejoin="round"
-                style={{ transition: "stroke-opacity 0.2s, stroke-width 0.2s", cursor: "pointer" }}
-                onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}
-              />
-            );
-          })}
+        {/* Hovered candidate name + readiness score */}
+        {hovIdx != null && (() => {
+          const row = chartData[hovIdx];
+          const lineColor = DRUG_LINE[row.drug] || "#6B7280";
+          const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
+          const firstY = padT + plotH * (1 - row[axes[0]]);
+          return (
+            <g>
+              {/* Left: target name */}
+              <rect x={2} y={firstY - 10} width={padL - 12} height={18} rx={3} fill="#fff" stroke="#E5E7EB" strokeWidth={0.5} />
+              <text x={padL - 14} y={firstY + 3} textAnchor="end" fontSize={10} fontWeight={700} fill={lineColor} fontFamily="monospace">{row.name}</text>
+              {/* Right: readiness score */}
+              <rect x={axisX[axes.length - 1] + 8} y={padT + plotH * (1 - row[axes[axes.length - 1]]) - 10} width={55} height={18} rx={3} fill={readinessColor} opacity={0.15} />
+              <text x={axisX[axes.length - 1] + 36} y={padT + plotH * (1 - row[axes[axes.length - 1]]) + 4} textAnchor="middle" fontSize={12} fontWeight={800} fill={readinessColor} fontFamily="monospace">{(row.readiness * 100).toFixed(0)}</text>
+            </g>
+          );
+        })()}
 
-          {/* Dots at axis intersections for hovered line */}
-          {hovIdx != null && axes.map((a, i) => {
-            const row = chartData[hovIdx];
-            const y = padT + plotH * (1 - row[a]);
-            return (
-              <g key={a}>
-                <circle cx={axisX[i]} cy={y} r={4} fill={DRUG_LINE[row.drug] || "#9CA3AF"} stroke="#fff" strokeWidth={1.5} />
-                <text x={axisX[i] + 8} y={y + 3} fontSize={9} fontWeight={700} fill={T.text} fontFamily={MONO}>{(row[a] * 100).toFixed(0)}%</text>
-              </g>
-            );
-          })}
+        {/* Right-side readiness scores (always visible when not hovering) */}
+        <text x={axisX[axes.length - 1] + 12} y={padT - 8} textAnchor="start" fontSize={9} fontWeight={600} fill="#9CA3AF">Readiness</text>
+        {hovIdx == null && chartData.map((row, ri) => {
+          const y = padT + plotH * (1 - row[axes[axes.length - 1]]);
+          const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
+          return (
+            <text key={ri} x={axisX[axes.length - 1] + 14} y={y + 3} fontSize={9} fontWeight={700} fill={readinessColor} fontFamily="monospace"
+              style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
+              {(row.readiness * 100).toFixed(0)}
+            </text>
+          );
+        })}
 
-          {/* Hovered candidate label */}
-          {hovIdx != null && (() => {
-            const row = chartData[hovIdx];
-            const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
-            return (
-              <g>
-                <text x={padL - 8} y={padT + plotH * (1 - row[axes[0]]) + 4} textAnchor="end" fontSize={10} fontWeight={700} fill={T.text} fontFamily={MONO}>{row.name}</text>
-                <text x={axisX[axes.length - 1] + 12} y={padT + plotH * (1 - row[axes[axes.length - 1]]) + 4} textAnchor="start" fontSize={10} fontWeight={700} fill={readinessColor} fontFamily={MONO}>{(row.readiness * 100).toFixed(0)}</text>
-              </g>
-            );
-          })()}
-
-          {/* Right-side readiness scores (always visible) */}
-          <text x={axisX[axes.length - 1] + 12} y={padT - 6} textAnchor="start" fontSize={9} fontWeight={600} fill={T.textTer}>Score</text>
-          {hovIdx == null && chartData.map((row, ri) => {
-            const y = padT + plotH * (1 - row[axes[axes.length - 1]]);
-            const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
-            return (
-              <text key={ri} x={axisX[axes.length - 1] + 12} y={y + 3} fontSize={8} fill={readinessColor} fontFamily={MONO}
-                style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
-                {(row.readiness * 100).toFixed(0)}
-              </text>
-            );
-          })}
-        </svg>
-      </div>
+        {/* Left-side candidate names (always visible when not hovering) */}
+        {hovIdx == null && chartData.map((row, ri) => {
+          const y = padT + plotH * (1 - row[axes[0]]);
+          const lineColor = DRUG_LINE[row.drug] || "#6B7280";
+          return (
+            <text key={ri} x={padL - 8} y={y + 3} textAnchor="end" fontSize={8} fill={lineColor} fontFamily="monospace" opacity={0.7}
+              style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
+              {row.name.length > 14 ? row.name.slice(0, 12) + "…" : row.name}
+            </text>
+          );
+        })}
+      </svg>
 
       {/* Panel-wide gap detection */}
       {(() => {
         const axisAvgs = axes.map(a => ({ axis: a, avg: chartData.reduce((s, r) => s + r[a], 0) / chartData.length }));
         const weakest = axisAvgs.reduce((min, cur) => cur.avg < min.avg ? cur : min);
         if (weakest.avg < 0.4) return (
-          <div style={{ marginTop: "12px", padding: "8px 14px", background: `${T.warning}10`, border: `1px solid ${T.warning}30`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.5 }}>
+          <div style={{ marginTop: "8px", padding: "8px 14px", background: `${T.warning}10`, border: `1px solid ${T.warning}30`, borderRadius: "8px", fontSize: "11px", color: T.textSec, lineHeight: 1.5 }}>
             Panel-wide gap: <strong style={{ color: T.text }}>{AXIS_LABELS[weakest.axis]}</strong> axis averages {(weakest.avg * 100).toFixed(0)}% — consider strengthening candidates on this dimension.
           </div>
         );
@@ -2533,10 +2576,10 @@ const OverviewTab = ({ results, scorer, jobId }) => {
 
   return (
     <div>
-      {/* Explainer box — neutral tone */}
-      <div style={{ background: T.bgSub, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "16px" : "20px 24px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>How to read these results</div>
-        <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7 }}>
+      {/* Explainer box — blue */}
+      <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "16px" : "20px 24px", marginBottom: "24px" }}>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "8px" }}>How to read these results</div>
+        <div style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.7, opacity: 0.85 }}>
           <p style={{ margin: "0 0 8px" }}>
             Each <strong>candidate</strong> is a CRISPR guide RNA (crRNA) designed to detect one specific drug-resistance mutation in <em>M. tuberculosis</em>.
             The pipeline evaluates every candidate on four axes:
@@ -3471,13 +3514,13 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
 
   return (
     <div>
-      {/* Explainer box — minimal */}
-      <div style={{ background: T.bgSub, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "14px" : "14px 22px", marginBottom: "16px" }}>
-        <div style={{ display: "flex", gap: "20px", fontSize: "11px", color: T.textSec, lineHeight: 1.5, flexWrap: "wrap" }}>
-          <div><strong style={{ color: T.text }}>Activity</strong> — predicted Cas12a trans-cleavage (0–1). {hasML ? "Ensemble score." : "Heuristic."}</div>
-          <div><strong style={{ color: T.text }}>Disc</strong> — MUT/WT fold-difference. <span style={{ color: T.success }}>≥3×</span> diagnostic-grade. <span style={{ color: T.danger }}>&lt;2×</span> insufficient.</div>
-          <div><strong style={{ color: T.text }}>Readiness</strong> — multi-axis composite (disc 40%, activity 20%, primers 15%, off-target 15%, GC 10%).</div>
-          <div style={{ color: T.textTer }}>Click any row to expand full details, scored sequence, primers, and alternatives.</div>
+      {/* Explainer box — blue */}
+      <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "14px" : "14px 22px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", gap: "20px", fontSize: "11px", color: T.primaryDark, lineHeight: 1.5, flexWrap: "wrap", opacity: 0.85 }}>
+          <div><strong>Activity</strong> — predicted Cas12a trans-cleavage (0–1). {hasML ? "Ensemble score." : "Heuristic."}</div>
+          <div><strong>Disc</strong> — MUT/WT fold-difference. <span style={{ color: T.success }}>≥3×</span> diagnostic-grade. <span style={{ color: T.danger }}>&lt;2×</span> insufficient.</div>
+          <div><strong>Readiness</strong> — multi-axis composite (disc 40%, activity 20%, primers 15%, off-target 15%, GC 10%).</div>
+          <div>Click any row to expand full details, scored sequence, primers, and alternatives.</div>
         </div>
       </div>
 
