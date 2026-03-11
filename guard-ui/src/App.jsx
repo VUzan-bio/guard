@@ -4841,21 +4841,22 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
 /* ═══════════════════════════════════════════════════════════════════
    DIAGNOSTICS TAB — Block 3 Sensitivity-Specificity Optimization
    ═══════════════════════════════════════════════════════════════════ */
-class DiagnosticsErrorBoundary extends React.Component {
+class TabErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(error, info) { console.error("DiagnosticsTab crash:", error, info); }
+  componentDidCatch(error, info) { console.error(`${this.props.label || "Tab"} crash:`, error, info); }
   render() {
     if (this.state.error) return (
       <div style={{ padding: "24px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", margin: "16px 0" }}>
-        <div style={{ fontWeight: 700, color: "#991B1B", marginBottom: "8px" }}>Diagnostics failed to render</div>
-        <div style={{ fontSize: "12px", color: "#7F1D1D", fontFamily: "monospace" }}>{this.state.error.message}</div>
+        <div style={{ fontWeight: 700, color: "#991B1B", marginBottom: "8px" }}>{this.props.label || "Tab"} failed to render</div>
+        <div style={{ fontSize: "12px", color: "#7F1D1D", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>{this.state.error.message}{"\n"}{this.state.error.stack}</div>
         <button onClick={() => this.setState({ error: null })} style={{ marginTop: "12px", padding: "6px 16px", border: "1px solid #FECACA", borderRadius: "6px", cursor: "pointer", background: "white", fontSize: "12px" }}>Retry</button>
       </div>
     );
     return this.props.children;
   }
 }
+const DiagnosticsErrorBoundary = (props) => <TabErrorBoundary label="Diagnostics" {...props} />;
 const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
   const mobile = useIsMobile();
 
@@ -5896,7 +5897,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
           {tab === "candidates" && <CandidatesTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} />}
           {tab === "discrimination" && <DiscriminationTab results={results} />}
           {tab === "primers" && <PrimersTab results={results} />}
-          {tab === "multiplex" && <MultiplexTab results={results} panelData={panelData} jobId={activeJob} connected={connected} />}
+          {tab === "multiplex" && <TabErrorBoundary label="Multiplex"><MultiplexTab results={results} panelData={panelData} jobId={activeJob} connected={connected} /></TabErrorBoundary>}
           {tab === "diagnostics" && <DiagnosticsErrorBoundary><DiagnosticsTab results={results} jobId={activeJob} connected={connected} scorer={scorerProp} /></DiagnosticsErrorBoundary>}
         </>
       )}
