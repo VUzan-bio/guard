@@ -4312,7 +4312,7 @@ const DiscriminationTab = ({ results }) => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
           <thead>
             <tr style={{ background: T.bgSub }}>
-              {["Rank", "Target", "Drug", "Discrimination", "Model", "Score", "Status"].map(h => (
+              {["Rank", "Target", "Drug", "Discrimination", "Model", "Activity", "Status"].map(h => (
                 <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, borderBottom: `1px solid ${T.border}` }}>{h}</th>
               ))}
             </tr>
@@ -4363,7 +4363,7 @@ const DiscriminationTab = ({ results }) => {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
               <tr style={{ background: T.bgSub }}>
-                {["Target", "Drug", "Distance", "Score", "Mismatch", "Disc. Ratio", "Block", "Primers"].map(h => (
+                {["Target", "Drug", "Distance", "Activity", "3′ Mismatch", "Penult. MM", "Disc. Ratio", "Block", "Primers"].map(h => (
                   <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: T.textSec, borderBottom: `1px solid ${T.borderLight}` }}>{h}</th>
                 ))}
               </tr>
@@ -4377,8 +4377,9 @@ const DiscriminationTab = ({ results }) => {
                     <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px" }}>{r.label}</td>
                     <td style={{ padding: "10px 14px" }}><DrugBadge drug={r.drug} /></td>
                     <td style={{ padding: "10px 14px", fontFamily: FONT, color: T.purple }}>{r.proximityDistance ? `${r.proximityDistance} bp` : "—"}</td>
-                    <td style={{ padding: "10px 14px", fontFamily: FONT }}>{r.score.toFixed(3)}</td>
+                    <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 600, color: (r.cnnCalibrated ?? r.score) >= 0.7 ? T.success : (r.cnnCalibrated ?? r.score) >= 0.4 ? T.warning : T.danger }}>{(r.cnnCalibrated ?? r.score).toFixed(3)}</td>
                     <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700 }}>{d?.terminal_mismatch || "—"}</td>
+                    <td style={{ padding: "10px 14px", fontSize: "11px" }}>{d ? (d.has_penultimate_mm ? <span style={{ color: T.success, fontWeight: 600 }}>Yes</span> : <span style={{ color: T.textTer }}>No</span>) : "—"}</td>
                     <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: d ? (d.block_class === "none" ? T.danger : d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
                       {d ? (d.block_class === "none" ? "1× (WC)" : d.disc_ratio >= 100 ? "≥100×" : `${d.disc_ratio.toFixed(0)}×`) : "—"}
                     </td>
