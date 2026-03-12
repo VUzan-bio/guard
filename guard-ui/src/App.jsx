@@ -68,37 +68,33 @@ function useIsMobile() {
 function seq(len) { const b = "ACGT"; return Array.from({ length: len }, () => b[Math.floor(Math.random() * 4)]).join(""); }
 
 const WHO_REFS = {
-  "rpoB_S450L": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "40–60% of RIF-R globally" },
-  "rpoB_H445D": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "5–12% of RIF-R" },
-  "rpoB_H445Y": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "3–8% of RIF-R" },
-  "rpoB_D435V": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "3–7% of RIF-R" },
-  "rpoB_S450W": { who: "Interim", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: null, freq: "<1% of RIF-R" },
+  "rpoB_S531L": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "40–70% of RIF-R globally" },
+  "rpoB_H526Y": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "10–20% of RIF-R" },
+  "rpoB_D516V": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "5–10% of RIF-R" },
   "katG_S315T": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "50–80% of INH-R globally" },
-  "katG_S315N": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "1–3% of INH-R" },
-  "inhA_C-15T": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "10–25% of INH-R" },
+  "fabG1_C-15T": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "10–25% of INH-R" },
   "embB_M306V": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "40–65% of EMB-R" },
   "embB_M306I": { who: "Interim", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "15–25% of EMB-R" },
-  "pncA_H57D": { who: "Interim", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: null, freq: "Frequency <5% of PZA-resistant isolates" },
+  "pncA_H57D": { who: "Interim", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: null, freq: "<5% of PZA-R" },
   "gyrA_D94G": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "30–50% of FQ-R" },
   "gyrA_A90V": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "15–30% of FQ-R" },
   "rrs_A1401G": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "70–90% of AG-R" },
+  "eis_C-14T": { who: "Associated", catalogue: "WHO Mutation Catalogue, 2nd ed. (2023)", cryptic: "CRyPTIC Consortium (2022)", freq: "5–15% of AG-R (KAN)" },
 };
 
 const MUTATIONS = [
-  { gene: "rpoB", ref: "S", pos: 450, alt: "L", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
-  { gene: "rpoB", ref: "H", pos: 445, alt: "D", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
-  { gene: "rpoB", ref: "H", pos: 445, alt: "Y", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
-  { gene: "rpoB", ref: "D", pos: 435, alt: "V", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
-  { gene: "rpoB", ref: "S", pos: 450, alt: "W", drug: "RIF", drugFull: "Rifampicin", conf: "Moderate", tier: 2 },
+  { gene: "rpoB", ref: "S", pos: 531, alt: "L", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
+  { gene: "rpoB", ref: "H", pos: 526, alt: "Y", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
+  { gene: "rpoB", ref: "D", pos: 516, alt: "V", drug: "RIF", drugFull: "Rifampicin", conf: "High", tier: 1 },
   { gene: "katG", ref: "S", pos: 315, alt: "T", drug: "INH", drugFull: "Isoniazid", conf: "High", tier: 1 },
-  { gene: "katG", ref: "S", pos: 315, alt: "N", drug: "INH", drugFull: "Isoniazid", conf: "High", tier: 1 },
-  { gene: "inhA", ref: "C", pos: -15, alt: "T", drug: "INH", drugFull: "Isoniazid", conf: "High", tier: 1 },
+  { gene: "fabG1", ref: "C", pos: -15, alt: "T", drug: "INH", drugFull: "Isoniazid", conf: "High", tier: 1 },
   { gene: "embB", ref: "M", pos: 306, alt: "V", drug: "EMB", drugFull: "Ethambutol", conf: "High", tier: 1 },
   { gene: "embB", ref: "M", pos: 306, alt: "I", drug: "EMB", drugFull: "Ethambutol", conf: "Moderate", tier: 2 },
   { gene: "pncA", ref: "H", pos: 57, alt: "D", drug: "PZA", drugFull: "Pyrazinamide", conf: "Moderate", tier: 2 },
   { gene: "gyrA", ref: "D", pos: 94, alt: "G", drug: "FQ", drugFull: "Fluoroquinolones", conf: "High", tier: 1 },
   { gene: "gyrA", ref: "A", pos: 90, alt: "V", drug: "FQ", drugFull: "Fluoroquinolones", conf: "High", tier: 1 },
   { gene: "rrs", ref: "A", pos: 1401, alt: "G", drug: "AG", drugFull: "Amikacin", conf: "High", tier: 1 },
+  { gene: "eis", ref: "C", pos: -14, alt: "T", drug: "AG", drugFull: "Amikacin", conf: "High", tier: 1 },
 ];
 
 const RESULTS = MUTATIONS.map((m, i) => {
@@ -139,7 +135,7 @@ const RESULTS = MUTATIONS.map((m, i) => {
 });
 RESULTS.push({
   gene: "IS6110", ref: "N", pos: 0, alt: "N", drug: "OTHER", drugFull: "Other", conf: "N/A", tier: 0,
-  label: "IS6110_NON", strategy: "Direct", spacer: "AATGTCGCCGCGATCGAGCG", wtSpacer: "AATGTCGCCGCGATCGAGCG",
+  label: "IS6110", strategy: "Direct", spacer: "AATGTCGCCGCGATCGAGCG", wtSpacer: "AATGTCGCCGCGATCGAGCG",
   pam: "TTTG", pamVariant: "TTTV", pamPenalty: 1.0, isCanonicalPam: true,
   score: 0.95, cnnScore: 0.88, cnnCalibrated: 0.91, pamAdjusted: 0.91,
   mlScores: [{ model_name: "guard_net", predicted_efficiency: 0.88 }],
@@ -152,19 +148,26 @@ RESULTS.push({
 
 // ── Mock cross-reactivity matrix (14×14, biologically realistic) ──
 const CROSS_REACTIVITY_LABELS = [
-  "IS6110", "IS1081", "rpoB_S531L", "rpoB_H526Y", "katG_S315T", "inhA_C-15T",
-  "embB_M306V", "pncA", "gyrA_D94G", "gyrA_A90V", "gyrB", "rrs_A1401G", "eis_C-14T", "RNaseP",
+  "IS6110", "rpoB_S531L", "rpoB_H526Y", "rpoB_D516V", "katG_S315T", "fabG1_C-15T",
+  "embB_M306V", "embB_M306I", "pncA_H57D", "gyrA_D94G", "gyrA_A90V", "rrs_A1401G", "eis_C-14T", "RNaseP",
 ];
-const CROSS_REACTIVITY_DRUG_GROUPS = [0,0,1,1,2,2,3,4,5,5,5,6,6,7]; // group indices for separator lines
+const CROSS_REACTIVITY_DRUG_GROUPS = [0,1,1,1,2,2,3,3,4,5,5,6,6,7]; // group indices for separator lines
 const MOCK_CROSS_REACTIVITY = (() => {
   const N = 14;
   const matrix = [];
   // Same-gene pair indices (source, target, activity, note)
+  // rpoB RRDR: indices 1,2,3; embB M306: indices 6,7; gyrA QRDR: indices 9,10
   const sameGene = [
-    [2, 3, 0.042, "rpoB RRDR shared amplicon, 15 nt separation"],
-    [3, 2, 0.058, "rpoB RRDR shared amplicon, 15 nt separation"],
-    [8, 9, 0.028, "gyrA QRDR shared amplicon, 12 nt separation"],
-    [9, 8, 0.047, "gyrA QRDR shared amplicon, 12 nt separation"],
+    [1, 2, 0.042, "rpoB RRDR shared amplicon, S531L\u2194H526Y 15 nt separation"],
+    [2, 1, 0.058, "rpoB RRDR shared amplicon, H526Y\u2194S531L"],
+    [1, 3, 0.031, "rpoB RRDR shared amplicon, S531L\u2194D516V 45 nt separation"],
+    [3, 1, 0.038, "rpoB RRDR shared amplicon, D516V\u2194S531L"],
+    [2, 3, 0.025, "rpoB RRDR shared amplicon, H526Y\u2194D516V 30 nt separation"],
+    [3, 2, 0.033, "rpoB RRDR shared amplicon, D516V\u2194H526Y"],
+    [6, 7, 0.065, "embB M306 same-codon shared amplicon"],
+    [7, 6, 0.072, "embB M306 same-codon shared amplicon"],
+    [9, 10, 0.028, "gyrA QRDR shared amplicon, 12 nt separation"],
+    [10, 9, 0.047, "gyrA QRDR shared amplicon"],
   ];
   const sameGeneMap = {};
   sameGene.forEach(s => { sameGeneMap[`${s[0]}_${s[1]}`] = { activity: s[2], note: s[3] }; });
@@ -821,7 +824,7 @@ const CandidateViewer = ({ r, onClose }) => {
             </div>
             {/* Shared amplicon warning for same-codon targets */}
             {(() => {
-              const codonGroups = { "rpoB_H445": ["rpoB_H445D", "rpoB_H445Y"], "rpoB_S450": ["rpoB_S450L", "rpoB_S450W"] };
+              const codonGroups = { "rpoB_RRDR": ["rpoB_S531L", "rpoB_H526Y", "rpoB_D516V"], "embB_M306": ["embB_M306V", "embB_M306I"] };
               for (const [, group] of Object.entries(codonGroups)) {
                 if (group.includes(r.label)) {
                   const siblings = group.filter(l => l !== r.label);
@@ -990,11 +993,12 @@ const FigureSection = ({ title, children, defaultOpen = true }) => {
    HOME PAGE — Run workflow + methodology blog
    ═══════════════════════════════════════════════════════════════════ */
 const DEFAULT_MUTS = [
-  "rpoB_S450L", "rpoB_H445D", "rpoB_H445Y", "rpoB_D435V",
-  "katG_S315T", "katG_S315N", "inhA_C-15T",
+  "rpoB_S531L", "rpoB_H526Y", "rpoB_D516V",
+  "katG_S315T", "fabG1_C-15T",
   "embB_M306V", "embB_M306I",
+  "pncA_H57D",
   "gyrA_D94G", "gyrA_A90V",
-  "rrs_A1401G",
+  "rrs_A1401G", "eis_C-14T",
 ];
 
 const HomePage = ({ goTo, connected }) => {
@@ -1028,7 +1032,7 @@ const HomePage = ({ goTo, connected }) => {
 
   /* ── Preset panel definitions ── */
   const ALL_INDICES = MUTATIONS.map((_, i) => i);
-  const CORE5_LABELS = ["rpoB_S450L", "katG_S315T", "inhA_C-15T", "gyrA_D94G", "rrs_A1401G"];
+  const CORE5_LABELS = ["rpoB_S531L", "katG_S315T", "fabG1_C-15T", "gyrA_D94G", "rrs_A1401G"];
   const CORE5_INDICES = MUTATIONS.map((m, i) => CORE5_LABELS.includes(`${m.gene}_${m.ref}${m.pos}${m.alt}`) ? i : -1).filter(i => i >= 0);
 
   const [panel, setPanel] = useState("mdr14");        // "mdr14" | "core5" | "custom"
@@ -1981,7 +1985,7 @@ const HomePage = ({ goTo, connected }) => {
             },
             {
               title: "Shared amplicons & cross-priming",
-              text: "Targets at the same codon (e.g., rpoB_H445D/H445Y, rpoB_S450L/S450W) may share the same amplicon and primers. In a single-pot multiplex, both mutations produce a positive drug-class signal but the specific amino acid change cannot be resolved without distinct crRNA reporters. Near-identical AS-RPA primers (differing only at the 3\u2032 base) competing for the same template region pose cross-priming risk not captured by the inter-oligo dimer analysis.",
+              text: "Targets in the same gene region (e.g., rpoB RRDR: S531L/H526Y/D516V, embB codon 306: M306V/M306I) may share the same amplicon and primers. In a single-pot multiplex, both mutations produce a positive drug-class signal but the specific amino acid change cannot be resolved without distinct crRNA reporters. Near-identical AS-RPA primers (differing only at the 3\u2032 base) competing for the same template region pose cross-priming risk not captured by the inter-oligo dimer analysis.",
             },
             {
               title: "Amplicon secondary structure",
@@ -3994,7 +3998,7 @@ const CrossReactivityMatrix = () => {
       </div>
 
       {/* Heatmap */}
-      <div style={{ overflowX: "auto", marginBottom: 16 }}>
+      <div style={{ overflowX: "auto", marginBottom: 16, position: "relative" }}>
         <svg width={totalW + 10} height={totalH + 10} style={{ display: "block" }}
           onMouseLeave={() => setHovCell(null)}>
           {/* Column headers (rotated 45°) */}
@@ -4552,16 +4556,17 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
   }, [connected, jobId]);
 
   // ═══════════ PREDICTED ELECTROCHEMICAL READOUT — State ═══════════
-  const [echemCandidate, setEchemCandidate] = useState("rpoB_H445Y");
+  const [echemCandidate, setEchemCandidate] = useState("rpoB_S531L");
   const [echemTechnique, setEchemTechnique] = useState("SWV");
   const [echemTime, setEchemTime] = useState(30);       // minutes
   const [echemBloodTiter, setEchemBloodTiter] = useState(100); // cp/mL
-  const [echemKtrans, setEchemKtrans] = useState(0.05);  // s⁻¹
+  const [echemKtrans, setEchemKtrans] = useState(0.002); // s⁻¹ (realistic for LIG-AuNP surface trans-cleavage)
   const [echemAdvanced, setEchemAdvanced] = useState(false);
   const [echemGamma0, setEchemGamma0] = useState(1.5e11); // molecules/cm²
   const [echemPorosity, setEchemPorosity] = useState(3);
   const [echemIscale, setEchemIscale] = useState(3.0);    // μA
   const [echemShowFwdRev, setEchemShowFwdRev] = useState(false); // SWV i_fwd/i_rev toggle
+  const [echemArch, setEchemArch] = useState("C"); // Reporter architecture: A=pAP/ALP, B=Silver, C=MB
 
   const kinetics = poolData?.kinetics || {
     phases: [
@@ -4583,7 +4588,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       { param: "k_trans (surface, estimated)", value: "0.01\u20130.1 s\u207b\u00b9", source: "Estimated", note: "Key experimental unknown." },
       { param: "[Cas12a]", value: "50 nM", source: "Design parameter", note: null },
       { param: "[crRNA] on pad", value: "~200 nM equivalent", source: "Design parameter", note: "Effective concentration after rehydration unknown." },
-      { param: "MB-ssDNA probe density", value: "~10\u2079\u2070\u201310\u00b9\u00b9 molecules/cm\u00b2", source: "Estimated for LIG", note: "Probe density directly affects signal magnitude and time-to-detection." },
+      { param: "MB-ssDNA probe density", value: "~10\u00b9\u2070\u201310\u00b9\u00b9 molecules/cm\u00b2", source: "Estimated for LIG", note: "Probe density directly affects signal magnitude and time-to-detection." },
     ],
     insights: [
       { title: "Rate-limiting step", text: "Surface trans-cleavage of tethered MB-ssDNA reporters dominates detection time \u2014 not RNP formation or target recognition." },
@@ -4591,28 +4596,27 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       { title: "Experimental unknowns", text: "k_trans on LIG-tethered MB-ssDNA and crRNA rehydration kinetics have not been measured. These are key characterisation priorities." },
     ],
     target_ranking: [
-      { target: "IS6110_NON", efficiency: 0.95, is_weak: false },
+      { target: "IS6110", efficiency: 0.95, is_weak: false },
+      { target: "rpoB_S531L", efficiency: 0.88, is_weak: false },
       { target: "katG_S315T", efficiency: 0.85, is_weak: false },
       { target: "gyrA_D94G", efficiency: 0.83, is_weak: false },
-      { target: "rpoB_S450L", efficiency: 0.82, is_weak: false },
       { target: "rrs_A1401G", efficiency: 0.81, is_weak: false },
-      { target: "inhA_C-15T", efficiency: 0.898, is_weak: false },
-      { target: "gyrA_A90V", efficiency: 0.79, is_weak: false },
-      { target: "rpoB_H445Y", efficiency: 0.78, is_weak: false },
+      { target: "fabG1_C-15T", efficiency: 0.80, is_weak: false },
+      { target: "rpoB_H526Y", efficiency: 0.78, is_weak: false },
+      { target: "gyrA_A90V", efficiency: 0.77, is_weak: false },
       { target: "embB_M306V", efficiency: 0.76, is_weak: false },
-      { target: "rpoB_H445D", efficiency: 0.75, is_weak: false },
-      { target: "rpoB_D435V", efficiency: 0.73, is_weak: false },
-      { target: "rpoB_S450W", efficiency: 0.70, is_weak: false },
-      { target: "katG_S315N", efficiency: 0.68, is_weak: false },
+      { target: "rpoB_D516V", efficiency: 0.73, is_weak: false },
+      { target: "eis_C-14T", efficiency: 0.70, is_weak: false },
       { target: "embB_M306I", efficiency: 0.65, is_weak: false },
       { target: "pncA_H57D", efficiency: 0.55, is_weak: true },
+      { target: "RNaseP", efficiency: 0.90, is_weak: false },
     ],
   };
 
-  // Electrode layout — 7×2 grid (14-plex chip)
+  // Electrode layout — 7×2 grid (14-plex: 12 resistance mutations + IS6110 + RNaseP)
   const electrodeLayout = [
-    ["IS6110","IS1081","rpoB_S531L","rpoB_H526Y","katG_S315T","inhA_C-15T","embB_M306V"],
-    ["pncA","gyrA_D94G","gyrA_A90V","gyrB","rrs_A1401G","eis_C-14T","RNaseP"],
+    ["IS6110","rpoB_S531L","rpoB_H526Y","rpoB_D516V","katG_S315T","fabG1_C-15T","embB_M306V"],
+    ["embB_M306I","pncA_H57D","gyrA_D94G","gyrA_A90V","rrs_A1401G","eis_C-14T","RNaseP"],
   ];
 
   // Drug colors for pads
@@ -4622,18 +4626,18 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
   const targetDrug = (t) => {
     const r = results.find(x => x.label === t);
     if (r) return r.drug || "OTHER";
-    if (t === "IS6110_NON") return "CTRL";
+    if (t === "IS6110" || t === "RNaseP") return "CTRL";
     if (t.startsWith("rpoB")) return "RIF";
-    if (t.startsWith("katG") || t.startsWith("inhA")) return "INH";
+    if (t.startsWith("katG") || t.startsWith("fabG1")) return "INH";
     if (t.startsWith("embB")) return "EMB";
     if (t.startsWith("pncA")) return "PZA";
     if (t.startsWith("gyrA")) return "FQ";
-    if (t.startsWith("rrs")) return "AG";
+    if (t.startsWith("rrs") || t.startsWith("eis")) return "AG";
     return "OTHER";
   };
   const targetStrategy = (t) => { const r = results.find(x => x.label === t); return r ? r.strategy : "Direct"; };
   const targetScore = (t) => { const r = results.find(x => x.label === t); return r ? ((r.cnnCalibrated ?? r.score) || 0) : 0; };
-  const coAmpliconGroups = [["rpoB_H445Y","rpoB_H445D"],["rpoB_S450L","rpoB_S450W"],["katG_S315T","katG_S315N"],["embB_M306V","embB_M306I"]];
+  const coAmpliconGroups = [["rpoB_S531L","rpoB_H526Y","rpoB_D516V"],["embB_M306V","embB_M306I"],["gyrA_D94G","gyrA_A90V"]];
   const isCoAmplicon = (t) => coAmpliconGroups.some(g => g.includes(t));
   const coAmpliconPartner = (t) => { const g = coAmpliconGroups.find(g => g.includes(t)); return g ? g.filter(x => x !== t)[0] : null; };
 
@@ -4654,109 +4658,74 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
   const V_blood_mL = 1.0;
   const extraction_yield = 0.6;
   const V_eluate_uL = 50;
-  const V_pad_uL = 50 / 15;
+  const V_pad_uL = 50 / 14;
   const P_rpa = 0.95;
   const P_signal = 1.0;
   const IS6110_copy_number = 10;
 
   const drug_targets = {
-    RIF: ["rpoB_S450L","rpoB_S450W","rpoB_H445Y","rpoB_H445D","rpoB_D435V"],
-    INH: ["katG_S315T","katG_S315N","inhA_C-15T"],
+    RIF: ["rpoB_S531L","rpoB_H526Y","rpoB_D516V"],
+    INH: ["katG_S315T","fabG1_C-15T"],
     EMB: ["embB_M306V","embB_M306I"],
     PZA: ["pncA_H57D"],
     FQ: ["gyrA_D94G","gyrA_A90V"],
-    AG: ["rrs_A1401G"],
+    AG: ["rrs_A1401G","eis_C-14T"],
   };
 
   const WHO_thresholds = { RIF: 0.95, INH: 0.90, FQ: 0.90, EMB: 0.80, PZA: 0.80, AG: 0.80 };
   const DRUG_LINE_COLORS = { RIF: "#2563EB", INH: "#D97706", EMB: "#0D9488", PZA: "#16A34A", FQ: "#E11D48", AG: "#F97316", IS6110: "#6B7280" };
 
-  const titers = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
-
-  const sensitivityData = useMemo(() => {
-    return titers.map(c => {
-      const N_total = c * V_blood_mL * extraction_yield;
-      const lambda = N_total * (V_pad_uL / V_eluate_uL);
-      const lambda_IS = lambda * IS6110_copy_number;
-      const pDetectSingle = (1 - Math.exp(-lambda)) * P_rpa * P_signal;
-      const pDetectIS = (1 - Math.exp(-lambda_IS)) * P_rpa * P_signal;
-
-      const row = { titer: c, IS6110: Math.min(pDetectIS, 1) * 100 };
-      Object.entries(drug_targets).forEach(([drug, targets]) => {
-        const pDrugMiss = targets.reduce((acc, _t) => acc * (1 - pDetectSingle), 1);
-        row[drug] = (1 - pDrugMiss) * 100;
-      });
-      return row;
-    });
-  }, [results]);
-
-  // ΔI% prediction per candidate
-  const scenarios = [
-    { label: "Conservative", k: 0.01, factor: 25, color: "#bfdbfe" },
-    { label: "Expected", k: 0.05, factor: 55, color: "#2563EB" },
-    { label: "Optimised", k: 0.1, factor: 80, color: "#1e3a5f" },
-  ];
-
-  const diPredictions = useMemo(() => {
-    const allTargets = electrodeLayout.flat().filter(t => t !== "IS6110_NON");
-    return allTargets.map(t => {
-      const eff = getEfficiency(t);
-      return {
-        target: t,
-        drug: targetDrug(t),
-        efficiency: eff,
-        conservative: 25 * eff,
-        expected: 55 * eff,
-        optimised: 80 * eff,
-      };
-    }).sort((a, b) => b.expected - a.expected);
-  }, [results, kinetics]);
-
-  // Discrimination ratio data for direct candidates
-  const discData = useMemo(() => {
-    return results.filter(r => r.strategy === "Direct" && r.disc > 0 && r.disc < 900).map(r => ({
-      target: r.label,
-      guardDisc: r.disc,
-      echemDisc: r.disc,
-      minWtDi: r.disc > 0 ? +(55 * getEfficiency(r.label) / r.disc).toFixed(1) : 0,
-      grade: r.disc >= 5 ? "Yes" : r.disc >= 3 ? "Borderline" : "No",
-    })).sort((a, b) => b.guardDisc - a.guardDisc);
-  }, [results, kinetics]);
-
-  // Time-to-detection estimates
-  const timeEstimates = useMemo(() => {
-    const allTargets = electrodeLayout.flat().filter(t => t !== "IS6110_NON");
-    return allTargets.map(t => {
-      const eff = getEfficiency(t);
-      const rpaMin = 15, rpaMax = 20;
-      const rnpMin = 5, rnpMax = 10;
-      const mbMin = Math.max(5, Math.round(20 * (1 - eff)));
-      const mbMax = Math.max(10, Math.round(35 * (1 - eff) + 10));
-      return { target: t, efficiency: eff, rpaMin, rpaMax, rnpMin, rnpMax, mbMin, mbMax, totalMin: rpaMin + rnpMin + mbMin, totalMax: rpaMax + rnpMax + mbMax };
-    }).sort((a, b) => a.totalMin - b.totalMin);
-  }, [results, kinetics]);
-
-  // Poisson table data
-  const poissonTable = [
-    { titer: 1, context: "Paucibacillary / HIV+", total: 0.6, perPad: 0.04, pSingle: 0.04, pIS: 0.33 },
-    { titer: 10, context: "Smear-negative TB", total: 6, perPad: 0.4, pSingle: 0.33, pIS: 0.98 },
-    { titer: 50, context: "Low-moderate", total: 30, perPad: 2.0, pSingle: 0.86, pIS: 1.0 },
-    { titer: 100, context: "Moderate bacteremia", total: 60, perPad: 4.0, pSingle: 0.98, pIS: 1.0 },
-    { titer: 1000, context: "Disseminated TB", total: 600, perPad: 40, pSingle: 1.0, pIS: 1.0 },
-  ];
-
-  const poissonColor = (p) => p < 0.33 ? T.danger : p < 0.90 ? T.warning : T.success;
-  const poissonBg = (p) => p < 0.33 ? "#FEE2E2" : p < 0.90 ? "#FEF3C7" : "#DCFCE7";
-
   // ═══════════ PREDICTED ELECTROCHEMICAL READOUT — Physics Engine ═══════════
+  // Architecture-specific electrochemistry configurations
+  const ARCH_CONFIGS = {
+    A: {
+      label: "ALP/pAP", species: "solution-phase (diffusion-controlled)",
+      reference: "Bezinge 2023",
+      E0: 0.15, n: 1, // pAP irreversible oxidation, 1e⁻ rate-determining step
+      E_start: -0.20, E_end: 0.25,
+      E_sw: 0.025, E_pulse: 0.050, frequency: 2.5, step: 0.005,
+      scan_rate: 0.05, signal_direction: "off",
+      peak_label: "pAP oxidation",
+      peak_shape: "asymmetric", // Nicholson-Shain irreversible
+      alpha: 0.5, // transfer coefficient for irreversible oxidation
+      I_scale_base: 0.8, // µA range for pAP
+    },
+    B: {
+      label: "Silver", species: "metallic deposit (stripping voltammetry)",
+      reference: "Suea-Ngam 2021",
+      E0: 0.16, n: 1, // Ag⁰ → Ag⁺ + e⁻
+      E_start: -0.30, E_end: 0.50,
+      E_sw: 0.060, E_pulse: 0.060, frequency: 200, step: 0.010,
+      scan_rate: 0.05, signal_direction: "off",
+      peak_label: "Ag stripping",
+      peak_shape: "stripping", // asymmetric Gaussian (sharp onset, broader tail)
+      sigma_onset: 0.020, sigma_tail: 0.050,
+      I_scale_base: 3.0, // µA range for silver stripping
+    },
+    C: {
+      label: "MB", species: "surface-confined (Laviron 1979)",
+      reference: "Laviron 1979",
+      E0: -0.22, n: 2, // MB: 2e⁻, 2H⁺ reduction
+      E_start: -0.05, E_end: -0.40,
+      E_sw: 0.025, E_pulse: 0.050, frequency: 50, step: 0.004,
+      scan_rate: 0.05, signal_direction: "off",
+      peak_label: "MB reduction",
+      peak_shape: "sech2", // Laviron surface-confined
+      I_scale_base: 1.0,
+    },
+  };
+  const archCfg = ARCH_CONFIGS[echemArch];
+
   const ECHEM = {
-    E0: -0.22, n: 2, F: 96485, R: 8.314, Temp: 310.15,
+    E0: archCfg.E0, n: archCfg.n, F: 96485, R: 8.314, Temp: 310.15,
     A_geo: 0.0707, // cm²
-    E_sw: 0.025, E_pulse: 0.050, I_scale_DPV: 1.5, I_scale_SWV: 3.0,
-    scan_rate: 0.05,
+    E_sw: archCfg.E_sw, E_pulse: archCfg.E_pulse,
+    I_scale_DPV: 1.5 * archCfg.I_scale_base,
+    I_scale_SWV: 3.0 * archCfg.I_scale_base,
+    scan_rate: archCfg.scan_rate,
     k_form: 0.003, Cas12a_nM: 50, Cas12a_ref: 50,
     intra_device_rsd: 0.05,
-    V_blood_mL: 1.0, extraction_yield: 0.6, V_eluate_uL: 50, V_pad_uL: 50 / 15,
+    V_blood_mL: 1.0, extraction_yield: 0.6, V_eluate_uL: 50, V_pad_uL: 50 / 14,
   };
 
   // Γ₀ in mol/cm² from molecules/cm²
@@ -4777,49 +4746,78 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     return computeGamma(t_s, S_eff / D, k_trans);
   }, [computeGamma, echemGamma0_mol]);
 
-  // SWV voltammogram — negative (cathodic) peaks for MB reduction
-  // FWHM ≈ 60–80 mV for surface-confined SWV (Bard & Faulkner §14)
+  // ── Architecture-specific peak shape helpers ──
+  // Arch C (MB): Laviron sech² for surface-confined species
+  const peakShape_sech2 = (E, E0, nFRT, E_half_width) => {
+    const xi_plus = nFRT * (E + E_half_width - E0);
+    const xi_minus = nFRT * (E - E_half_width - E0);
+    return -(1 / (1 + Math.exp(xi_plus)) - 1 / (1 + Math.exp(xi_minus)));
+  };
+  // Arch A (pAP): Nicholson-Shain asymmetric irreversible oxidation peak
+  const peakShape_asymmetric = (E, E0, alpha, n_alpha, F_c, R_c, T) => {
+    const b = (alpha * n_alpha * F_c) / (R_c * T);
+    const x = b * (E - E0);
+    const expx = Math.exp(Math.max(-20, Math.min(20, x)));
+    return 4 * expx / ((1 + expx) * (1 + expx));
+  };
+  // Arch B (Ag): Asymmetric Gaussian stripping peak (sharp onset, broader tail)
+  const peakShape_stripping = (E, E0, sigma_onset, sigma_tail) => {
+    const sigma = E <= E0 ? sigma_onset : sigma_tail;
+    const x = (E - E0) / sigma;
+    return Math.exp(-0.5 * x * x);
+  };
+
+  // Unified SWV compute — architecture-aware
   const computeSWV = useCallback((E_array, Gamma) => {
     const { n, F, R, Temp, E0, E_sw } = ECHEM;
     const nFRT = n * F / (R * Temp);
-    const scale = echemIscale * echemAeff;
-    return E_array.map(E => {
-      const xi_plus = nFRT * (E + E_sw - E0);
-      const xi_minus = nFRT * (E - E_sw - E0);
-      const shape = 1 / (1 + Math.exp(xi_plus)) - 1 / (1 + Math.exp(xi_minus));
-      // Negative sign: cathodic (reduction) current convention
-      return -scale * (Gamma / echemGamma0_mol) * shape;
-    });
-  }, [echemIscale, echemAeff, echemGamma0_mol]);
+    const scale = echemIscale * echemAeff * archCfg.I_scale_base;
+    const ratio = Gamma / echemGamma0_mol;
+    if (archCfg.peak_shape === "asymmetric") {
+      // Arch A: pAP oxidation — asymmetric irreversible peak
+      return E_array.map(E => scale * ratio * peakShape_asymmetric(E, E0, archCfg.alpha, 1, F, R, Temp));
+    }
+    if (archCfg.peak_shape === "stripping") {
+      // Arch B: Ag stripping — asymmetric Gaussian
+      return E_array.map(E => scale * ratio * peakShape_stripping(E, E0, archCfg.sigma_onset, archCfg.sigma_tail));
+    }
+    // Arch C: MB surface-confined — Laviron sech² (positive peaks for SWV net current)
+    return E_array.map(E => scale * ratio * peakShape_sech2(E, E0, nFRT, E_sw));
+  }, [echemIscale, echemAeff, echemGamma0_mol, echemArch]);
 
-  // SWV forward/reverse components for toggle display
+  // SWV forward/reverse components for toggle display (Arch C only — other architectures use net only)
   const computeSWVComponents = useCallback((E_array, Gamma) => {
     const { n, F, R, Temp, E0, E_sw } = ECHEM;
     const nFRT = n * F / (R * Temp);
-    const scale = echemIscale * echemAeff * 0.6;
+    const scale = echemIscale * echemAeff * archCfg.I_scale_base * 0.6;
+    const ratio = Gamma / echemGamma0_mol;
     return E_array.map(E => {
       const xi_fwd = nFRT * (E + E_sw - E0);
       const xi_rev = nFRT * (E - E_sw - E0);
-      const i_fwd = -scale * (Gamma / echemGamma0_mol) / (1 + Math.exp(xi_fwd));
-      const i_rev = -scale * (Gamma / echemGamma0_mol) / (1 + Math.exp(xi_rev));
+      const i_fwd = scale * ratio / (1 + Math.exp(xi_fwd));
+      const i_rev = scale * ratio / (1 + Math.exp(xi_rev));
       return { i_fwd, i_rev };
     });
-  }, [echemIscale, echemAeff, echemGamma0_mol]);
+  }, [echemIscale, echemAeff, echemGamma0_mol, echemArch]);
 
-  // DPV voltammogram — negative peaks, broader FWHM ≈ 90–100 mV
+  // Unified DPV compute — architecture-aware
   const computeDPV = useCallback((E_array, Gamma) => {
     const { n, F, R, Temp, E0, E_pulse } = ECHEM;
     const nFRT = n * F / (R * Temp);
     const scale = ECHEM.I_scale_DPV * echemAeff;
-    return E_array.map(E => {
-      const xi_plus = nFRT * (E + E_pulse / 2 - E0);
-      const xi_minus = nFRT * (E - E_pulse / 2 - E0);
-      const shape = 1 / (1 + Math.exp(xi_plus)) - 1 / (1 + Math.exp(xi_minus));
-      return -scale * (Gamma / echemGamma0_mol) * shape;
-    });
-  }, [echemAeff, echemGamma0_mol]);
+    const ratio = Gamma / echemGamma0_mol;
+    if (archCfg.peak_shape === "asymmetric") {
+      return E_array.map(E => scale * ratio * peakShape_asymmetric(E, E0, archCfg.alpha, 1, F, R, Temp));
+    }
+    if (archCfg.peak_shape === "stripping") {
+      return E_array.map(E => scale * ratio * peakShape_stripping(E, E0, archCfg.sigma_onset, archCfg.sigma_tail));
+    }
+    // Arch C: MB — DPV uses difference of Nernst equilibria, same sech² family
+    return E_array.map(E => scale * ratio * peakShape_sech2(E, E0, nFRT, E_pulse / 2));
+  }, [echemAeff, echemGamma0_mol, echemArch]);
 
-  // CV voltammogram (Laviron surface-confined reversible) — negative cathodic peak
+  // CV voltammogram — Laviron surface-confined (negative cathodic peak)
+  // For Arch A/B, CV shows different physics but we keep the canonical sech² shape
   const computeCV = useCallback((E_array, Gamma, scanRate) => {
     const { n, F, R, Temp, E0 } = ECHEM;
     const prefactor = (n * n * F * F * echemAeff * Gamma * scanRate) / (4 * R * Temp);
@@ -4828,10 +4826,9 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       const coshX = Math.cosh(x);
       return -prefactor * (1 / (coshX * coshX)) * 1e6; // μA, negative = cathodic
     });
-  }, [echemAeff]);
+  }, [echemAeff, echemArch]);
 
   // CV duck-shape: forward (cathodic) + reverse (anodic) scan with capacitive baseline
-  // ΔEp annotation: for surface-confined MB, ΔEp should be small (~0–45 mV)
   const computeCVDuck = useCallback((Gamma) => {
     const { n, F, R, Temp, E0, scan_rate } = ECHEM;
     const prefactor = (n * n * F * F * echemAeff * Gamma * scan_rate) / (4 * R * Temp);
@@ -4840,22 +4837,29 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     const sigma = (R * Temp) / (n * F) * 1.5;
     const i_cap = 20e-6 * echemAeff * scan_rate * 1e6;
     const N = 200;
+    const E_start = archCfg.E_start, E_end = archCfg.E_end;
+    const E_range = E_end - E_start;
     const forward = [], reverse = [];
     for (let i = 0; i <= N; i++) {
-      const E = -0.05 + (-0.35) * (i / N);
+      const E = E_start + E_range * (i / N);
       const xi = (E - E_pc) / sigma;
       forward.push({ E, I: (-prefactor / (Math.cosh(xi) ** 2)) * 1e6 - i_cap });
     }
     for (let i = 0; i <= N; i++) {
-      const E = -0.40 + 0.35 * (i / N);
+      const E = E_end + (-E_range) * (i / N);
       const xi = (E - E_pa) / sigma;
       reverse.push({ E, I: (prefactor / (Math.cosh(xi) ** 2)) * 1e6 + i_cap });
     }
     return { forward, reverse, deltaEp, E_pc, E_pa };
-  }, [echemAeff]);
+  }, [echemAeff, echemArch]);
 
-  // Potential array for voltammograms: -0.05 to -0.40 V
-  const echemE = useMemo(() => Array.from({ length: 351 }, (_, i) => -0.05 - i * 0.001), []);
+  // Potential array — architecture-dependent range
+  const echemE = useMemo(() => {
+    const start = archCfg.E_start, end = archCfg.E_end;
+    const range = end - start;
+    const N = Math.round(Math.abs(range) / 0.001);
+    return Array.from({ length: N + 1 }, (_, i) => start + range * (i / N));
+  }, [echemArch]);
 
   // Get candidate data for electrochemistry
   const echemCandidateData = useMemo(() => {
@@ -4865,7 +4869,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     const strategy = targetStrategy(echemCandidate);
     const drug = targetDrug(echemCandidate);
     const isProximity = strategy === "Proximity";
-    return { label: echemCandidate, efficiency: eff, discrimination: disc, strategy, drug, isProximity, isIS6110: echemCandidate === "IS6110_NON", copyNumber: echemCandidate === "IS6110_NON" ? 10 : 1 };
+    return { label: echemCandidate, efficiency: eff, discrimination: disc, strategy, drug, isProximity, isIS6110: echemCandidate === "IS6110", copyNumber: echemCandidate === "IS6110" ? 10 : 1 };
   }, [echemCandidate, results]);
 
   // Panel A: Voltammogram curves
@@ -4888,9 +4892,9 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       after = computeCV(echemE, G_after, ECHEM.scan_rate);
     }
 
-    // Peaks are negative (cathodic) — use min for peak magnitude
-    const peakBase = Math.min(...base);
-    const peakAfter = Math.min(...after);
+    // SWV/DPV produce positive peaks; CV produces negative peaks
+    const peakBase = echemTechnique === "CV" ? Math.min(...base) : Math.max(...base);
+    const peakAfter = echemTechnique === "CV" ? Math.min(...after) : Math.max(...after);
 
     // Also compute SWV forward/reverse if applicable
     let fwdRevBase = null, fwdRevAfter = null;
@@ -4976,10 +4980,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       wtCurve = computeCV(echemE, G_wt, ECHEM.scan_rate);
     }
 
-    // Peaks are negative — use absolute magnitude for ΔI% computation
-    const peakBase = Math.min(...baseCurve);
-    const peakMut = Math.min(...mutCurve);
-    const peakWt = Math.min(...wtCurve);
+    // SWV/DPV produce positive peaks; CV produces negative peaks
+    const pickPeak = echemTechnique === "CV" ? (arr) => Math.min(...arr) : (arr) => Math.max(...arr);
+    const peakBase = pickPeak(baseCurve);
+    const peakMut = pickPeak(mutCurve);
+    const peakWt = pickPeak(wtCurve);
     const diMut = ((1 - Math.abs(peakMut) / Math.abs(peakBase)) * 100);
     const diWt = ((1 - Math.abs(peakWt) / Math.abs(peakBase)) * 100);
     const measuredDisc = diWt > 0 ? diMut / diWt : Infinity;
@@ -5014,14 +5019,14 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(p.E).toFixed(1)} ${yS(p.I).toFixed(1)}`).join(' ') + ' Z';
   };
 
-  // Panel D: 15-pad heatmap data
+  // Panel D: 14-pad heatmap data
   const echemHeatmap = useMemo(() => {
     const t_s = echemTime * 60;
     const threshold = 3 * ECHEM.intra_device_rsd * 100;
     let aboveCount = 0;
     const pads = electrodeLayout.flat().map((target, idx) => {
       const eff = getEfficiency(target);
-      const isIS = target === "IS6110_NON";
+      const isIS = target === "IS6110";
       const copies_total = echemBloodTiter * ECHEM.V_blood_mL * ECHEM.extraction_yield;
       const copies_per_pad = copies_total * (ECHEM.V_pad_uL / ECHEM.V_eluate_uL);
       const lambda = copies_per_pad * (isIS ? IS6110_copy_number : 1);
@@ -5037,7 +5042,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
         P_template: +(P_template * 100).toFixed(1),
         di_if_present: +di_if_present.toFixed(1),
         expected_di: +expected_di.toFixed(1),
-        above, row: Math.floor(idx / 5), col: idx % 5,
+        above, row: Math.floor(idx / 7), col: idx % 7,
       };
     });
     // Drug classes meeting threshold
@@ -5158,9 +5163,18 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       {/* ═══════════ SECTION 2: Predicted Electrochemical Readout ═══════════ */}
       <CollapsibleSection title="Predicted Electrochemical Readout" defaultOpen={true} badge={{ text: "computed", bg: "#DBEAFE", color: "#2563EB" }}>
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "16px" : "24px", marginBottom: "24px" }}>
-          {/* Header description */}
+          {/* Header description — architecture-dependent */}
           <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            <strong>SWV, DPV, and CV curves computed from GUARD pipeline predictions and analytical electrochemistry for surface-confined MB.</strong> Peak shapes follow Laviron theory (1979) for adsorbed redox couples. Relative peak heights between candidates and between MUT/WT alleles are determined by GUARD-Net efficiency and discrimination scores (trained on 25K+ real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
+            <strong>SWV, DPV, and CV curves computed from GUARD pipeline predictions and analytical electrochemistry for {
+              echemArch === "A" ? "enzymatic pAP generation (diffusion-controlled, Bezinge 2023)"
+              : echemArch === "B" ? "silver anodic stripping voltammetry (Suea-Ngam 2021)"
+              : "surface-confined MB (Laviron 1979)"
+            }.</strong> {echemArch === "C"
+              ? "Peak shapes follow Laviron theory (1979) for adsorbed redox couples."
+              : echemArch === "A"
+              ? "Peak shapes follow Nicholson-Shain theory for irreversible diffusion-controlled oxidation."
+              : "Peak shapes follow anodic stripping voltammetry dissolution kinetics."
+            } Relative peak heights between candidates and between MUT/WT alleles are determined by GUARD-Net efficiency and discrimination scores (trained on 25K+ real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
           </p>
 
           {/* ── Row 1: Candidate + Technique ── */}
@@ -5205,6 +5219,29 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 ))}
               </div>
             </div>
+            <div>
+              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING, textTransform: "uppercase", letterSpacing: "0.5px", display: "block" }}>Reporter Architecture</label>
+              <div style={{ display: "flex", gap: "0", marginTop: "4px" }}>
+                {[
+                  { key: "A", label: "A: ALP/pAP" },
+                  { key: "B", label: "B: Silver" },
+                  { key: "C", label: "C: MB" },
+                ].map((arch, i) => (
+                  <button
+                    key={arch.key}
+                    onClick={() => setEchemArch(arch.key)}
+                    style={{
+                      padding: "8px 12px", fontSize: "10px", fontWeight: 700, fontFamily: MONO, cursor: "pointer",
+                      background: echemArch === arch.key ? "#7c3aed" : T.bg,
+                      color: echemArch === arch.key ? "#fff" : T.textSec,
+                      border: `1px solid ${echemArch === arch.key ? "#7c3aed" : T.border}`,
+                      borderRadius: i === 0 ? "6px 0 0 6px" : i === 2 ? "0 6px 6px 0" : "0",
+                      borderLeft: i > 0 ? "none" : undefined,
+                    }}
+                  >{arch.label}</button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* ── Row 2: Main sliders ── */}
@@ -5221,7 +5258,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             </div>
             <div style={{ flex: "1 1 180px" }}>
               <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Surface k_trans: <span style={{ color: T.text, fontFamily: MONO }}>{echemKtrans.toFixed(3)} s{"\u207b\u00b9"}</span></label>
-              <input type="range" min={Math.log10(0.005)} max={Math.log10(0.2)} step={0.01} value={Math.log10(echemKtrans)} onChange={e => setEchemKtrans(+(Math.pow(10, +e.target.value)).toFixed(4))}
+              <input type="range" min={Math.log10(0.0005)} max={Math.log10(0.05)} step={0.01} value={Math.log10(echemKtrans)} onChange={e => setEchemKtrans(+(Math.pow(10, +e.target.value)).toFixed(4))}
                 style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
             </div>
           </div>
@@ -5259,7 +5296,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           {/* ── 3-Panel Grid: A (voltammogram), B (time course), C (discrimination) ── */}
           {(() => {
             // Electrochemistry panel color palette
-            const EC = { green: "#10b981", greenLight: "#10b98120", purple: "#8b5cf6", purpleLight: "#8b5cf610", pink: "#ec4899", pinkLight: "#ec489915", gray: "#9ca3af" };
+            const EC = { green: "#10b981", greenLight: "#10b98120", purple: "#8b5cf6", purpleLight: "#8b5cf610", pink: "#ec4899", pinkLight: "#ec489915", gray: "#9ca3af", blue: "#3b82f6", orange: "#f59e0b" };
+            // Architecture-aware E-axis helpers
+            const eS = archCfg.E_start, eE = archCfg.E_end;
+            const eRange = eE - eS;
+            const eTickCount = Math.max(4, Math.min(9, Math.round(Math.abs(eRange) / 0.05)));
+            const eTicks = Array.from({ length: eTickCount + 1 }, (_, i) => +(eS + eRange * (i / eTickCount)).toFixed(2));
+            const echemE0 = ECHEM.E0;
             return (
           <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
 
@@ -5289,7 +5332,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   if (echemTechnique === "CV" && cvDuckData) {
                     const allI = [cvDuckData.baseline, cvDuckData.mut].flatMap(d => [...d.forward, ...d.reverse]).map(p => p.I);
                     const iMin = Math.min(...allI) * 1.2, iMax = Math.max(...allI) * 1.2;
-                    const xS = e => mg.left + ((e - (-0.05)) / (-0.40 - (-0.05))) * pw;
+                    const xS = e => mg.left + ((e - eS) / eRange) * pw;
                     const yS = i => mg.top + ((iMax - i) / (iMax - iMin)) * ph;
                     const zeroY = yS(0);
                     return (
@@ -5313,11 +5356,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                           <marker id="arrowR" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto"><path d="M0,0 L6,2 L0,4" fill="#666" /></marker>
                           <marker id="arrowL" markerWidth="6" markerHeight="4" refX="1" refY="2" orient="auto"><path d="M6,0 L0,2 L6,4" fill="#666" /></marker>
                         </defs>
-                        <line x1={xS(-0.22)} y1={mg.top} x2={xS(-0.22)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
-                        <text x={xS(-0.22)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"} = {"\u2212"}0.22 V</text>
+                        <line x1={xS(echemE0)} y1={mg.top} x2={xS(echemE0)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
+                        <text x={xS(echemE0)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"} = {echemE0 < 0 ? "\u2212" : ""}{Math.abs(echemE0).toFixed(2)} V</text>
                         <text x={mg.left + pw / 2} y={h - 3} textAnchor="middle" fill="#444" fontSize="10">E (V vs Ag/AgCl)</text>
                         <text x={14} y={mg.top + ph / 2} textAnchor="middle" fill="#444" fontSize="10" transform={`rotate(-90, 14, ${mg.top + ph / 2})`}>I ({"\u03bc"}A)</text>
-                        {[-0.05, -0.10, -0.15, -0.20, -0.25, -0.30, -0.35, -0.40].map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
+                        {eTicks.map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
                         {/* Legend */}
                         <line x1={mg.left + 10} y1={mg.top + 10} x2={mg.left + 30} y2={mg.top + 10} stroke={EC.green} strokeWidth="2" strokeDasharray="5,3" />
                         <text x={mg.left + 34} y={mg.top + 14} fill={EC.green} fontSize="9" fontWeight="600">Baseline ({"\u0393\u2080"})</text>
@@ -5327,16 +5370,16 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     );
                   }
 
-                  // SWV / DPV — custom SVG with negative peaks
+                  // SWV / DPV — architecture-aware positive peaks
                   const data = echemPlotData;
                   const allY = data.flatMap(d => {
                     const vals = [d.baseline, d.after];
                     if (echemShowFwdRev && d.base_fwd != null) vals.push(d.base_fwd, d.base_rev, d.after_fwd, d.after_rev);
                     return vals;
                   });
-                  const yMin = Math.min(...allY) * 1.15;
-                  const yMax = Math.max(0, Math.max(...allY) * 1.1 + 0.05);
-                  const xS = e => mg.left + ((e - (-0.05)) / (-0.40 - (-0.05))) * pw;
+                  const yMin = Math.min(0, Math.min(...allY) * 1.1 - 0.02);
+                  const yMax = Math.max(...allY) * 1.15 + 0.02;
+                  const xS = e => mg.left + ((e - eS) / eRange) * pw;
                   const yS = v => mg.top + ((yMax - v) / (yMax - yMin)) * ph;
                   const zeroY = yS(0);
                   const pathD = (key) => data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xS(d.E).toFixed(1)} ${yS(d[key]).toFixed(1)}`).join(' ');
@@ -5346,9 +5389,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
 
                   // Y-axis ticks
                   const yRange = yMax - yMin;
-                  const yTickStep = yRange > 2 ? 1 : yRange > 1 ? 0.5 : yRange > 0.5 ? 0.2 : 0.1;
+                  const yTickStep = yRange > 2 ? 1 : yRange > 1 ? 0.5 : yRange > 0.5 ? 0.2 : yRange > 0.1 ? 0.05 : 0.02;
                   const yTicks = [];
-                  for (let v = Math.ceil(yMin / yTickStep) * yTickStep; v <= yMax; v += yTickStep) yTicks.push(+v.toFixed(2));
+                  for (let v = Math.ceil(yMin / yTickStep) * yTickStep; v <= yMax; v += yTickStep) yTicks.push(+v.toFixed(3));
+
+                  // Current unit: nA for MB architecture, µA for others
+                  const currentUnit = echemArch === "C" ? "nA" : "\u03bcA";
+                  const currentScale = echemArch === "C" ? 1000 : 1; // multiply for display
 
                   return (
                     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" style={{ fontFamily: MONO }}>
@@ -5363,24 +5410,24 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                       <line x1={mg.left} y1={mg.top + ph} x2={mg.left + pw} y2={mg.top + ph} stroke="#444" strokeWidth="1.5" />
                       {/* Shaded ΔI region between baseline and after */}
                       <path d={fillPath} fill={EC.purple} opacity="0.08" />
-                      {/* SWV forward/reverse components */}
+                      {/* SWV forward/reverse components — blue (fwd), orange (rev) */}
                       {echemShowFwdRev && echemTechnique === "SWV" && data[0].base_fwd != null && (
                         <>
-                          <path d={pathD("base_fwd")} fill="none" stroke={EC.green} strokeWidth="1" opacity="0.4" strokeDasharray="3,2" />
-                          <path d={pathD("base_rev")} fill="none" stroke={EC.green} strokeWidth="1" opacity="0.4" strokeDasharray="1,2" />
-                          <path d={pathD("after_fwd")} fill="none" stroke={EC.purple} strokeWidth="1" opacity="0.4" strokeDasharray="3,2" />
-                          <path d={pathD("after_rev")} fill="none" stroke={EC.purple} strokeWidth="1" opacity="0.4" strokeDasharray="1,2" />
+                          <path d={pathD("base_fwd")} fill="none" stroke={EC.blue} strokeWidth="1.5" opacity="0.6" />
+                          <path d={pathD("base_rev")} fill="none" stroke={EC.orange} strokeWidth="1.5" opacity="0.6" />
+                          <path d={pathD("after_fwd")} fill="none" stroke={EC.blue} strokeWidth="1.2" opacity="0.35" strokeDasharray="4,2" />
+                          <path d={pathD("after_rev")} fill="none" stroke={EC.orange} strokeWidth="1.2" opacity="0.35" strokeDasharray="4,2" />
                         </>
                       )}
-                      {/* Main curves */}
+                      {/* Main curves — i_net (purple) */}
                       <path d={pathD("baseline")} fill="none" stroke={EC.green} strokeWidth="2.2" strokeDasharray="7,4" opacity="0.85" />
                       <path d={pathD("after")} fill="none" stroke={EC.purple} strokeWidth="2.5" />
                       {/* E° reference */}
-                      <line x1={xS(-0.22)} y1={mg.top} x2={xS(-0.22)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
-                      <text x={xS(-0.22)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"} = {"\u2212"}0.22 V</text>
+                      <line x1={xS(echemE0)} y1={mg.top} x2={xS(echemE0)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
+                      <text x={xS(echemE0)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"} = {echemE0 < 0 ? "\u2212" : ""}{Math.abs(echemE0).toFixed(2)} V</text>
                       {/* Peak annotations with arrows */}
                       {(() => {
-                        const peakIdx = data.reduce((min, d, i) => d.baseline < data[min].baseline ? i : min, 0);
+                        const peakIdx = data.reduce((best, d, i) => Math.abs(d.baseline) > Math.abs(data[best].baseline) ? i : best, 0);
                         const peakE = data[peakIdx].E;
                         const bY = yS(data[peakIdx].baseline);
                         const aY = yS(data[peakIdx].after);
@@ -5395,36 +5442,47 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         );
                       })()}
                       {/* X ticks */}
-                      {[-0.05, -0.10, -0.15, -0.20, -0.25, -0.30, -0.35, -0.40].map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
+                      {eTicks.map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
                       {/* Y ticks */}
-                      {yTicks.map(v => <text key={v} x={mg.left - 5} y={yS(v) + 3} textAnchor="end" fill="#666" fontSize="8">{v.toFixed(1)}</text>)}
+                      {yTicks.map(v => <text key={v} x={mg.left - 5} y={yS(v) + 3} textAnchor="end" fill="#666" fontSize="8">{(v * currentScale).toFixed(currentScale > 1 ? 0 : 1)}</text>)}
                       {/* Axis labels */}
                       <text x={mg.left + pw / 2} y={h - 3} textAnchor="middle" fill="#444" fontSize="10">E (V vs Ag/AgCl)</text>
-                      <text x={14} y={mg.top + ph / 2} textAnchor="middle" fill="#444" fontSize="10" transform={`rotate(-90, 14, ${mg.top + ph / 2})`}>I ({"\u03bc"}A)</text>
+                      <text x={14} y={mg.top + ph / 2} textAnchor="middle" fill="#444" fontSize="10" transform={`rotate(-90, 14, ${mg.top + ph / 2})`}>I ({currentUnit})</text>
                       {/* Legend */}
                       <line x1={mg.left + 10} y1={mg.top + 10} x2={mg.left + 30} y2={mg.top + 10} stroke={EC.green} strokeWidth="2" strokeDasharray="5,3" />
                       <text x={mg.left + 34} y={mg.top + 14} fill={EC.green} fontSize="9" fontWeight="600">Baseline ({"\u0393\u2080"})</text>
                       <line x1={mg.left + 10} y1={mg.top + 24} x2={mg.left + 30} y2={mg.top + 24} stroke={EC.purple} strokeWidth="2.5" />
-                      <text x={mg.left + 34} y={mg.top + 28} fill={EC.purple} fontSize="9" fontWeight="600">+{echemCandidateData.label} ({echemTime} min)</text>
+                      <text x={mg.left + 34} y={mg.top + 28} fill={EC.purple} fontSize="9" fontWeight="600">{echemShowFwdRev ? "i_net" : `+${echemCandidateData.label}`} ({echemTime} min)</text>
                       {echemShowFwdRev && echemTechnique === "SWV" && (
                         <>
-                          <line x1={mg.left + 10} y1={mg.top + 38} x2={mg.left + 30} y2={mg.top + 38} stroke={EC.gray} strokeWidth="1" strokeDasharray="3,2" />
-                          <text x={mg.left + 34} y={mg.top + 42} fill={EC.gray} fontSize="8">i_fwd / i_rev</text>
+                          <line x1={mg.left + 10} y1={mg.top + 38} x2={mg.left + 30} y2={mg.top + 38} stroke={EC.blue} strokeWidth="1.5" />
+                          <text x={mg.left + 34} y={mg.top + 42} fill={EC.blue} fontSize="8" fontWeight="600">i_fwd</text>
+                          <line x1={mg.left + 70} y1={mg.top + 38} x2={mg.left + 90} y2={mg.top + 38} stroke={EC.orange} strokeWidth="1.5" />
+                          <text x={mg.left + 94} y={mg.top + 42} fill={EC.orange} fontSize="8" fontWeight="600">i_rev</text>
                         </>
                       )}
-                      {/* FWHM annotation */}
+                      {/* FWHM + peak shape annotation */}
                       <text x={w - mg.right - 4} y={h - 22} textAnchor="end" fill="#999" fontSize="7">
-                        FWHM {"\u2248"} {echemTechnique === "SWV" ? "62" : "96"} mV ({echemTechnique === "SWV" ? "3.53 RT/nF" : "RT/\u03b1nF"})
+                        {archCfg.peak_shape === "sech2"
+                          ? `FWHM \u2248 ${echemTechnique === "SWV" ? "62" : "63"} mV (${echemTechnique === "SWV" ? "3.53 RT/nF" : "broadened by \u0394E = 50 mV"})`
+                          : archCfg.peak_shape === "asymmetric"
+                          ? `Irreversible oxidation (\u03b1 = ${archCfg.alpha})`
+                          : `Stripping (\u03c3\u2090 = ${(archCfg.sigma_onset * 1000).toFixed(0)} mV, \u03c3\u209c = ${(archCfg.sigma_tail * 1000).toFixed(0)} mV)`
+                        }
                       </text>
                     </svg>
                   );
                 })()}
               </div>
-              {/* Physics equation */}
+              {/* Physics equation — architecture-dependent */}
               <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO, fontStyle: "italic" }}>
-                {echemTechnique === "SWV" ? "i_net = i_fwd \u2212 i_rev ; i \u221d \u0393 \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0\u00b1E_sw)]"
-                  : echemTechnique === "DPV" ? "i_p = (n\u00b2F\u00b2\u0393A\u0394E) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)]"
-                  : "i_p = (n\u00b2F\u00b2\u0393Av) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)] ; \u0394Ep \u2248 0 mV (ideal)"}
+                {archCfg.peak_shape === "sech2"
+                  ? (echemTechnique === "SWV" ? "i_net = i_fwd \u2212 i_rev ; i \u221d \u0393 \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0\u00b1E_sw)]"
+                    : echemTechnique === "DPV" ? "i_p = (n\u00b2F\u00b2\u0393A\u0394E) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)]"
+                    : "i_p = (n\u00b2F\u00b2\u0393Av) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)] ; \u0394Ep \u2248 0 mV")
+                  : archCfg.peak_shape === "asymmetric"
+                  ? "pAP oxidation (irreversible): i \u221d exp(\u03b1nF(E\u2212E\u00b0)/RT) / [1+exp(\u03b1nF(E\u2212E\u00b0)/RT)]\u00b2"
+                  : "Ag stripping (anodic): asymmetric Gaussian dissolution peak ; i \u221d exp(-\u00bd((E\u2212E_p)/\u03c3)\u00b2)"}
               </div>
             </div>
 
@@ -5540,7 +5598,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   if (echemTechnique === "CV" && cvDuckData) {
                     const allI = [cvDuckData.baseline, cvDuckData.mut, cvDuckData.wt].flatMap(d => [...d.forward, ...d.reverse]).map(p => p.I);
                     const iMin = Math.min(...allI) * 1.15, iMax = Math.max(...allI) * 1.15;
-                    const xS = e => mg.left + ((e - (-0.05)) / (-0.40 - (-0.05))) * pw;
+                    const xS = e => mg.left + ((e - eS) / eRange) * pw;
                     const yS = i => mg.top + ((iMax - i) / (iMax - iMin)) * ph;
                     return (
                       <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" style={{ fontFamily: MONO }}>
@@ -5552,7 +5610,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         <path d={cvSvgPath(cvDuckData.baseline, xS, yS)} fill="none" stroke={EC.green} strokeWidth="2" strokeDasharray="6,4" opacity="0.6" />
                         <path d={cvSvgPath(cvDuckData.wt, xS, yS)} fill={EC.pinkLight} stroke={EC.pink} strokeWidth="2" opacity="0.85" />
                         <path d={cvSvgPath(cvDuckData.mut, xS, yS)} fill={EC.purpleLight} stroke={EC.purple} strokeWidth="2.5" />
-                        <line x1={xS(-0.22)} y1={mg.top} x2={xS(-0.22)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
+                        <line x1={xS(echemE0)} y1={mg.top} x2={xS(echemE0)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
                         <text x={mg.left + pw / 2} y={h - 3} textAnchor="middle" fill="#444" fontSize="10">E (V vs Ag/AgCl)</text>
                         <text x={14} y={mg.top + ph / 2} textAnchor="middle" fill="#444" fontSize="10" transform={`rotate(-90, 14, ${mg.top + ph / 2})`}>I ({"\u03bc"}A)</text>
                         <line x1={mg.left + 10} y1={mg.top + 10} x2={mg.left + 30} y2={mg.top + 10} stroke={EC.green} strokeWidth="2" strokeDasharray="5,3" />
@@ -5565,12 +5623,12 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     );
                   }
 
-                  // SWV / DPV discrimination overlay
+                  // SWV / DPV discrimination overlay — architecture-aware
                   const data = echemDiscOverlay.data;
                   const allY = data.flatMap(d => [d.baseline, d.MUT, d.WT]);
-                  const yMin = Math.min(...allY) * 1.15;
-                  const yMax = Math.max(0, Math.max(...allY) * 1.1 + 0.05);
-                  const xS = e => mg.left + ((e - (-0.05)) / (-0.40 - (-0.05))) * pw;
+                  const yMin = Math.min(0, Math.min(...allY) * 1.1 - 0.02);
+                  const yMax = Math.max(...allY) * 1.15 + 0.02;
+                  const xS = e => mg.left + ((e - eS) / eRange) * pw;
                   const yS = v => mg.top + ((yMax - v) / (yMax - yMin)) * ph;
                   const pathD = (key) => data.map((d, i) => `${i === 0 ? 'M' : 'L'}${xS(d.E).toFixed(1)} ${yS(d[key]).toFixed(1)}`).join(' ');
                   // Shaded area between MUT and WT peaks (discrimination region)
@@ -5581,9 +5639,9 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     + data.slice().reverse().map(d => `L${xS(d.E).toFixed(1)} ${yS(d.WT).toFixed(1)}`).join(' ') + ' Z';
                   // Y ticks
                   const yRange = yMax - yMin;
-                  const yTickStep = yRange > 2 ? 1 : yRange > 1 ? 0.5 : yRange > 0.5 ? 0.2 : 0.1;
+                  const yTickStep = yRange > 2 ? 1 : yRange > 1 ? 0.5 : yRange > 0.5 ? 0.2 : yRange > 0.1 ? 0.05 : 0.02;
                   const yTicks = [];
-                  for (let v = Math.ceil(yMin / yTickStep) * yTickStep; v <= yMax; v += yTickStep) yTicks.push(+v.toFixed(2));
+                  for (let v = Math.ceil(yMin / yTickStep) * yTickStep; v <= yMax; v += yTickStep) yTicks.push(+v.toFixed(3));
 
                   return (
                     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height="100%" style={{ fontFamily: MONO }}>
@@ -5604,11 +5662,11 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                       <path d={pathD("WT")} fill="none" stroke={EC.pink} strokeWidth="2.2" opacity="0.85" />
                       <path d={pathD("MUT")} fill="none" stroke={EC.purple} strokeWidth="2.5" />
                       {/* E° reference */}
-                      <line x1={xS(-0.22)} y1={mg.top} x2={xS(-0.22)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
-                      <text x={xS(-0.22)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"}</text>
+                      <line x1={xS(echemE0)} y1={mg.top} x2={xS(echemE0)} y2={mg.top + ph} stroke="#999" strokeWidth="0.8" strokeDasharray="3,3" />
+                      <text x={xS(echemE0)} y={mg.top - 5} textAnchor="middle" fill="#999" fontSize="8">E{"\u00b0"}</text>
                       {/* Peak annotations */}
                       {(() => {
-                        const peakIdx = data.reduce((min, d, i) => d.baseline < data[min].baseline ? i : min, 0);
+                        const peakIdx = data.reduce((best, d, i) => Math.abs(d.baseline) > Math.abs(data[best].baseline) ? i : best, 0);
                         const peakE = data[peakIdx].E;
                         const bY = yS(data[peakIdx].baseline);
                         const mY = yS(data[peakIdx].MUT);
@@ -5617,7 +5675,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         return (
                           <>
                             {/* Vertical peak lines */}
-                            <line x1={x} y1={bY} x2={x} y2={Math.max(mY, wY)} stroke="#ddd" strokeWidth="0.5" />
+                            <line x1={x} y1={bY} x2={x} y2={Math.min(mY, wY)} stroke="#ddd" strokeWidth="0.5" />
                             {/* MUT ΔI bracket */}
                             <line x1={x + 10} y1={bY} x2={x + 10} y2={mY} stroke={EC.purple} strokeWidth="1.5" />
                             <line x1={x + 6} y1={bY} x2={x + 14} y2={bY} stroke={EC.purple} strokeWidth="1" />
@@ -5637,7 +5695,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         );
                       })()}
                       {/* X ticks */}
-                      {[-0.05, -0.10, -0.15, -0.20, -0.25, -0.30, -0.35, -0.40].map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
+                      {eTicks.map(e => <text key={e} x={xS(e)} y={mg.top + ph + 14} textAnchor="middle" fill="#666" fontSize="8">{e.toFixed(2)}</text>)}
                       {/* Y ticks */}
                       {yTicks.map(v => <text key={v} x={mg.left - 5} y={yS(v) + 3} textAnchor="end" fill="#666" fontSize="8">{v.toFixed(1)}</text>)}
                       {/* Axis labels */}
@@ -5662,6 +5720,47 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           </div>
             );
           })()}
+        </div>
+      </CollapsibleSection>
+
+      {/* ═══════════ SECTION 7: Pad-Level Heatmap ═══════════ */}
+      <CollapsibleSection title="Pad-Level Expected \u0394I%" defaultOpen={false} badge={{ text: `${echemHeatmap.aboveCount}/${electrodeLayout.flat().length} above 3\u03c3`, bg: echemHeatmap.aboveCount >= 10 ? "#DCFCE7" : "#FEF3C7", color: echemHeatmap.aboveCount >= 10 ? "#16A34A" : "#D97706" }}>
+        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "12px", padding: mobile ? "16px" : "24px", marginBottom: "24px" }}>
+          <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "16px", lineHeight: 1.6 }}>
+            Expected {"\u0394"}I% per electrode pad at <strong style={{ fontFamily: MONO }}>{echemBloodTiter} cp/mL</strong> blood cfDNA,{" "}
+            <strong style={{ fontFamily: MONO }}>{echemTime} min</strong> incubation,{" "}
+            k_trans = <strong style={{ fontFamily: MONO }}>{echemKtrans.toFixed(3)} s{"\u207b\u00b9"}</strong>.
+            Values combine Poisson template probability, RPA amplification efficiency, and Cas12a cleavage kinetics.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(7, 1fr)`, gap: "6px", marginBottom: "16px" }}>
+            {echemHeatmap.pads.map((pad, idx) => {
+              const bg = echemHeatColor(pad.expected_di);
+              const drugColor = PAD_DRUG_COLORS[pad.drug] || "#888";
+              return (
+                <div key={pad.target} style={{
+                  background: bg, borderRadius: "8px", padding: "10px 6px", textAlign: "center",
+                  border: pad.above ? `2px solid ${darken(bg, 20)}` : `1px solid ${T.borderLight}`,
+                  opacity: pad.above ? 1 : 0.65,
+                }}>
+                  <div style={{ fontSize: "8px", fontWeight: 700, color: darken(bg, 50), fontFamily: MONO, marginBottom: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {pad.target.replace(/_/g, " ")}
+                  </div>
+                  <div style={{ fontSize: "16px", fontWeight: 800, fontFamily: MONO, color: darken(bg, 55) }}>
+                    {pad.expected_di.toFixed(0)}%
+                  </div>
+                  <div style={{ fontSize: "8px", color: darken(bg, 40), marginTop: "2px" }}>
+                    P={pad.P_template}%
+                  </div>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: drugColor, margin: "4px auto 0", opacity: 0.8 }} />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", fontSize: "10px", color: T.textSec }}>
+            <span>3{"\u03c3"} threshold: <strong style={{ fontFamily: MONO }}>{echemHeatmap.threshold.toFixed(0)}%</strong></span>
+            <span>{"\u00b7"} Pads above: <strong style={{ color: T.success }}>{echemHeatmap.aboveCount}</strong>/{electrodeLayout.flat().length}</span>
+            <span>{"\u00b7"} Drug classes detected: <strong>{echemHeatmap.drugsMet.join(", ") || "none"}</strong></span>
+          </div>
         </div>
       </CollapsibleSection>
 
@@ -5753,7 +5852,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               <div style={{ fontSize: "11px", color: T.textSec }}>Proximity detection</div>
             </div>
             <div style={{ flex: 1, background: T.bgSub, borderRadius: "8px", padding: "12px", border: `1px solid ${T.borderLight}`, textAlign: "center" }}>
-              <div style={{ fontSize: "20px", fontWeight: 800, fontFamily: MONO, color: T.primary }}>15</div>
+              <div style={{ fontSize: "20px", fontWeight: 800, fontFamily: MONO, color: T.primary }}>14</div>
               <div style={{ fontSize: "11px", color: T.textSec }}>Independent chambers</div>
               <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>per-pad one-pot</div>
             </div>
@@ -6869,14 +6968,14 @@ const DEFAULT_PANELS = [
     id: "core5",
     name: "Core 5-plex",
     description: "High-confidence tier-1 mutations only. Targets the most clinically actionable resistance determinants for rapid point-of-care screening.",
-    mutations: ["rpoB_S450L", "katG_S315T", "inhA_C-15T", "gyrA_D94G", "rrs_A1401G"],
+    mutations: ["rpoB_S531L", "katG_S315T", "fabG1_C-15T", "gyrA_D94G", "rrs_A1401G"],
     created_at: "2025-01-15T00:00:00Z",
   },
   {
     id: "rif",
     name: "Rifampicin Panel",
     description: "Focused panel for rifampicin mono-resistance detection. Covers the rpoB RRDR hotspot mutations conferring >95% of phenotypic RIF resistance.",
-    mutations: ["rpoB_S450L", "rpoB_H445D", "rpoB_H445Y", "rpoB_D435V", "rpoB_S450W"],
+    mutations: ["rpoB_S531L", "rpoB_H526Y", "rpoB_D516V"],
     created_at: "2025-01-15T00:00:00Z",
   },
 ];
@@ -7542,7 +7641,7 @@ const ResearchPage = ({ connected }) => {
                   <input value={thermoStandaloneSeq} onChange={(e) => setThermoStandaloneSeq(e.target.value.toUpperCase().replace(/[^ATCG]/g, ""))} placeholder="e.g. TCGGTCAACCCCGACAGC" style={{ ...selectStyle, flex: 1, maxWidth: "320px", fontFamily: MONO, letterSpacing: "0.05em" }} />
                   <button onClick={handleThermoStandalone} disabled={thermoStandaloneSeq.trim().length < 15} style={{ ...btnStyle, opacity: thermoStandaloneSeq.trim().length < 15 ? 0.5 : 1 }}>Compute</button>
                 </div>
-                <div style={{ fontSize: "10px", color: "#a3a3a3", marginTop: "4px" }}>Pre-filled: rpoB_H445D spacer (18 nt). No panel run needed.</div>
+                <div style={{ fontSize: "10px", color: "#a3a3a3", marginTop: "4px" }}>Pre-filled: rpoB_S531L spacer (18 nt). No panel run needed.</div>
               </div>
             ) : (
               <div>
@@ -8028,7 +8127,7 @@ const ResearchPage = ({ connected }) => {
       {/* ═══ Section 6: Nuclease Comparison ═══ */}
       <CollapsibleSection title="Nuclease Variant Comparison" defaultOpen={false}>
         <p style={{ fontSize: "12px", color: RS.muted, marginBottom: "16px", lineHeight: 1.7, maxWidth: "800px" }}>
-          Compare Cas12a variants on the current 15-target MDR-TB panel. PAM coverage is computed by running GUARD's M2 PAM scanner against the
+          Compare Cas12a variants on the current 14-target MDR-TB panel. PAM coverage is computed by running GUARD's M2 PAM scanner against the
           H37Rv genome with each variant's published PAM set. Scoring and discrimination columns show whether GUARD-Net has been trained on data
           for that variant — "Retraining required" indicates the scoring model needs variant-specific experimental data before predictions are valid.
         </p>
