@@ -3747,10 +3747,9 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
             const scoreVal = r.cnnCalibrated ?? r.score;
             const discColor = r.gene === "IS6110" ? T.textTer : r.strategy === "Proximity" ? T.textSec : r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger;
             const riskLevel = r.riskProfile?.overall;
-            const riskBorderColor = riskLevel === "red" ? T.danger : riskLevel === "amber" ? T.warning : "transparent";
             return (
               <div key={r.label}>
-                <div onClick={() => setExpanded(isExpanded ? null : r.label)} style={{ padding: "14px 16px", cursor: "pointer", borderBottom: isExpanded ? "none" : `1px solid ${T.borderLight}`, borderLeft: `3px solid ${riskBorderColor}`, background: isExpanded ? T.bgSub : "transparent" }}>
+                <div onClick={() => setExpanded(isExpanded ? null : r.label)} style={{ padding: "14px 16px", cursor: "pointer", borderBottom: isExpanded ? "none" : `1px solid ${T.borderLight}`, background: isExpanded ? T.bgSub : "transparent" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       {isExpanded ? <ChevronDown size={14} color={T.text} /> : <ChevronRight size={14} color={T.textTer} />}
@@ -3837,7 +3836,6 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                     style={{
                       cursor: "pointer",
                       borderBottom: `1px solid ${isExpanded ? "transparent" : T.borderLight}`,
-                      borderLeft: `3px solid ${riskBorderColor}`,
                       background: isExpanded ? T.bgSub : isHov ? T.bgHover : "transparent",
                       transition: "background 0.15s, transform 0.15s",
                       ...(isHov && !isExpanded ? { boxShadow: "0 1px 4px rgba(0,0,0,0.04)" } : {}),
@@ -3896,7 +3894,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                   </tr>
                   {isExpanded && (
                     <tr>
-                      <td colSpan={cols.length + 1} style={{ padding: 0, borderLeft: `3px solid ${riskBorderColor}` }}>
+                      <td colSpan={cols.length + 1} style={{ padding: 0 }}>
                         <CandidateAccordion r={r} onShowAlternatives={() => loadTopK(r.label)} />
                         {/* Top-K Alternatives inline */}
                         {topKLoading[r.label] && <div style={{ padding: "8px 24px", fontSize: "11px", color: T.textTer, background: T.bgSub }}><Loader2 size={12} style={{ animation: "spin 1s linear infinite", display: "inline-block", verticalAlign: "middle", marginRight: "4px" }} />Loading alternatives…</div>}
