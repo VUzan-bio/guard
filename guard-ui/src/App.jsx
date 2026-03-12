@@ -2696,20 +2696,28 @@ const OverviewTab = ({ results, scorer, jobId }) => {
     <div>
       {/* Explainer box — blue */}
       <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "10px", padding: mobile ? "16px" : "20px 24px", marginBottom: "24px" }}>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "8px" }}>How to read these results</div>
-        <div style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.7, opacity: 0.85 }}>
-          <p style={{ margin: "0 0 8px" }}>
-            Each <strong>candidate</strong> is a CRISPR guide RNA (crRNA) designed to detect one specific drug-resistance mutation in <em>M. tuberculosis</em>.
-            The pipeline evaluates every candidate on four axes:
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "6px 24px", fontSize: "12px" }}>
-            <div><strong>Activity</strong> (0–1) — predicted Cas12a trans-cleavage efficiency. A score of 0.8 means the crRNA is expected to trigger strong collateral cleavage of reporters, producing a measurable SWV signal decrease within 15–30 min. Below 0.4, the guide may not generate a detectable signal within a clinically useful timeframe. {usesGuardNet ? "Predicted by GUARD-Net (trained on 25K+ activity measurements). PAM-adjusted score accounts for non-canonical PAM penalty." : "Computed from position-weighted biophysical features."} The heuristic QC score independently checks GC content, homopolymer runs, self-complementarity, and off-targets.</div>
-            <div><strong>Discrimination</strong> (×) — fold-difference in cleavage activity between the mutant (resistant) and wildtype (susceptible) template. A 5× ratio means the guide cleaves 5× faster on the mutant — so the assay signal from a resistant sample is 5× stronger than from a susceptible sample. ≥ 3× is diagnostic-grade. {results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Predicted by a gradient-boosted model trained on 6,136 EasyDesign pairs using 15 thermodynamic features." : "Predicted by heuristic position × destabilisation model."}</div>
-            <div><strong>RPA Primers</strong> — isothermal amplification primers (37°C, no thermal cycler). RPA amplifies the target region in 15–20 min, then Cas12a detects the amplified product. A candidate without primers cannot be used as a complete assay.</div>
-            <div><strong>Drug class</strong> — which antibiotic the mutation confers resistance to (e.g. RIF = rifampicin, INH = isoniazid). A 14-plex panel covers all 6 WHO priority drug classes for MDR/XDR-TB.</div>
-            <div><strong>Readiness Score</strong> (0–1) — multi-axis composite that ranks candidates against each other within this panel. Discrimination is weighted 40%, activity 20%, primers 15%, off-targets 15%, GC balance 10%. Forces spread to reveal true quality differences hidden by similar efficiency scores.</div>
-            <div><strong>Risk Matrix</strong> — traffic-light assessment per axis. Green = meets threshold, amber = borderline, red = below minimum. Overall risk = worst axis. Priority number indicates experimental validation order.</div>
-          </div>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING, marginBottom: "4px" }}>How to read these results</div>
+        <p style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.6, margin: "0 0 16px", opacity: 0.85 }}>
+          Each <strong>candidate</strong> is a CRISPR guide RNA (crRNA) targeting one drug-resistance mutation in <em>M.&nbsp;tuberculosis</em>.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+          {[
+            { title: "Activity", tag: "0–1", text: "Predicted Cas12a trans-cleavage efficiency. ≥ 0.7 = strong signal in 15–30 min. Below 0.4 may not generate a detectable signal.", detail: usesGuardNet ? "GUARD-Net (25K+ measurements). PAM-adjusted score corrects for non-canonical PAM." : "Position-weighted biophysical features." },
+            { title: "Discrimination", tag: "×", text: "Fold-difference in cleavage between resistant (MUT) and susceptible (WT) DNA. ≥ 3× is diagnostic-grade.", detail: results.some(r => (r.discrimination?.model_name || "").includes("learned")) ? "Gradient-boosted model · 6,136 EasyDesign pairs · 15 thermodynamic features." : "Heuristic: position sensitivity × mismatch destabilisation." },
+            { title: "RPA Primers", tag: "37°C", text: "Isothermal amplification (no thermal cycler). Amplifies the target region in 15–20 min, then Cas12a detects the product.", detail: "Without primers, a candidate cannot be used as a complete assay." },
+            { title: "Drug Class", tag: "WHO", text: "Which antibiotic the mutation confers resistance to (e.g. RIF = rifampicin, INH = isoniazid).", detail: "14-plex panel covers all 6 WHO priority drug classes for MDR/XDR-TB." },
+            { title: "Readiness Score", tag: "0–1", text: "Multi-axis composite ranking candidates within this panel. Discrimination 40%, activity 20%, primers 15%, off-targets 15%, GC balance 10%.", detail: "Forces spread to reveal quality differences hidden by similar efficiency scores." },
+            { title: "Risk Matrix", tag: "per axis", text: "Traffic-light assessment: green = meets threshold, amber = borderline, red = below minimum.", detail: "Overall risk = worst axis. Priority number indicates experimental validation order." },
+          ].map(item => (
+            <div key={item.title} style={{ background: "rgba(255,255,255,0.45)", borderRadius: "8px", padding: "12px 14px", border: `1px solid ${T.primary}15` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: T.primaryDark, fontFamily: HEADING }}>{item.title}</span>
+                <span style={{ fontSize: "9px", fontWeight: 600, color: T.primary, padding: "1px 6px", borderRadius: "4px", background: `${T.primary}15`, letterSpacing: "0.02em" }}>{item.tag}</span>
+              </div>
+              <div style={{ fontSize: "11.5px", color: T.primaryDark, lineHeight: 1.55, opacity: 0.9 }}>{item.text}</div>
+              <div style={{ fontSize: "10.5px", color: T.primaryDark, lineHeight: 1.5, opacity: 0.6, marginTop: "4px" }}>{item.detail}</div>
+            </div>
+          ))}
         </div>
       </div>
 
