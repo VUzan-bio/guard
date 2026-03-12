@@ -4417,6 +4417,7 @@ const DiscriminationTab = ({ results }) => {
 
 const PrimersTab = ({ results }) => {
   const mobile = useIsMobile();
+  const [hoveredRow, setHoveredRow] = useState(null);
   const withPrimers = results.filter((r) => r.hasPrimers);
   const withoutPrimers = results.filter((r) => !r.hasPrimers && r.gene !== "IS6110");
   const directWithPrimers = withPrimers.filter((r) => r.strategy === "Direct");
@@ -4468,6 +4469,13 @@ const PrimersTab = ({ results }) => {
             The forward primer's 3' terminal nucleotide is locked to the mutant allele, so only mutant DNA is amplified.
             A deliberate mismatch at the penultimate position further suppresses wildtype amplification (Ye et al., 2019).
           </p>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginTop: "10px", padding: "8px 12px", background: `${T.purple}0A`, borderRadius: "6px", border: `1px solid ${T.purple}22` }}>
+            <Info size={14} color={T.purple} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: "11px", color: T.textSec, lineHeight: 1.5 }}>
+              <strong style={{ color: T.purple }}>PAM desert.</strong> These targets lack a TTTV PAM within the spacer window overlapping the SNP — common in M. tuberculosis (65.6% GC).
+              Discrimination is shifted entirely to primer-level allele specificity (estimated ≥100× selectivity), not Cas12a mismatch intolerance.
+            </span>
+          </div>
         </div>
       </div>
 
@@ -4509,8 +4517,15 @@ const PrimersTab = ({ results }) => {
             </tr>
           </thead>
           <tbody>
-            {withPrimers.map((r) => (
-              <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
+            {withPrimers.map((r) => {
+              const isHov = hoveredRow === r.label;
+              const discVal = r.strategy === "Proximity"
+                ? (() => { const sp = r.asrpaDiscrimination?.estimated_specificity; return sp != null ? `≥${(1 / Math.max(1 - sp, 0.001)).toFixed(0)}×` : "≥100×"; })()
+                : r.gene === "IS6110" ? "N/A"
+                : r.disc > 0 ? `${r.disc.toFixed(1)}×${r.hasSM ? " (post-SM)" : ""}` : "—";
+              return (
+              <tr key={r.label} style={{ borderBottom: `1px solid ${T.borderLight}`, transition: "background 0.15s", background: isHov ? `${T.primary}08` : "transparent" }}
+                onMouseEnter={() => setHoveredRow(r.label)} onMouseLeave={() => setHoveredRow(null)}>
                 <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px" }}>{r.label}</td>
                 <td style={{ padding: "10px 14px" }}>
                   <Badge variant={r.strategy === "Direct" ? "success" : "purple"}>
@@ -4518,14 +4533,19 @@ const PrimersTab = ({ results }) => {
                   </Badge>
                 </td>
                 <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px", color: r.gene === "IS6110" ? T.textTer : r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger }}>
-                  {r.gene === "IS6110" ? "N/A" : r.strategy === "Proximity" ? "AS-RPA" : r.disc > 0 ? `${r.disc.toFixed(1)}×` : "—"}
+                  {discVal}
                 </td>
-                <td style={{ padding: "10px 14px" }}><Seq s={r.fwd} /></td>
-                <td style={{ padding: "10px 14px" }}><Seq s={r.rev} /></td>
+                <td style={{ padding: "10px 14px" }}>
+                  {isHov ? <Seq s={r.fwd} /> : <span style={{ fontFamily: MONO, fontSize: "11.5px", letterSpacing: "1.2px", color: T.textTer }}>{r.fwd}</span>}
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  {isHov ? <Seq s={r.rev} /> : <span style={{ fontFamily: MONO, fontSize: "11.5px", letterSpacing: "1.2px", color: T.textTer }}>{r.rev}</span>}
+                </td>
                 <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 600, color: r.amplicon <= 100 ? T.success : r.amplicon <= 120 ? T.warning : T.danger }}>{r.amplicon} bp</td>
                 <td style={{ padding: "10px 14px" }}><Badge variant={r.hasSM ? "primary" : "default"}>{r.hasSM ? "Yes" : "No"}</Badge></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         </div>
