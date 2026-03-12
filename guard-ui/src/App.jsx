@@ -681,8 +681,8 @@ const CandidateViewer = ({ r, onClose }) => {
           ].map((s, i) => (
             <div key={s.l} style={{ flex: mobile ? "1 1 40%" : 1, textAlign: "center", borderLeft: !mobile && i > 0 ? `1px dashed ${T.border}` : "none", minWidth: mobile ? "30%" : "auto" }}>
               <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.l}</div>
-              <div style={{ fontSize: mobile ? "15px" : "18px", fontWeight: 700, color: s.c, fontFamily: MONO }}>{s.v}</div>
-              {s.badge && <div style={{ marginTop: "3px", display: "inline-block", padding: "1px 5px", borderRadius: "4px", fontSize: "9px", fontWeight: 700, fontFamily: MONO, background: s.penalty >= 0.5 ? "#FEF3C7" : "#FEE2E2", color: s.penalty >= 0.5 ? "#92400E" : "#991B1B" }}>{s.badge} {s.penalty != null ? `${s.penalty}×` : ""}</div>}
+              <div style={{ fontSize: mobile ? "15px" : "18px", fontWeight: 700, color: s.c, fontFamily: FONT }}>{s.v}</div>
+              {s.badge && <div style={{ marginTop: "3px", display: "inline-block", padding: "1px 5px", borderRadius: "4px", fontSize: "9px", fontWeight: 700, fontFamily: FONT, background: s.penalty >= 0.5 ? "#FEF3C7" : "#FEE2E2", color: s.penalty >= 0.5 ? "#92400E" : "#991B1B" }}>{s.badge} {s.penalty != null ? `${s.penalty}×` : ""}</div>}
             </div>
           ))}
         </div>
@@ -1665,7 +1665,7 @@ const HomePage = ({ goTo, connected }) => {
       <CollapsibleSection title="System Architecture">
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0" }}>
           {/* Input */}
-          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: MONO }}>WHO Mutation Catalogue</div>
+          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: FONT }}>WHO Mutation Catalogue</div>
           <div style={{ width: "1px", height: "16px", background: T.text }} />
 
           {/* Pipeline */}
@@ -1704,7 +1704,7 @@ const HomePage = ({ goTo, connected }) => {
           <div style={{ width: "1px", height: "16px", background: T.text }} />
 
           {/* Output */}
-          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: MONO }}>
+          <div style={{ background: "#f5f5f5", border: `1px solid ${T.border}`, borderRadius: "6px", padding: "8px 20px", fontSize: "12px", fontWeight: 600, color: T.text, textAlign: "center", fontFamily: FONT }}>
             Assay-Ready Panel: 14 crRNAs + 28 primers + clinical metrics
           </div>
         </div>
@@ -2171,7 +2171,7 @@ const ExperimentalPriorityCard = ({ results }) => {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "14px", fontWeight: 700, color: T.text }}>{r.label}</span>
-                  <span style={{ fontSize: "11px", color: T.textSec, fontFamily: MONO }}>
+                  <span style={{ fontSize: "11px", color: T.textSec, fontFamily: FONT }}>
                     {disc > 0 && disc < 900 ? `${disc.toFixed(1)}x disc` : ""}
                     {disc > 0 && disc < 900 ? " \u00b7 " : ""}
                     {eff.toFixed(3)} eff
@@ -3134,19 +3134,19 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               return (
                 <tr key={d.drug} style={{ borderBottom: `1px solid ${T.borderLight}` }}>
                   <td style={{ padding: "12px 24px" }}><DrugBadge drug={d.drug} /></td>
-                  <td style={{ padding: "12px 24px", fontFamily: MONO, fontWeight: 600 }}>{d.count}</td>
-                  <td style={{ padding: "12px 24px", fontFamily: MONO, color: d.avgScore > 0.75 ? T.success : d.avgScore > 0.6 ? T.text : T.warning }}>{d.avgScore}</td>
+                  <td style={{ padding: "12px 24px", fontFamily: FONT, fontWeight: 600 }}>{d.count}</td>
+                  <td style={{ padding: "12px 24px", fontFamily: FONT, color: d.avgScore > 0.75 ? T.success : d.avgScore > 0.6 ? T.text : T.warning }}>{d.avgScore}</td>
                   {(() => {
                     const directRows = rows.filter(r => r.strategy === "Direct" && r.disc > 0 && r.disc < 900);
                     const proxCount = rows.filter(r => r.strategy === "Proximity").length;
                     if (directRows.length > 0) {
                       const avg = (directRows.reduce((a, r) => a + r.disc, 0) / directRows.length).toFixed(1);
-                      return <td style={{ padding: "12px 24px", fontFamily: MONO }}>{avg}×<span style={{ fontSize: "9px", color: T.textTer, marginLeft: "3px" }}>({directRows.length})</span>{proxCount > 0 && <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "4px" }}>+{proxCount} AS-RPA</span>}</td>;
+                      return <td style={{ padding: "12px 24px", fontFamily: FONT }}>{avg}×<span style={{ fontSize: "9px", color: T.textTer, marginLeft: "3px" }}>({directRows.length})</span>{proxCount > 0 && <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "4px" }}>+{proxCount} AS-RPA</span>}</td>;
                     }
                     return <td style={{ padding: "12px 24px", fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA only</td>;
                   })()}
                   <td style={{ padding: "12px 24px" }}>
-                    <span style={{ fontFamily: MONO, fontWeight: 600 }}>{primerCount}/{d.count}</span>
+                    <span style={{ fontFamily: FONT, fontWeight: 600 }}>{primerCount}/{d.count}</span>
                     {primerCount < d.count && <span style={{ marginLeft: "6px", fontSize: "10px", color: T.warning, fontWeight: 600 }}>{d.count - primerCount} missing</span>}
                   </td>
                 </tr>
@@ -3299,9 +3299,9 @@ const SpacerArchitecture = ({ r }) => {
           <div style={{ width: "1px", height: "16px", background: T.borderLight }} />
 
           {/* Metadata chips */}
-          <span style={{ fontSize: "11px", color: T.textSec, fontFamily: MONO }}>{len} nt · GC {(r.gc * 100).toFixed(0)}%</span>
+          <span style={{ fontSize: "11px", color: T.textSec, fontFamily: FONT }}>{len} nt · GC {(r.gc * 100).toFixed(0)}%</span>
           {snpNt ? (
-            <span style={{ fontSize: "11px", color: T.danger, fontWeight: 600, fontFamily: MONO }}>SNP @ pos {snpNt.pos} · {snpChange}</span>
+            <span style={{ fontSize: "11px", color: T.danger, fontWeight: 600, fontFamily: FONT }}>SNP @ pos {snpNt.pos} · {snpChange}</span>
           ) : r.strategy === "Proximity" ? (
             <span style={{ fontSize: "11px", color: T.purple, fontWeight: 600 }}>Mutation outside spacer{r.proximityDistance ? ` (${r.proximityDistance} bp away)` : ""}</span>
           ) : !hasWt ? (
@@ -3310,7 +3310,7 @@ const SpacerArchitecture = ({ r }) => {
             <span style={{ fontSize: "11px", color: T.textTer }}>No SNP in spacer</span>
           )}
           {smNt ? (
-            <span style={{ fontSize: "11px", color: T.warning, fontWeight: 600, fontFamily: MONO }}>SM: {smChange} @ pos {smNt.pos}</span>
+            <span style={{ fontSize: "11px", color: T.warning, fontWeight: 600, fontFamily: FONT }}>SM: {smChange} @ pos {smNt.pos}</span>
           ) : (
             <span style={{ fontSize: "11px", color: T.textTer }}>SM: none</span>
           )}
@@ -3457,7 +3457,7 @@ const CandidateAccordion = ({ r, onShowAlternatives }) => {
         ].map((s, i) => (
           <div key={s.l} style={{ flex: 1, textAlign: "center", borderLeft: i > 0 ? `1px dashed ${T.border}` : "none", minWidth: mobile ? "30%" : "auto" }}>
             <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.l}</div>
-            <div style={{ fontSize: "16px", fontWeight: 700, color: s.c, fontFamily: MONO }}>{s.v}</div>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: s.c, fontFamily: FONT }}>{s.v}</div>
           </div>
         ))}
       </div>
@@ -4275,7 +4275,7 @@ const DiscriminationTab = ({ results }) => {
                         }} />
                       </div>
                       {/* Value */}
-                      <div style={{ width: "52px", flexShrink: 0, textAlign: "right", fontSize: "11px", fontFamily: MONO, fontWeight: 700, color: statusColor }}>
+                      <div style={{ width: "52px", flexShrink: 0, textAlign: "right", fontSize: "11px", fontFamily: FONT, fontWeight: 700, color: statusColor }}>
                         {d.disc.toFixed(1)}×
                       </div>
                     </div>
@@ -4392,7 +4392,7 @@ const DiscriminationTab = ({ results }) => {
                     <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 600, color: (r.cnnCalibrated ?? r.score) >= 0.7 ? T.success : (r.cnnCalibrated ?? r.score) >= 0.4 ? T.warning : T.danger }}>{(r.cnnCalibrated ?? r.score).toFixed(3)}</td>
                     <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700 }}>{d?.terminal_mismatch || "—"}</td>
                     <td style={{ padding: "10px 14px", fontSize: "11px" }}>{d ? (d.has_penultimate_mm ? <span style={{ color: T.success, fontWeight: 600 }}>Yes</span> : <span style={{ color: T.textTer }}>No</span>) : "—"}</td>
-                    <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 700, color: d ? (d.block_class === "none" ? T.danger : d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
+                    <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 700, color: d ? (d.block_class === "none" ? T.danger : d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger) : T.textTer }}>
                       {d ? (d.block_class === "none" ? "1× (WC)" : d.disc_ratio >= 100 ? "≥100×" : `${d.disc_ratio.toFixed(0)}×`) : "—"}
                     </td>
                     <td style={{ padding: "10px 14px" }}>
@@ -4545,7 +4545,7 @@ const PrimersTab = ({ results }) => {
                     {r.strategy === "Direct" ? "Standard" : "AS-RPA"}
                   </Badge>
                 </td>
-                <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600, fontSize: "11px", color: r.gene === "IS6110" ? T.textTer : r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger }}>
+                <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 600, fontSize: "11px", color: r.gene === "IS6110" ? T.textTer : r.strategy === "Proximity" ? T.purple : r.disc >= 3 ? T.success : r.disc >= 2 ? T.warning : T.danger }}>
                   {discVal}
                 </td>
                 <td style={{ padding: "10px 14px" }}>
@@ -5153,8 +5153,8 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 </tr>
                 <tr style={{ borderTop: `2px solid ${T.border}`, fontWeight: 700, fontSize: "14px" }}>
                   <td style={{ padding: "10px 12px" }}>Assay total</td>
-                  <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: MONO }}>{kinetics.totals?.total_solution || "~23\u201328 min"}</td>
-                  <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: MONO }}>{kinetics.totals?.total_electrode || "30\u201350 min"}</td>
+                  <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: FONT }}>{kinetics.totals?.total_solution || "~23\u201328 min"}</td>
+                  <td style={{ textAlign: "center", padding: "10px 12px", fontFamily: FONT }}>{kinetics.totals?.total_electrode || "30\u201350 min"}</td>
                 </tr>
               </tbody>
             </table>
@@ -5264,17 +5264,17 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
           {/* ── Row 2: Main sliders ── */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", marginBottom: "12px" }}>
             <div style={{ flex: "1 1 180px" }}>
-              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Incubation time: <span style={{ color: T.text, fontFamily: MONO }}>{echemTime} min</span></label>
+              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Incubation time: <span style={{ color: T.text, fontFamily: FONT }}>{echemTime} min</span></label>
               <input type="range" min={0} max={60} step={1} value={echemTime} onChange={e => setEchemTime(+e.target.value)}
                 style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
             </div>
             <div style={{ flex: "1 1 180px" }}>
-              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Blood cfDNA: <span style={{ color: T.text, fontFamily: MONO }}>{echemBloodTiter} cp/mL</span></label>
+              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Blood cfDNA: <span style={{ color: T.text, fontFamily: FONT }}>{echemBloodTiter} cp/mL</span></label>
               <input type="range" min={0} max={3} step={0.01} value={Math.log10(echemBloodTiter)} onChange={e => setEchemBloodTiter(Math.round(Math.pow(10, +e.target.value)))}
                 style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
             </div>
             <div style={{ flex: "1 1 180px" }}>
-              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Surface k_trans: <span style={{ color: T.text, fontFamily: MONO }}>{echemKtrans.toFixed(3)} s{"\u207b\u00b9"}</span></label>
+              <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Surface k_trans: <span style={{ color: T.text, fontFamily: FONT }}>{echemKtrans.toFixed(3)} s{"\u207b\u00b9"}</span></label>
               <input type="range" min={Math.log10(0.0005)} max={Math.log10(0.05)} step={0.01} value={Math.log10(echemKtrans)} onChange={e => setEchemKtrans(+(Math.pow(10, +e.target.value)).toFixed(4))}
                 style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
             </div>
@@ -5289,17 +5289,17 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             {echemAdvanced && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", marginTop: "8px", padding: "12px 16px", background: T.bgSub, borderRadius: "8px", border: `1px solid ${T.borderLight}` }}>
                 <div style={{ flex: "1 1 160px" }}>
-                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>{"\u0393\u2080"}: <span style={{ fontFamily: MONO, color: T.text }}>{echemGamma0.toExponential(1)} mol/cm{"\u00b2"}</span></label>
+                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>{"\u0393\u2080"}: <span style={{ fontFamily: FONT, color: T.text }}>{echemGamma0.toExponential(1)} mol/cm{"\u00b2"}</span></label>
                   <input type="range" min={9} max={12} step={0.1} value={Math.log10(echemGamma0)} onChange={e => setEchemGamma0(Math.pow(10, +e.target.value))}
                     style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
                 </div>
                 <div style={{ flex: "1 1 160px" }}>
-                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Porosity {"\u03b7"}: <span style={{ fontFamily: MONO, color: T.text }}>{echemPorosity.toFixed(1)}</span></label>
+                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Porosity {"\u03b7"}: <span style={{ fontFamily: FONT, color: T.text }}>{echemPorosity.toFixed(1)}</span></label>
                   <input type="range" min={1} max={8} step={0.1} value={echemPorosity} onChange={e => setEchemPorosity(+e.target.value)}
                     style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
                 </div>
                 <div style={{ flex: "1 1 160px" }}>
-                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Peak scale: <span style={{ fontFamily: MONO, color: T.text }}>{echemIscale.toFixed(1)} {"\u03bcA"}</span></label>
+                  <label style={{ fontSize: "10px", fontWeight: 700, color: T.textSec, fontFamily: HEADING }}>Peak scale: <span style={{ fontFamily: FONT, color: T.text }}>{echemIscale.toFixed(1)} {"\u03bcA"}</span></label>
                   <input type="range" min={0.1} max={10} step={0.1} value={echemIscale} onChange={e => setEchemIscale(+e.target.value)}
                     style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
                 </div>
@@ -5337,7 +5337,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   }}>i_fwd / i_rev</button>
                 )}
               </div>
-              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: MONO }}>
+              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
                 {echemCandidateData.label} {"\u00b7"} {"\u0394"}I% = <span style={{ fontWeight: 700, color: EC.purple }}>{echemMeta.deltaI}%</span>
                 {" \u00b7 "}|I{"\u2080"}| = {echemArch === "C" ? (Math.abs(echemMeta.peakBase) * 1000).toFixed(1) : Math.abs(echemMeta.peakBase).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} {"\u2192"} |I_after| = {echemArch === "C" ? (Math.abs(echemMeta.peakAfter) * 1000).toFixed(1) : Math.abs(echemMeta.peakAfter).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}
               </div>
@@ -5492,7 +5492,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 })()}
               </div>
               {/* Physics equation — architecture-dependent */}
-              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO, fontStyle: "italic" }}>
+              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: FONT, fontStyle: "italic" }}>
                 {archCfg.peak_shape === "sech2"
                   ? (echemTechnique === "SWV" ? "i_net = i_fwd \u2212 i_rev ; i \u221d \u0393 \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0\u00b1E_sw)]"
                     : echemTechnique === "DPV" ? "i_p = (n\u00b2F\u00b2\u0393A\u0394E) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)]"
@@ -5508,7 +5508,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING, marginBottom: "4px" }}>
                 B {"\u00b7"} {"\u0394"}I% Time Course
               </div>
-              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: MONO }}>
+              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
                 MUT: <span style={{ fontWeight: 700, color: EC.purple }}>{echemTimeCourse.timeMut != null ? `t_det \u2248 ${echemTimeCourse.timeMut} min` : ">60 min"}</span>
                 {" \u00b7 "}WT: <span style={{ fontWeight: 700, color: EC.pink }}>{echemTimeCourse.timeWt != null ? `~${echemTimeCourse.timeWt} min` : "below threshold"}</span>
                 {echemTimeCourse.timeMut != null && echemTimeCourse.timeWt != null && echemTimeCourse.timeWt > echemTimeCourse.timeMut && (
@@ -5591,7 +5591,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   );
                 })()}
               </div>
-              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO, fontStyle: "italic" }}>
+              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: FONT, fontStyle: "italic" }}>
                 {"\u0394"}I% = (1 {"\u2212"} {"\u0393"}(t)/{"\u0393\u2080"}) {"\u00d7"} 100 ; {"\u0393"}(t) = {"\u0393\u2080"} exp({"\u2212"}k_trans {"\u00b7"} S_eff {"\u00b7"} {"\u222b"}f_RNP dt) ; lag {"\u2248"} 5{"\u2013"}10 min (in situ RNP formation)
               </div>
             </div>
@@ -5601,7 +5601,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING, marginBottom: "4px" }}>
                 C {"\u00b7"} MUT vs WT Allelic Discrimination
               </div>
-              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: MONO }}>
+              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
                 MUT: <span style={{ fontWeight: 700, color: EC.purple }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakMut) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakMut).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diMut}%)</span>
                 {" \u00b7 "}WT: <span style={{ fontWeight: 700, color: EC.pink }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakWt) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakWt).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diWt}%)</span>
                 {" \u00b7 "}Disc: <span style={{ fontWeight: 700, color: echemDiscOverlay.measuredDisc < 1 ? "#ef4444" : echemDiscOverlay.measuredDisc < 2 ? "#f59e0b" : EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</span>
@@ -5732,7 +5732,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   );
                 })()}
               </div>
-              <div style={{ fontSize: "9px", color: T.textTer, fontStyle: "italic", marginTop: "4px", fontFamily: MONO }}>
+              <div style={{ fontSize: "9px", color: T.textTer, fontStyle: "italic", marginTop: "4px", fontFamily: FONT }}>
                 Discrimination ratio = {"\u0394"}I%_MUT / {"\u0394"}I%_WT {"\u2014"} independent of k_trans and {"\u0393\u2080"}, depends only on mismatch biophysics predicted by GUARD.
               </div>
             </div>
@@ -5772,12 +5772,12 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         {electrodeLayout.flat().indexOf(r.label) + 1 > 0 ? `P${electrodeLayout.flat().indexOf(r.label) + 1}` : "\u2014"}
                       </td>
                       <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700 }}>{d.terminal_mismatch}</td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO }}>{d.ddg_kcal.toFixed(1)} kcal/mol</td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO, fontWeight: 700, color: d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger }}>{d.disc_ratio >= 100 ? "\u2265100" : d.disc_ratio.toFixed(0)}\u00d7</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: FONT }}>{d.ddg_kcal.toFixed(1)} kcal/mol</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: FONT, fontWeight: 700, color: d.disc_ratio >= 50 ? T.success : d.disc_ratio >= 10 ? T.warning : T.danger }}>{d.disc_ratio >= 100 ? "\u2265100" : d.disc_ratio.toFixed(0)}\u00d7</td>
                       <td style={{ padding: "8px 12px", textAlign: "center" }}>
                         <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: 700, background: blockColor + "20", color: blockColor, textTransform: "uppercase" }}>{d.block_class}</span>
                       </td>
-                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: MONO }}>{(d.estimated_specificity * 100).toFixed(1)}%</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", fontFamily: FONT }}>{(d.estimated_specificity * 100).toFixed(1)}%</td>
                     </tr>
                   );
                 })}
@@ -5808,7 +5808,7 @@ class TabErrorBoundary extends React.Component {
     if (this.state.error) return (
       <div style={{ padding: "24px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", margin: "16px 0" }}>
         <div style={{ fontWeight: 700, color: "#991B1B", marginBottom: "8px" }}>{this.props.label || "Tab"} failed to render</div>
-        <div style={{ fontSize: "12px", color: "#7F1D1D", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>{this.state.error.message}{"\n"}{this.state.error.stack}</div>
+        <div style={{ fontSize: "12px", color: "#7F1D1D", fontFamily: MONO, whiteSpace: "pre-wrap" }}>{this.state.error.message}{"\n"}{this.state.error.stack}</div>
         <button onClick={() => this.setState({ error: null })} style={{ marginTop: "12px", padding: "6px 16px", border: "1px solid #FECACA", borderRadius: "6px", cursor: "pointer", background: "white", fontSize: "12px" }}>Retry</button>
       </div>
     );
@@ -6161,7 +6161,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <card.icon size={14} color={card.color} />
                   <span style={{ fontSize: "11px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em" }}>{card.label}</span>
                 </div>
-                <div style={{ fontSize: "28px", fontWeight: 800, color: card.color, fontFamily: MONO, lineHeight: 1 }}>{card.value}</div>
+                <div style={{ fontSize: "28px", fontWeight: 800, color: card.color, fontFamily: FONT, lineHeight: 1 }}>{card.value}</div>
               </div>
             ))}
           </div>
@@ -6285,15 +6285,15 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                   <div style={{ display: "flex", gap: "20px" }}>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ MUT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#2563EB", fontFamily: MONO }}>{meanMut}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#2563EB", fontFamily: FONT }}>{meanMut}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>μ WT</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#9ca3af", fontFamily: MONO }}>{meanWt}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: "#9ca3af", fontFamily: FONT }}>{meanWt}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: "9px", color: T.textTer, fontWeight: 600 }}>SEPARATION</div>
-                      <div style={{ fontSize: "15px", fontWeight: 800, color: separation >= 0.15 ? T.success : T.warning, fontFamily: MONO }}>{separation}</div>
+                      <div style={{ fontSize: "15px", fontWeight: 800, color: separation >= 0.15 ? T.success : T.warning, fontFamily: FONT }}>{separation}</div>
                     </div>
                   </div>
                 </div>
@@ -6399,17 +6399,17 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                         <td style={{ padding: "10px 14px" }}><DrugBadge drug={drug} /></td>
                         <td style={{ padding: "10px 14px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "13px", color: data.sensitivity >= tppTarget ? T.success : data.sensitivity >= tppTarget * 0.8 ? T.warning : T.danger }}>{sensPercent.toFixed(1)}%</span>
-                            {gap !== 0 && <span style={{ fontSize: "10px", fontFamily: MONO, fontWeight: 600, color: gap >= 0 ? T.success : T.danger }}>{gap >= 0 ? "+" : ""}{gap.toFixed(0)}pp</span>}
+                            <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "13px", color: data.sensitivity >= tppTarget ? T.success : data.sensitivity >= tppTarget * 0.8 ? T.warning : T.danger }}>{sensPercent.toFixed(1)}%</span>
+                            {gap !== 0 && <span style={{ fontSize: "10px", fontFamily: FONT, fontWeight: 600, color: gap >= 0 ? T.success : T.danger }}>{gap >= 0 ? "+" : ""}{gap.toFixed(0)}pp</span>}
                           </div>
                         </td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontSize: "11px", color: T.textTer }}>≥ {tppPercent.toFixed(0)}%</td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontWeight: 600 }}>{data.targets_covered}/{data.targets_total}</td>
-                        <td style={{ padding: "10px 14px", fontFamily: MONO, fontSize: "11px", color: avgDisc >= 3 ? T.success : avgDisc >= 2 ? T.warning : T.textTer }}>{avgDisc > 0 ? `${avgDisc.toFixed(1)}×` : "—"}</td>
+                        <td style={{ padding: "10px 14px", fontFamily: FONT, fontSize: "11px", color: T.textTer }}>≥ {tppPercent.toFixed(0)}%</td>
+                        <td style={{ padding: "10px 14px", fontFamily: FONT, fontWeight: 600 }}>{data.targets_covered}/{data.targets_total}</td>
+                        <td style={{ padding: "10px 14px", fontFamily: FONT, fontSize: "11px", color: avgDisc >= 3 ? T.success : avgDisc >= 2 ? T.warning : T.textTer }}>{avgDisc > 0 ? `${avgDisc.toFixed(1)}×` : "—"}</td>
                         <td style={{ padding: "10px 14px" }}>
                           {data.specificity != null ? (
                             <div>
-                              <span style={{ fontFamily: MONO, fontWeight: 600, fontSize: "12px", color: data.specificity >= 0.98 ? T.success : data.specificity >= 0.90 ? T.warning : T.textTer }}>{(data.specificity * 100).toFixed(1)}%</span>
+                              <span style={{ fontFamily: FONT, fontWeight: 600, fontSize: "12px", color: data.specificity >= 0.98 ? T.success : data.specificity >= 0.90 ? T.warning : T.textTer }}>{(data.specificity * 100).toFixed(1)}%</span>
                               {data.n_excluded_specificity > 0 && <div style={{ fontSize: "9px", color: T.textTer, marginTop: "2px" }}>{data.n_excluded_specificity} excluded</div>}
                             </div>
                           ) : <span style={{ color: T.textTer }}>—</span>}
@@ -6510,7 +6510,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                             </td>
                             <td style={{ padding: "10px 12px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: effColor }}>{eff.toFixed(3)}</span>
+                                <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "12px", color: effColor }}>{eff.toFixed(3)}</span>
                                 <div style={{ width: "40px", height: "4px", background: T.borderLight, borderRadius: "2px", overflow: "hidden" }}>
                                   <div style={{ width: `${Math.min(eff * 100, 100)}%`, height: "100%", background: effColor, borderRadius: "2px" }} />
                                 </div>
@@ -6526,7 +6526,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                 }
                                 return <span style={{ fontSize: "10px", color: T.purple, fontWeight: 600 }}>AS-RPA</span>;
                               })() : (
-                                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: "12px", color: discColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
+                                <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "12px", color: discColor }}>{disc > 0 ? `${disc.toFixed(1)}×` : "—"}</span>
                               )}
                             </td>
                             <td style={{ padding: "10px 12px" }}>{t.has_primers ? <CheckCircle size={14} color={T.success} /> : <span style={{ color: T.textTer }}>—</span>}</td>
@@ -6573,13 +6573,13 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
                                             const isProximity = t.strategy === "Proximity";
                                             return (
                                               <tr key={i} style={{ borderBottom: `1px solid ${T.borderLight}`, background: isSelected ? T.primaryLight : "transparent" }}>
-                                                <td style={{ padding: "7px 10px", fontFamily: MONO, fontWeight: 700, color: isSelected ? T.primary : T.textSec }}>{isSelected ? "#1 ●" : `#${i + 1}`}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: FONT, fontWeight: 700, color: isSelected ? T.primary : T.textSec }}>{isSelected ? "#1 ●" : `#${i + 1}`}</td>
                                                 <td style={{ padding: "7px 10px" }}>
-                                                  <span style={{ fontFamily: MONO, fontWeight: 700, color: sColor }}>{s.toFixed(3)}</span>
-                                                  {deltaEff != null && !isSelected && <span style={{ fontSize: "9px", fontFamily: MONO, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger, marginLeft: "4px" }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
+                                                  <span style={{ fontFamily: FONT, fontWeight: 700, color: sColor }}>{s.toFixed(3)}</span>
+                                                  {deltaEff != null && !isSelected && <span style={{ fontSize: "9px", fontFamily: FONT, fontWeight: 600, color: deltaEff >= 0 ? T.success : T.danger, marginLeft: "4px" }}>{deltaEff >= 0 ? "+" : ""}{deltaEff.toFixed(3)}</span>}
                                                 </td>
-                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: T.textSec }}>{isProximity ? <span style={{ fontSize: "10px", color: T.purple }}>AS-RPA</span> : aDisc > 0 ? `${aDisc.toFixed(1)}×` : "—"}</td>
-                                                <td style={{ padding: "7px 10px", fontFamily: MONO, color: alt.offtarget_count === 0 ? T.success : alt.offtarget_count != null ? T.warning : T.textTer }}>{alt.offtarget_count ?? "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: FONT, color: T.textSec }}>{isProximity ? <span style={{ fontSize: "10px", color: T.purple }}>AS-RPA</span> : aDisc > 0 ? `${aDisc.toFixed(1)}×` : "—"}</td>
+                                                <td style={{ padding: "7px 10px", fontFamily: FONT, color: alt.offtarget_count === 0 ? T.success : alt.offtarget_count != null ? T.warning : T.textTer }}>{alt.offtarget_count ?? "—"}</td>
                                                 <td style={{ padding: "7px 10px", fontFamily: MONO, fontSize: "10px", color: T.textTer, letterSpacing: "0.3px" }}>{spacer ? `${spacer.slice(0, 10)} ${spacer.slice(10, 20)}` : "—"}</td>
                                                 <td style={{ padding: "7px 10px", fontSize: "10px", color: T.textTer, fontStyle: isSelected ? "normal" : "italic" }}>
                                                   {isSelected ? <span style={{ fontWeight: 600, color: T.primary, fontStyle: "normal" }}>Selected candidate</span> : (notes || "comparable")}
@@ -7051,7 +7051,7 @@ const MutationsPage = () => {
                   <td style={{ padding: "10px 14px", fontFamily: MONO }}>{m.ref}{m.pos}{m.alt}</td>
                   <td style={{ padding: "10px 14px" }}><DrugBadge drug={m.drug} /></td>
                   <td style={{ padding: "10px 14px" }}><Badge variant={m.conf === "High" ? "success" : "warning"}>{m.conf}</Badge></td>
-                  <td style={{ padding: "10px 14px", fontFamily: MONO }}>{m.tier}</td>
+                  <td style={{ padding: "10px 14px", fontFamily: FONT }}>{m.tier}</td>
                   <td style={{ padding: "10px 14px", fontSize: "11px", color: T.textSec }}>{ref?.freq || "—"}</td>
                 </tr>
               );
@@ -7139,9 +7139,9 @@ const ScoringPage = ({ connected }) => {
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
-              <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: MONO, color: T.text, width: 55, textAlign: "right" }}>{f.rho}</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, fontFamily: FONT, color: T.text, width: 55, textAlign: "right" }}>{f.rho}</span>
               {f.delta ? (
-                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: MONO, color: T.success, width: 55, textAlign: "right" }}>{f.delta}</span>
+                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: FONT, color: T.success, width: 55, textAlign: "right" }}>{f.delta}</span>
               ) : (
                 <span style={{ width: 55, textAlign: "right", fontSize: "11px", color: T.textTer }}>baseline</span>
               )}
@@ -7191,7 +7191,7 @@ const ScoringPage = ({ connected }) => {
           ].map(s => (
             <div key={s.label} style={{ background: T.bgSub, borderRadius: "8px", padding: "12px", textAlign: "center" }}>
               <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" }}>{s.label}</div>
-              <div style={{ fontSize: "16px", fontWeight: 700, color: T.text, fontFamily: MONO }}>{s.value}</div>
+              <div style={{ fontSize: "16px", fontWeight: 700, color: T.text, fontFamily: FONT }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -7217,10 +7217,10 @@ const ScoringPage = ({ connected }) => {
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
-              <span style={{ fontSize: "12px", fontFamily: MONO, color: T.textSec, width: 80, textAlign: "right" }}>RMSE {f.rmse}</span>
-              <span style={{ fontSize: "12px", fontFamily: MONO, color: T.text, fontWeight: 700, width: 55, textAlign: "right" }}>r={f.corr}</span>
+              <span style={{ fontSize: "12px", fontFamily: FONT, color: T.textSec, width: 80, textAlign: "right" }}>RMSE {f.rmse}</span>
+              <span style={{ fontSize: "12px", fontFamily: FONT, color: T.text, fontWeight: 700, width: 55, textAlign: "right" }}>r={f.corr}</span>
               {f.delta ? (
-                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: MONO, color: T.success, width: 75, textAlign: "right" }}>{f.delta}</span>
+                <span style={{ fontSize: "11px", fontWeight: 600, fontFamily: FONT, color: T.success, width: 75, textAlign: "right" }}>{f.delta}</span>
               ) : (
                 <span style={{ width: 75, textAlign: "right", fontSize: "11px", color: T.textTer }}>baseline</span>
               )}
@@ -7345,11 +7345,11 @@ const ResearchPage = ({ connected }) => {
     mutLine: "#1a1a1a", wtLine: "#a3a3a3", seedBg: "rgba(37,99,235,0.06)",
     snpLine: "#dc2626", barrier: "#f97316",
   };
-  const rTooltip = { background: "#1a1a1a", border: "none", borderRadius: "6px", fontSize: "11px", fontFamily: MONO, color: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" };
-  const selectStyle = { padding: "6px 10px", borderRadius: "6px", border: `1px solid ${RS.border}`, fontSize: "12px", fontFamily: MONO, background: RS.cardBg, color: RS.text };
+  const rTooltip = { background: "#1a1a1a", border: "none", borderRadius: "6px", fontSize: "11px", fontFamily: FONT, color: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.2)" };
+  const selectStyle = { padding: "6px 10px", borderRadius: "6px", border: `1px solid ${RS.border}`, fontSize: "12px", fontFamily: FONT, background: RS.cardBg, color: RS.text };
   const btnStyle = { padding: "6px 14px", borderRadius: "6px", border: "none", background: RS.accent, color: "#fff", fontSize: "12px", fontWeight: 600, cursor: "pointer" };
   const thStyle = { padding: "8px 12px", fontWeight: 600, color: RS.muted, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `1px solid ${RS.border}` };
-  const tdStyle = { padding: "8px 12px", fontSize: "12px", fontFamily: MONO, color: RS.text };
+  const tdStyle = { padding: "8px 12px", fontSize: "12px", fontFamily: FONT, color: RS.text };
 
   // Heuristic feature weights for waterfall chart
   const HEURISTIC_WEIGHTS = [
@@ -7421,12 +7421,12 @@ const ResearchPage = ({ connected }) => {
               <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)", gap: "12px", marginBottom: "20px" }}>
                 <div style={{ background: RS.cardBg, border: `1px solid ${RS.border}`, borderRadius: "8px", padding: "14px 18px" }}>
                   <div style={{ fontSize: "11px", color: RS.muted, fontWeight: 600, marginBottom: "4px" }}>KENDALL TAU</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: RS.text, fontFamily: MONO }}>{summary.kendall_tau?.toFixed(3) ?? "—"}</div>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: RS.text, fontFamily: FONT }}>{summary.kendall_tau?.toFixed(3) ?? "—"}</div>
                   <div style={{ fontSize: "10px", color: RS.muted, marginTop: "2px" }}>1.0 = identical ranking, 0 = unrelated</div>
                 </div>
                 <div style={{ background: RS.cardBg, border: `1px solid ${RS.border}`, borderRadius: "8px", padding: "14px 18px" }}>
                   <div style={{ fontSize: "11px", color: RS.muted, fontWeight: 600, marginBottom: "4px" }}>MEAN SCORE DELTA</div>
-                  <div style={{ fontSize: "22px", fontWeight: 800, color: summary.mean_score_delta > 0 ? RS.positive : summary.mean_score_delta < 0 ? RS.negative : RS.text, fontFamily: MONO }}>
+                  <div style={{ fontSize: "22px", fontWeight: 800, color: summary.mean_score_delta > 0 ? RS.positive : summary.mean_score_delta < 0 ? RS.negative : RS.text, fontFamily: FONT }}>
                     {summary.mean_score_delta > 0 ? "+" : ""}{summary.mean_score_delta?.toFixed(4) || "0"}
                   </div>
                   <div style={{ fontSize: "10px", color: RS.muted, marginTop: "2px" }}>Average score change (B - A)</div>
@@ -7642,7 +7642,7 @@ const ResearchPage = ({ connected }) => {
                 ].map(m => (
                   <div key={m.label} style={{ background: RS.cardBg, border: `1px solid ${RS.border}`, borderRadius: "6px", padding: "10px 12px" }} title={m.tip}>
                     <div style={{ fontSize: "9px", color: RS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{m.label}</div>
-                    <div style={{ fontSize: "13px", fontWeight: 800, color: RS.text, fontFamily: MONO, marginTop: "2px" }}>{m.value}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 800, color: RS.text, fontFamily: FONT, marginTop: "2px" }}>{m.value}</div>
                   </div>
                 ))}
               </div>
@@ -7740,7 +7740,7 @@ const ResearchPage = ({ connected }) => {
                             width: `${pct}%`, height: "100%", background: item.color, opacity: 0.2, borderRadius: "4px",
                           }} />
                           <div style={{ position: "absolute", top: 0, left: item.type === "gain" ? 0 : undefined, right: item.type === "cost" ? 0 : undefined, width: `${pct}%`, height: "100%", display: "flex", alignItems: "center", justifyContent: item.type === "gain" ? "flex-end" : "flex-start", padding: "0 8px" }}>
-                            <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: MONO, color: item.color }}>{item.value > 0 ? "+" : ""}{item.value.toFixed(2)}</span>
+                            <span style={{ fontSize: "12px", fontWeight: 700, fontFamily: FONT, color: item.color }}>{item.value > 0 ? "+" : ""}{item.value.toFixed(2)}</span>
                           </div>
                         </div>
                         <div style={{ width: "60px", fontSize: "10px", color: RS.muted, flexShrink: 0 }}>{item.type === "cost" ? "cost" : "gain"}</div>
@@ -7751,7 +7751,7 @@ const ResearchPage = ({ connected }) => {
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", borderTop: `1px solid ${RS.border}`, paddingTop: "8px", marginTop: "4px" }}>
                     <div style={{ width: "180px", fontSize: "12px", fontWeight: 700, color: RS.text, textAlign: "right" }}>Net dG (nucleic acid)</div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: MONO, color: netDg < 0 ? RS.positive : RS.negative }}>{netDg.toFixed(2)} kcal/mol</span>
+                      <span style={{ fontSize: "14px", fontWeight: 800, fontFamily: FONT, color: netDg < 0 ? RS.positive : RS.negative }}>{netDg.toFixed(2)} kcal/mol</span>
                       <span style={{ fontSize: "11px", color: RS.muted, marginLeft: "8px" }}>{netDg < -15 ? "strongly favourable" : netDg < -5 ? "moderately favourable" : netDg < 0 ? "weakly favourable" : "unfavourable without protein"}</span>
                     </div>
                     <div style={{ width: "60px" }} />
@@ -7976,7 +7976,7 @@ const ResearchPage = ({ connected }) => {
                           }} />
                         )}
                       </div>
-                      <div style={{ width: "80px", fontSize: "12px", fontFamily: MONO, fontWeight: item.isBase ? 800 : 600, color: item.isBase ? RS.text : (isPositive ? RS.positive : RS.negative), textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ width: "80px", fontSize: "12px", fontFamily: FONT, fontWeight: item.isBase ? 800 : 600, color: item.isBase ? RS.text : (isPositive ? RS.positive : RS.negative), textAlign: "right", flexShrink: 0 }}>
                         {item.isBase ? item.value.toFixed(3) : `${isPositive ? "+" : ""}${item.value.toFixed(3)}`}
                       </div>
                     </div>
