@@ -4,8 +4,8 @@ import * as THREE from "three";
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS & HELPERS
    ═══════════════════════════════════════════════════════════════ */
-const DRUG_HEX = { RIF: 0xef4444, INH: 0xf97316, EMB: 0xeab308, PZA: 0xeab308, FQ: 0xa855f7, AG: 0xec4899, CTRL: 0x22d3ee, OTHER: 0x888888 };
-const DRUG_CSS = { RIF: "#ef4444", INH: "#f97316", EMB: "#eab308", PZA: "#eab308", FQ: "#a855f7", AG: "#ec4899", CTRL: "#22d3ee", OTHER: "#888888" };
+const DRUG_HEX = { RIF: 0x2563EB, INH: 0x3288bd, EMB: 0x66c2a5, PZA: 0xabdda4, FQ: 0x60A5FA, AG: 0x4ba3cc, CTRL: 0x9ca3af, OTHER: 0x888888 };
+const DRUG_CSS = { RIF: "#2563EB", INH: "#3288bd", EMB: "#66c2a5", PZA: "#abdda4", FQ: "#60A5FA", AG: "#4ba3cc", CTRL: "#9ca3af", OTHER: "#888888" };
 const addAt = (parent, mesh, x, y, z) => { mesh.position.set(x, y, z); parent.add(mesh); return mesh; };
 
 /* ── Architecture-dependent SWV curve generators ── */
@@ -90,20 +90,20 @@ const makeSprite = (text, color, size, bold) => {
 
 // 14-target electrode layout: 7 columns × 2 rows
 const ELECTRODE_TARGETS = [
-  { row: 0, col: 0, target: "IS6110", drug: "CTRL", color: 0x22d3ee, label: "IS6110\nTB ID" },
-  { row: 0, col: 1, target: "IS1081", drug: "CTRL", color: 0x22d3ee, label: "IS1081\nTB ID" },
-  { row: 0, col: 2, target: "rpoB_S531L", drug: "RIF", color: 0xef4444, label: "rpoB S531L\nRIF" },
-  { row: 0, col: 3, target: "rpoB_H526Y", drug: "RIF", color: 0xef4444, label: "rpoB H526Y\nRIF" },
-  { row: 0, col: 4, target: "katG_S315T", drug: "INH", color: 0xf97316, label: "katG S315T\nINH" },
-  { row: 0, col: 5, target: "inhA_C-15T", drug: "INH", color: 0xf97316, label: "inhA C-15T\nINH" },
-  { row: 0, col: 6, target: "embB_M306V", drug: "EMB", color: 0xeab308, label: "embB M306V\nEMB" },
-  { row: 1, col: 0, target: "pncA", drug: "PZA", color: 0xeab308, label: "pncA\nPZA" },
-  { row: 1, col: 1, target: "gyrA_D94G", drug: "FQ", color: 0xa855f7, label: "gyrA D94G\nFQ" },
-  { row: 1, col: 2, target: "gyrA_A90V", drug: "FQ", color: 0xa855f7, label: "gyrA A90V\nFQ" },
-  { row: 1, col: 3, target: "gyrB", drug: "FQ", color: 0xa855f7, label: "gyrB\nFQ" },
-  { row: 1, col: 4, target: "rrs_A1401G", drug: "AG", color: 0xec4899, label: "rrs A1401G\nKAN/AMK" },
-  { row: 1, col: 5, target: "eis_C-14T", drug: "AG", color: 0xec4899, label: "eis C-14T\nKAN" },
-  { row: 1, col: 6, target: "RNaseP", drug: "CTRL", color: 0x22d3ee, label: "RNaseP\nHuman Ctrl" },
+  { row: 0, col: 0, target: "IS6110", drug: "CTRL", color: DRUG_HEX.CTRL, label: "IS6110\nTB ID" },
+  { row: 0, col: 1, target: "rpoB_S531L", drug: "RIF", color: DRUG_HEX.RIF, label: "rpoB S531L\nRIF" },
+  { row: 0, col: 2, target: "rpoB_H526Y", drug: "RIF", color: DRUG_HEX.RIF, label: "rpoB H526Y\nRIF" },
+  { row: 0, col: 3, target: "rpoB_D516V", drug: "RIF", color: DRUG_HEX.RIF, label: "rpoB D516V\nRIF" },
+  { row: 0, col: 4, target: "katG_S315T", drug: "INH", color: DRUG_HEX.INH, label: "katG S315T\nINH" },
+  { row: 0, col: 5, target: "fabG1_C-15T", drug: "INH", color: DRUG_HEX.INH, label: "fabG1 C-15T\nINH" },
+  { row: 0, col: 6, target: "embB_M306V", drug: "EMB", color: DRUG_HEX.EMB, label: "embB M306V\nEMB" },
+  { row: 1, col: 0, target: "embB_M306I", drug: "EMB", color: DRUG_HEX.EMB, label: "embB M306I\nEMB" },
+  { row: 1, col: 1, target: "pncA_H57D", drug: "PZA", color: DRUG_HEX.PZA, label: "pncA H57D\nPZA" },
+  { row: 1, col: 2, target: "gyrA_D94G", drug: "FQ", color: DRUG_HEX.FQ, label: "gyrA D94G\nFQ" },
+  { row: 1, col: 3, target: "gyrA_A90V", drug: "FQ", color: DRUG_HEX.FQ, label: "gyrA A90V\nFQ" },
+  { row: 1, col: 4, target: "rrs_A1401G", drug: "AG", color: DRUG_HEX.AG, label: "rrs A1401G\nKAN/AMK" },
+  { row: 1, col: 5, target: "eis_C-14T", drug: "AG", color: DRUG_HEX.AG, label: "eis C-14T\nKAN" },
+  { row: 1, col: 6, target: "RNaseP", drug: "CTRL", color: DRUG_HEX.CTRL, label: "RNaseP\nHuman Ctrl" },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
