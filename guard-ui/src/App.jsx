@@ -3953,7 +3953,7 @@ const CrossReactivityMatrix = () => {
   const getOnTargetScore = (idx) => {
     const label = labels[idx];
     const r = RESULTS.find(x => x.label === label);
-    return r ? (r.cnnCalibrated ?? r.score || 0).toFixed(2) : "—";
+    return r ? ((r.cnnCalibrated ?? r.score) || 0).toFixed(2) : "—";
   };
 
   const pairMap = {};
@@ -4621,7 +4621,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     return "OTHER";
   };
   const targetStrategy = (t) => { const r = results.find(x => x.label === t); return r ? r.strategy : "Direct"; };
-  const targetScore = (t) => { const r = results.find(x => x.label === t); return r ? (r.cnnCalibrated ?? r.score || 0) : 0; };
+  const targetScore = (t) => { const r = results.find(x => x.label === t); return r ? ((r.cnnCalibrated ?? r.score) || 0) : 0; };
   const coAmpliconGroups = [["rpoB_H445Y","rpoB_H445D"],["rpoB_S450L","rpoB_S450W"],["katG_S315T","katG_S315N"],["embB_M306V","embB_M306I"]];
   const isCoAmplicon = (t) => coAmpliconGroups.some(g => g.includes(t));
   const coAmpliconPartner = (t) => { const g = coAmpliconGroups.find(g => g.includes(t)); return g ? g.filter(x => x !== t)[0] : null; };
@@ -4631,7 +4631,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     const kr = (kinetics.target_ranking || []).find(x => x.target === target);
     if (kr) return kr.efficiency;
     const r = results.find(x => x.label === target);
-    return r ? (r.cnnCalibrated ?? r.score || 0.75) : 0.75;
+    return r ? ((r.cnnCalibrated ?? r.score) || 0.75) : 0.75;
   };
 
   // pncA_H57D status check
