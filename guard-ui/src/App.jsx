@@ -4816,42 +4816,77 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
     return E_array.map(E => scale * ratio * peakShape_sech2(E, E0, nFRT, E_pulse / 2));
   }, [echemAeff, echemGamma0_mol, echemArch]);
 
-  // CV voltammogram — Laviron surface-confined (negative cathodic peak)
-  // For Arch A/B, CV shows different physics but we keep the canonical sech² shape
-  const computeCV = useCallback((E_array, Gamma, scanRate) => {
+  // CV voltammogram — architecture-aware, scale-based (positive peaks for consistent peak detection)
+  const computeCV = useCallback((E_array, Gamma) => {
     const { n, F, R, Temp, E0 } = ECHEM;
-    const prefactor = (n * n * F * F * echemAeff * Gamma * scanRate) / (4 * R * Temp);
-    return E_array.map(E => {
-      const x = n * F * (E - E0) / (2 * R * Temp);
-      const coshX = Math.cosh(x);
-      return -prefactor * (1 / (coshX * coshX)) * 1e6; // μA, negative = cathodic
-    });
-  }, [echemAeff, echemArch]);
+    const ratio = Gamma / echemGamma0_mol;
+    const peakScale = echemIscale * echemAeff * archCfg.I_scale_base * 0.7;
+    if (archCfg.peak_shape === "sech2") {
+      const sigma = (R * Temp) / (n * F) * 2.0;
+      return E_array.map(E => peakScale * ratio / (Math.cosh((E - E0) / sigma) ** 2));
+    }
+    if (archCfg.peak_shape === "asymmetric") {
+      return E_array.map(E => peakScale * ratio * peakShape_asymmetric(E, E0, archCfg.alpha, 1, F, R, Temp));
+    }
+    return E_array.map(E => peakScale * ratio * peakShape_stripping(E, E0, archCfg.sigma_onset, archCfg.sigma_tail));
+  }, [echemIscale, echemAeff, echemGamma0_mol, echemArch]);
 
-  // CV duck-shape: forward (cathodic) + reverse (anodic) scan with capacitive baseline
+  // CV duck-shape: forward + reverse scan — architecture-aware with visible Faradaic peaks
   const computeCVDuck = useCallback((Gamma) => {
-    const { n, F, R, Temp, E0, scan_rate } = ECHEM;
-    const prefactor = (n * n * F * F * echemAeff * Gamma * scan_rate) / (4 * R * Temp);
-    const deltaEp = 0.035; // near-ideal surface-confined ΔEp
-    const E_pc = E0 - deltaEp / 2, E_pa = E0 + deltaEp / 2;
-    const sigma = (R * Temp) / (n * F) * 1.5;
-    const i_cap = 20e-6 * echemAeff * scan_rate * 1e6;
+    const { n, F, R, Temp, E0 } = ECHEM;
+    const ratio = Gamma / echemGamma0_mol;
+    const peakScale = echemIscale * echemAeff * archCfg.I_scale_base * 0.7;
+    const i_cap = peakScale * 0.12; // capacitive envelope (constant, independent of Γ)
     const N = 200;
     const E_start = archCfg.E_start, E_end = archCfg.E_end;
     const E_range = E_end - E_start;
     const forward = [], reverse = [];
+
+    if (archCfg.peak_shape === "sech2") {
+      // Arch C (MB): surface-confined — symmetric cathodic/anodic sech² peaks
+      const sigma = (R * Temp) / (n * F) * 2.0;
+      const deltaEp = 0.010; // near-ideal surface-confined ΔEp
+      const E_pc = E0 - deltaEp / 2, E_pa = E0 + deltaEp / 2;
+      for (let i = 0; i <= N; i++) {
+        const E = E_start + E_range * (i / N);
+        forward.push({ E, I: -peakScale * ratio / (Math.cosh((E - E_pc) / sigma) ** 2) - i_cap });
+      }
+      for (let i = 0; i <= N; i++) {
+        const E = E_end + (-E_range) * (i / N);
+        reverse.push({ E, I: peakScale * ratio / (Math.cosh((E - E_pa) / sigma) ** 2) + i_cap });
+      }
+      return { forward, reverse, deltaEp, E_pc, E_pa };
+    }
+
+    if (archCfg.peak_shape === "asymmetric") {
+      // Arch A (pAP): irreversible oxidation — forward peak, no reverse peak
+      for (let i = 0; i <= N; i++) {
+        const E = E_start + E_range * (i / N);
+        const fara = peakScale * ratio * peakShape_asymmetric(E, E0, archCfg.alpha, 1, F, R, Temp);
+        forward.push({ E, I: fara + i_cap });
+      }
+      for (let i = 0; i <= N; i++) {
+        const E = E_end + (-E_range) * (i / N);
+        const tail = peakScale * ratio * 0.12 * Math.exp(-Math.abs(E - E0) / 0.08);
+        reverse.push({ E, I: -tail - i_cap });
+      }
+      return { forward, reverse, deltaEp: 0.060, E_pc: null, E_pa: E0 };
+    }
+
+    // Arch B (Ag stripping): sharp anodic stripping + broad cathodic re-deposition
     for (let i = 0; i <= N; i++) {
       const E = E_start + E_range * (i / N);
-      const xi = (E - E_pc) / sigma;
-      forward.push({ E, I: (-prefactor / (Math.cosh(xi) ** 2)) * 1e6 - i_cap });
+      const fara = peakScale * ratio * peakShape_stripping(E, E0, archCfg.sigma_onset, archCfg.sigma_tail);
+      forward.push({ E, I: fara + i_cap });
     }
     for (let i = 0; i <= N; i++) {
       const E = E_end + (-E_range) * (i / N);
-      const xi = (E - E_pa) / sigma;
-      reverse.push({ E, I: (prefactor / (Math.cosh(xi) ** 2)) * 1e6 + i_cap });
+      const E_dep = E0 - 0.15;
+      const fara = peakScale * ratio * 0.4 * Math.exp(-0.5 * ((E - E_dep) / 0.06) ** 2);
+      reverse.push({ E, I: -fara - i_cap });
     }
-    return { forward, reverse, deltaEp, E_pc, E_pa };
-  }, [echemAeff, echemArch]);
+    return { forward, reverse, deltaEp: 0.150, E_pc: E0 - 0.15, E_pa: E0 };
+  }, [echemIscale, echemAeff, echemGamma0_mol, echemArch]);
 
   // Potential array — architecture-dependent range
   const echemE = useMemo(() => {
@@ -4888,13 +4923,13 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       base = computeDPV(echemE, G_base);
       after = computeDPV(echemE, G_after);
     } else {
-      base = computeCV(echemE, G_base, ECHEM.scan_rate);
-      after = computeCV(echemE, G_after, ECHEM.scan_rate);
+      base = computeCV(echemE, G_base);
+      after = computeCV(echemE, G_after);
     }
 
-    // SWV/DPV produce positive peaks; CV produces negative peaks
-    const peakBase = echemTechnique === "CV" ? Math.min(...base) : Math.max(...base);
-    const peakAfter = echemTechnique === "CV" ? Math.min(...after) : Math.max(...after);
+    // All techniques now return positive peak values
+    const peakBase = Math.max(...base);
+    const peakAfter = Math.max(...after);
 
     // Also compute SWV forward/reverse if applicable
     let fwdRevBase = null, fwdRevAfter = null;
@@ -4975,19 +5010,18 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       mutCurve = computeDPV(echemE, G_mut);
       wtCurve = computeDPV(echemE, G_wt);
     } else {
-      baseCurve = computeCV(echemE, G_base, ECHEM.scan_rate);
-      mutCurve = computeCV(echemE, G_mut, ECHEM.scan_rate);
-      wtCurve = computeCV(echemE, G_wt, ECHEM.scan_rate);
+      baseCurve = computeCV(echemE, G_base);
+      mutCurve = computeCV(echemE, G_mut);
+      wtCurve = computeCV(echemE, G_wt);
     }
 
-    // SWV/DPV produce positive peaks; CV produces negative peaks
-    const pickPeak = echemTechnique === "CV" ? (arr) => Math.min(...arr) : (arr) => Math.max(...arr);
-    const peakBase = pickPeak(baseCurve);
-    const peakMut = pickPeak(mutCurve);
-    const peakWt = pickPeak(wtCurve);
-    const diMut = ((1 - Math.abs(peakMut) / Math.abs(peakBase)) * 100);
-    const diWt = ((1 - Math.abs(peakWt) / Math.abs(peakBase)) * 100);
-    const measuredDisc = diWt > 0 ? diMut / diWt : Infinity;
+    // All techniques return positive peak values
+    const peakBase = Math.max(...baseCurve);
+    const peakMut = Math.max(...mutCurve);
+    const peakWt = Math.max(...wtCurve);
+    const diMut = ((1 - peakMut / peakBase) * 100);
+    const diWt = ((1 - peakWt / peakBase) * 100);
+    const measuredDisc = diWt > 0.1 ? diMut / diWt : (diMut > 0.1 ? Infinity : 1);
 
     const data = echemE.map((E, i) => ({
       E: +E.toFixed(3),
@@ -5272,7 +5306,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               </div>
               <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: MONO }}>
                 {echemCandidateData.label} {"\u00b7"} {"\u0394"}I% = <span style={{ fontWeight: 700, color: EC.purple }}>{echemMeta.deltaI}%</span>
-                {" \u00b7 "}|I{"\u2080"}| = {echemMeta.peakBaseAbs} {"\u03bcA"} {"\u2192"} |I_after| = {echemMeta.peakAfterAbs} {"\u03bcA"}
+                {" \u00b7 "}|I{"\u2080"}| = {echemArch === "C" ? (Math.abs(echemMeta.peakBase) * 1000).toFixed(1) : Math.abs(echemMeta.peakBase).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} {"\u2192"} |I_after| = {echemArch === "C" ? (Math.abs(echemMeta.peakAfter) * 1000).toFixed(1) : Math.abs(echemMeta.peakAfter).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}
               </div>
               <div style={{ width: "100%", height: 280 }}>
                 {(() => {
@@ -5296,10 +5330,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                         <path d={cvSvgPath(cvDuckData.baseline, xS, yS)} fill="none" stroke={EC.green} strokeWidth="2" strokeDasharray="7,4" opacity="0.75" />
                         <path d={cvSvgPath(cvDuckData.mut, xS, yS)} fill={EC.purpleLight} stroke={EC.purple} strokeWidth="2.5" />
                         {/* ΔEp annotation */}
-                        {cvDuckData.E_pc && cvDuckData.E_pa && (
+                        {cvDuckData.baseline.E_pc != null && cvDuckData.baseline.E_pa != null && (
                           <>
-                            <line x1={xS(cvDuckData.E_pc)} y1={mg.top + ph * 0.15} x2={xS(cvDuckData.E_pa)} y2={mg.top + ph * 0.15} stroke="#666" strokeWidth="1" markerEnd="url(#arrowR)" markerStart="url(#arrowL)" />
-                            <text x={(xS(cvDuckData.E_pc) + xS(cvDuckData.E_pa)) / 2} y={mg.top + ph * 0.12} textAnchor="middle" fill="#666" fontSize="8">{"\u0394"}Ep = {(cvDuckData.deltaEp * 1000).toFixed(0)} mV</text>
+                            <line x1={xS(cvDuckData.baseline.E_pc)} y1={mg.top + ph * 0.15} x2={xS(cvDuckData.baseline.E_pa)} y2={mg.top + ph * 0.15} stroke="#666" strokeWidth="1" markerEnd="url(#arrowR)" markerStart="url(#arrowL)" />
+                            <text x={(xS(cvDuckData.baseline.E_pc) + xS(cvDuckData.baseline.E_pa)) / 2} y={mg.top + ph * 0.12} textAnchor="middle" fill="#666" fontSize="8">{"\u0394"}Ep = {(cvDuckData.baseline.deltaEp * 1000).toFixed(0)} mV</text>
                           </>
                         )}
                         <defs>
@@ -5485,7 +5519,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                       <line x1={mg.left} y1={yS(5)} x2={mg.left + pw} y2={yS(5)} stroke="#ef4444" strokeWidth="0.8" strokeDasharray="4,3" opacity="0.5" />
                       {/* 3σ threshold */}
                       <line x1={mg.left} y1={yS(thr)} x2={mg.left + pw} y2={yS(thr)} stroke="#C0392B" strokeWidth="1.2" strokeDasharray="6,3" />
-                      <text x={mg.left + 4} y={yS(thr) - 4} fill="#C0392B" fontSize="8" fontWeight="600">3{"\u03c3"} = {thr}%</text>
+                      <text x={mg.left + 4} y={yS(thr) - 4} fill="#C0392B" fontSize="8" fontWeight="600">3{"\u03c3"} = {thr.toFixed(1)}%</text>
                       {/* Lag phase indicator */}
                       <rect x={mg.left} y={mg.top} width={xS(7) - mg.left} height={ph} fill="#666" opacity="0.03" />
                       <text x={(mg.left + xS(7)) / 2} y={mg.top + ph - 6} textAnchor="middle" fill="#999" fontSize="7">RNP lag</text>
@@ -5535,10 +5569,12 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 C {"\u00b7"} MUT vs WT Allelic Discrimination
               </div>
               <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: MONO }}>
-                MUT: <span style={{ fontWeight: 700, color: EC.purple }}>{Math.abs(echemDiscOverlay.peakMut).toFixed(3)} {"\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diMut}%)</span>
-                {" \u00b7 "}WT: <span style={{ fontWeight: 700, color: EC.pink }}>{Math.abs(echemDiscOverlay.peakWt).toFixed(3)} {"\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diWt}%)</span>
-                {" \u00b7 "}Disc: <span style={{ fontWeight: 700, color: EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</span>
+                MUT: <span style={{ fontWeight: 700, color: EC.purple }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakMut) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakMut).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diMut}%)</span>
+                {" \u00b7 "}WT: <span style={{ fontWeight: 700, color: EC.pink }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakWt) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakWt).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diWt}%)</span>
+                {" \u00b7 "}Disc: <span style={{ fontWeight: 700, color: echemDiscOverlay.measuredDisc < 1 ? "#ef4444" : echemDiscOverlay.measuredDisc < 2 ? "#f59e0b" : EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</span>
                 {" (GUARD: "}{echemDiscOverlay.guardDisc >= 900 ? "\u221e" : `${echemDiscOverlay.guardDisc}\u00d7`}{")"}
+                {echemDiscOverlay.guardDisc < 1 && <span style={{ color: "#ef4444", fontWeight: 700 }}>{" \u26a0 D < 1: WT activates more than MUT"}</span>}
+                {echemDiscOverlay.measuredDisc < 2 && echemDiscOverlay.measuredDisc !== Infinity && echemDiscOverlay.guardDisc >= 1 && <span style={{ color: "#f59e0b", fontWeight: 600 }}>{" \u26a0 poor discrimination"}</span>}
               </div>
               <div style={{ width: "100%", height: 280 }}>
                 {(() => {
