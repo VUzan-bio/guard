@@ -1183,8 +1183,10 @@ const HomePage = ({ goTo, connected }) => {
 
   return (
     <div style={{ padding: mobile ? "24px 16px" : "48px 40px" }}>
-      {/* Spacer — hero removed, logo in sidebar */}
-      <div style={{ marginBottom: mobile ? "12px" : "24px" }} />
+      {/* Hero subtitle */}
+      <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, maxWidth: "820px", margin: mobile ? "0 0 20px" : "0 0 28px" }}>
+        End-to-end computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels — from WHO resistance mutations to assay-ready crRNA sequences, RPA primers, and clinical performance predictions. Designed for electrochemical readout on laser-induced graphene.
+      </p>
 
       {/* ── Run Workflow ── */}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: mobile ? "20px" : "32px", marginBottom: "24px" }}>
@@ -1624,7 +1626,7 @@ const HomePage = ({ goTo, connected }) => {
           { step: "1", icon: Target, title: "Define Targets", desc: "Input WHO resistance mutations. The pipeline resolves each mutation to its exact genomic position on the M. tuberculosis H37Rv reference genome, identifies the codon context, and determines which drug class it confers resistance to." },
           { step: "2", icon: Search, title: "Generate & Score Candidates", desc: "For each target, GUARD scans for Cas12a-compatible PAM sites, generates crRNA candidates, filters by biophysical criteria (GC content, homopolymer runs, self-complementarity, off-targets), and scores them using GUARD-Net for cleavage efficiency (trained on 25,000+ cis- and trans-cleavage measurements from Kim et al. 2018 and Huang et al. 2024) and GUARD-Net's neural discrimination head for MUT/WT selectivity (r = 0.44 on held-out validation, trained end-to-end on 6,136 paired measurements) with a standalone feature-based model (XGBoost, 15 thermodynamic features, r = 0.46) as fallback." },
           { step: "3", icon: Grid3x3, title: "Optimise the Panel", desc: "Panel composition is optimised via simulated annealing (10,000 iterations) over the combinatorial space of candidate assignments, maximising a weighted objective of efficiency, discrimination, and cross-reactivity avoidance. RPA primers are co-designed for each guide, with allele-specific primers for proximity targets." },
-          { step: "4", icon: Shield, title: "Assess Clinical Performance", desc: "The clinical assessment module evaluates the panel against WHO Target Product Profiles: per-drug-class sensitivity, specificity estimates, and ranked backup alternatives for each target. Three operating modes (field screening, clinical deployment, reference lab) adjust thresholds automatically." },
+          { step: "4", icon: Shield, title: "Assess Clinical Performance", desc: "The clinical assessment module evaluates the panel against WHO Target Product Profiles: per-drug-class sensitivity, specificity estimates, and ranked backup alternatives for each target. Three operating modes (field screening, clinical deployment, reference lab) adjust thresholds automatically. Output is compatible with electrochemical (SWV on LIG), fluorescence (DETECTR-style), and lateral flow readout platforms." },
         ].map(c => (
           <div key={c.title} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
@@ -1759,6 +1761,9 @@ const HomePage = ({ goTo, connected }) => {
           </ul>
           <p style={{ margin: 0, fontFamily: FONT, fontSize: "12px", color: T.text }}>
             235,000 params {"\u00B7"} {"\u03C1"} = 0.55 on cross-dataset trans-cleavage (EasyDesign) {"\u00B7"} Loss: L<sub>Huber</sub> + 0.5(1-{"\u03C1"}<sub>soft</sub>) + {"\u03BB"}<sub>disc</sub>(0.6·L<sub>Huber</sub> + 0.4·L<sub>contrastive</sub>) {"\u00B7"} CPU {"<"}1ms
+          </p>
+          <p style={{ margin: "12px 0 0", fontSize: "12px", color: T.textSec, lineHeight: 1.7 }}>
+            GUARD-Net predictions are platform-independent {"\u2014"} they model the Cas12a-crRNA-target interaction, not the downstream detection chemistry. The same efficiency and discrimination scores apply whether the trans-cleavage readout is methylene blue on gold (Dai 2019), silver metallization on SPGE (Suea-Ngam 2021), or MB-ssDNA on LIG (this project).
           </p>
         </div>
 
@@ -1979,6 +1984,10 @@ const HomePage = ({ goTo, connected }) => {
             {
               title: "PAM-disruption detection",
               text: "The pipeline flags cases where the resistance SNP falls within the Cas12a PAM sequence, which would give binary (infinite) discrimination. However, this is extremely rare in M.\u00a0tuberculosis due to its high GC content (65.6%) \u2014 canonical TTTV PAMs require three consecutive thymines, making SNP\u2013PAM overlap a low-probability event for the WHO-catalogued resistance mutations targeted here.",
+            },
+            {
+              title: "Reporter chemistry independence",
+              text: "GUARD-Net predicts Cas12a trans-cleavage activation, which is upstream of and independent from the reporter chemistry. Predicted efficiency and discrimination scores apply to any trans-cleavage readout (electrochemical, fluorescence, lateral flow). However, the absolute signal magnitude and time-to-detection depend on the specific reporter system \u2014 the electrochemical predictions in the Multiplex tab assume MB-ssDNA on LIG and are specific to that platform.",
             },
           ].map((item, i) => (
             <div key={i} style={{ background: T.bgSub, borderRadius: "8px", padding: "12px 16px", border: `1px solid ${T.borderLight}` }}>
