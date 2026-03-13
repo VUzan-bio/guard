@@ -2782,6 +2782,62 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         </div>
       </div>
 
+      {/* ── Interpretation box ── */}
+      <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}25`, borderRadius: "4px", padding: mobile ? "16px" : "18px 24px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <Brain size={16} color={T.primary} strokeWidth={1.8} />
+          <span style={{ fontSize: "13px", fontWeight: 600, color: T.primaryDark, fontFamily: HEADING }}>Panel Interpretation</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: T.primaryDark, lineHeight: 1.6 }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+            <Target size={14} color={T.primary} strokeWidth={1.8} style={{ marginTop: "3px", flexShrink: 0 }} />
+            <span>
+              <strong>{assayReady}/{totalTargets} targets are assay-ready</strong> across {drugs.length} drug classes ({drugs.join(", ")}). {directCount} use direct crRNA discrimination, {proximityCount} rely on AS-RPA primer selectivity for allelic specificity.
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+            <Activity size={14} color={T.primary} strokeWidth={1.8} style={{ marginTop: "3px", flexShrink: 0 }} />
+            <span>
+              {avgActivity >= 0.8
+                ? `Mean predicted activity of ${avgActivity} indicates strong Cas12a trans-cleavage efficiency. Activity range ${minScore}\u2013${maxScore} suggests all candidates should produce detectable electrochemical signal.`
+                : avgActivity >= 0.6
+                ? `Mean predicted activity of ${avgActivity} is moderate. Weaker candidates (activity < 0.6) may require extended incubation or surface chemistry optimisation to reach detection threshold.`
+                : `Mean predicted activity of ${avgActivity} is below optimal. Consider re-running with relaxed GC or expanded spacer lengths to improve candidate quality.`
+              }
+              {avgPamAdj != null && avgPamAdj < avgActivity * 0.85 ? ` PAM-adjusted average (${avgPamAdj}) reflects activity penalties from non-canonical enAsCas12a PAM sites.` : ""}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+            <TrendingUp size={14} color={T.primary} strokeWidth={1.8} style={{ marginTop: "3px", flexShrink: 0 }} />
+            <span>
+              {highDisc >= directCount * 0.8
+                ? `${highDisc}/${directResults.length} direct candidates exceed the 3\u00d7 diagnostic-grade discrimination threshold (avg ${avgDisc}\u00d7). Panel is well-suited for single-nucleotide resistance genotyping.`
+                : highDisc >= directCount * 0.5
+                ? `${highDisc}/${directResults.length} direct candidates meet diagnostic-grade discrimination (\u22653\u00d7). Targets below threshold may benefit from synthetic mismatch enhancement or AS-RPA primer redesign.`
+                : `Only ${highDisc}/${directResults.length} direct candidates reach diagnostic-grade discrimination. Synthetic mismatch enhancement is recommended for low-discrimination targets.`
+              }
+            </span>
+          </div>
+          {(missingPrimers.length > 0 || belowThreshold.length > 0) && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <AlertTriangle size={14} color={T.primary} strokeWidth={1.8} style={{ marginTop: "3px", flexShrink: 0 }} />
+              <span>
+                {missingPrimers.length > 0 ? `${missingPrimers.length} target${missingPrimers.length > 1 ? "s" : ""} lack RPA primers \u2014 these cannot be amplified and are not deployable. ` : ""}
+                {belowThreshold.length > 0 ? `${belowThreshold.length} target${belowThreshold.length > 1 ? "s" : ""} fall below readiness threshold (${belowThreshold.map(r => r.label).join(", ")}). Consider alternative spacers or backup candidates.` : ""}
+              </span>
+            </div>
+          )}
+          {withPrimers === totalTargets && belowThreshold.length === 0 && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <Check size={14} color={T.success} strokeWidth={2} style={{ marginTop: "3px", flexShrink: 0 }} />
+              <span style={{ color: T.success }}>
+                <strong>All {totalTargets} targets have primers and pass readiness threshold.</strong> Panel is ready for experimental validation on the LIG electrode array.
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Experimental Priorities */}
       {results.some(r => r.readinessScore != null) && (
         <FigureSection title="Experimental Priorities">
