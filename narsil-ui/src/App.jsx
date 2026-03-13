@@ -3672,7 +3672,7 @@ const CandidateAccordion = ({ r, onShowAlternatives }) => {
 const CandidatesTab = ({ results, jobId, connected, scorer }) => {
   const mobile = useIsMobile();
   const [search, setSearch] = useState("");
-  const defaultSort = results.some(r => r.readinessScore != null) ? "readinessScore" : (scorer === "narsil_ml" ? "cnnCalibrated" : "score");
+  const defaultSort = "cnnCalibrated";
   const [sortKey, setSortKey] = useState(defaultSort);
   const [sortDir, setSortDir] = useState(-1);
   const [drugFilter, setDrugFilter] = useState("ALL");
@@ -3755,12 +3755,12 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
   return (
     <div>
       {/* Explainer box — blue */}
-      <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "4px", padding: mobile ? "14px" : "14px 22px", marginBottom: "16px" }}>
-        <div style={{ display: "flex", gap: "20px", fontSize: "11px", color: T.primaryDark, lineHeight: 1.5, flexWrap: "wrap", opacity: 0.85 }}>
+      <div style={{ background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "4px", padding: mobile ? "14px" : "16px 22px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.primaryDark, lineHeight: 1.6 }}>
           <div><strong>Activity</strong> — Narsil-ML predicted Cas12a on-target efficiency (0–1). <strong>PAM-adj</strong> = Activity × PAM penalty (actual signal strength).</div>
           <div><strong>Disc</strong> — MUT/WT fold-difference. <span style={{ color: T.success }}>≥3×</span> diagnostic-grade. <span style={{ color: T.danger }}>&lt;2×</span> insufficient.</div>
           <div><strong>QC</strong> — biophysical heuristic (GC, homopolymer, off-target, self-comp). Sanity check, not a ranking score.</div>
-          <div>Click any row to expand full details, scored sequence, primers, and alternatives.</div>
+          <div style={{ color: T.textSec }}>Click any row to expand full details, scored sequence, primers, and alternatives.</div>
         </div>
       </div>
 
