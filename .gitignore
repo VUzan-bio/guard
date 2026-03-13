@@ -81,6 +81,10 @@ htmlcov/
 *.pth
 *.onnx
 !narsil/weights/.gitkeep
+!narsil/weights/narsil_ml_best.pt
+!narsil/weights/narsil_ml_diagnostic.pt
+!narsil/weights/seq_cnn_best.pt
+!narsil/weights/seq_cnn_v2.pt
 
 # RNA-FM embedding cache
 narsil-net/data/embeddings/
