@@ -1588,6 +1588,20 @@ const HomePage = ({ goTo, connected }) => {
                   <div style={{ width: "100%", height: "4px", borderRadius: "2px", background: T.bgHover, marginTop: "10px", overflow: "hidden" }}>
                     <div style={{ height: "100%", borderRadius: "2px", background: T.primary, width: `${pct}%`, transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)" }} />
                   </div>
+                  {/* Time estimate hint — appears after 5s on same step */}
+                  {stepElapsed > 5 && (() => {
+                    const remainingStepSec = Math.max(0, stepEstSec - stepElapsed);
+                    const futureModulesSec = effectiveModules.slice(pipeStep + 1).reduce((sum, m) => sum + (m.estSec || 10), 0);
+                    const totalRemaining = Math.ceil((remainingStepSec + futureModulesSec) / 60);
+                    const remainingSec = Math.ceil(remainingStepSec + futureModulesSec);
+                    const timeText = remainingSec >= 60 ? `~${totalRemaining} min remaining` : `~${remainingSec}s remaining`;
+                    return (
+                      <div style={{ marginTop: "6px", fontSize: "11px", color: T.textTer, display: "flex", alignItems: "center", gap: "6px" }}>
+                        <Clock size={11} color={T.textTer} strokeWidth={1.8} />
+                        <span>{activeModule.name} can take a moment {"\u2014"} {timeText} ({effectiveModules.length - pipeStep - 1} modules after this)</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
