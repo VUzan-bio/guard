@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from api.schemas import JobResponse, PipelineRunRequest
 from api.state import AppState, PipelineJob
-from guard.core.enzyme import list_enzymes, get_enzyme, DEFAULT_ENZYME_ID
+from narsil.core.enzyme import list_enzymes, get_enzyme, DEFAULT_ENZYME_ID
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 

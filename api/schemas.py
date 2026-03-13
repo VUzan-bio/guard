@@ -1,6 +1,6 @@
 """API request/response models.
 
-Decoupled from guard.core.types — the API layer serializes pipeline
+Decoupled from narsil.core.types — the API layer serializes pipeline
 outputs into these response models. No direct import of domain types.
 """
 
@@ -49,7 +49,7 @@ class MutationInput(BaseModel):
 
 
 class PipelineRunRequest(BaseModel):
-    name: str = "GUARD Run"
+    name: str = "NARSIL Run"
     mode: PipelineMode = PipelineMode.FULL
     mutations: list[MutationInput]
     enzyme_id: Optional[str] = None  # "AsCas12a" or "enAsCas12a"; None = use default

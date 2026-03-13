@@ -25,7 +25,7 @@ async def list_models() -> list[ScoringModelInfo]:
     # Check for CNN weights
     cnn_status = "no_weights"
     try:
-        from guard.scoring.sequence_ml import SequenceMLScorer
+        from narsil.scoring.sequence_ml import SequenceMLScorer
         if Path("models/seq_cnn.pt").exists():
             cnn_status = "ready"
     except ImportError:
@@ -39,7 +39,7 @@ async def list_models() -> list[ScoringModelInfo]:
     # Check for JEPA weights
     jepa_status = "no_weights"
     try:
-        from guard.scoring.jepa import JEPAScorer
+        from narsil.scoring.jepa import JEPAScorer
         if Path("models/jepa_encoder.pt").exists():
             jepa_status = "ready"
     except ImportError:

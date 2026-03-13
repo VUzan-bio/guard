@@ -39,7 +39,7 @@ def _get_state() -> AppState:
 
 
 def _safe_disc_ratio(wt: float, mut: float) -> float | None:
-    """Compute discrimination ratio with safety guards.
+    """Compute discrimination ratio with safety checks.
 
     - div-by-zero (wt=0, mut>0) → cap at 999.0
     - both zero → None
@@ -298,7 +298,7 @@ async def export_results(
         return StreamingResponse(
             io.BytesIO(content.encode()),
             media_type="application/json",
-            headers={"Content-Disposition": f"attachment; filename=guard_{job_id}.json"},
+            headers={"Content-Disposition": f"attachment; filename=narsil_{job_id}.json"},
         )
 
     # Build flat rows for TSV/CSV/FASTA
@@ -347,7 +347,7 @@ async def export_results(
         return StreamingResponse(
             io.BytesIO(content.encode()),
             media_type="text/plain",
-            headers={"Content-Disposition": f"attachment; filename=guard_{job_id}.fasta"},
+            headers={"Content-Disposition": f"attachment; filename=narsil_{job_id}.fasta"},
         )
 
     # TSV or CSV
@@ -364,7 +364,7 @@ async def export_results(
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode()),
         media_type=media,
-        headers={"Content-Disposition": f"attachment; filename=guard_{job_id}.{ext}"},
+        headers={"Content-Disposition": f"attachment; filename=narsil_{job_id}.{ext}"},
     )
 
 
@@ -377,8 +377,8 @@ async def get_pools(job_id: str) -> dict:
     dimer_labels = result.get("primer_dimer_labels")
     dimer_report = result.get("primer_dimer_report")
 
-    from guard.multiplex.pooling import compute_primer_pools, compute_amplicon_pad_specificity
-    from guard.multiplex.kinetics import estimate_all_targets
+    from narsil.multiplex.pooling import compute_primer_pools, compute_amplicon_pad_specificity
+    from narsil.multiplex.kinetics import estimate_all_targets
 
     # Compute pools
     pooling = compute_primer_pools(
@@ -411,7 +411,7 @@ async def get_umap_data(job_id: str) -> dict:
     if not umap_path.exists():
         raise HTTPException(
             404,
-            "UMAP data not available. Re-run the pipeline with GUARD-Net scoring.",
+            "UMAP data not available. Re-run the pipeline with Narsil-ML scoring.",
         )
 
     with open(umap_path) as f:
@@ -421,7 +421,7 @@ async def get_umap_data(job_id: str) -> dict:
 @router.get("/{job_id}/cross-reactivity")
 async def get_cross_reactivity(job_id: str) -> dict:
     """Score every crRNA against every other target's amplicon for off-target risk."""
-    from guard.scoring.cross_reactivity import compute_cross_reactivity_matrix
+    from narsil.scoring.cross_reactivity import compute_cross_reactivity_matrix
 
     result = _get_completed_result(job_id)
     members = result.get("members", [])

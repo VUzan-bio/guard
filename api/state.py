@@ -140,9 +140,9 @@ class AppState:
         job.started_at = datetime.now(timezone.utc)
 
         try:
-            from guard.core.config import PipelineConfig, ReferenceConfig
-            from guard.core.types import Drug, Mutation
-            from guard.pipeline.runner import GUARDPipeline
+            from narsil.core.config import PipelineConfig, ReferenceConfig
+            from narsil.core.types import Drug, Mutation
+            from narsil.pipeline.runner import NARSILPipeline
 
             # Build config
             self._update_progress(job, 0.02, "Initializing")
@@ -167,7 +167,7 @@ class AppState:
                 "primer_max_tm", "amplicon_size_range",
             }
             # Scoring overrides applied to nested ScoringConfig
-            SCORING_OVERRIDES = {"scorer", "guard_net_use_rlpa", "guard_net_use_rnafm"}
+            SCORING_OVERRIDES = {"scorer", "narsil_ml_use_rlpa", "narsil_ml_use_rnafm"}
             config_kwargs: dict[str, Any] = {
                 "name": job.name,
                 "output_dir": output_dir,
@@ -181,21 +181,21 @@ class AppState:
                     scoring_kwargs[key] = val
 
             if scoring_kwargs:
-                from guard.core.config import ScoringConfig
-                # Auto-resolve GUARD-Net weights path
-                if scoring_kwargs.get("scorer") == "guard_net":
+                from narsil.core.config import ScoringConfig
+                # Auto-resolve Narsil-ML weights path
+                if scoring_kwargs.get("scorer") == "narsil_ml":
                     scoring_kwargs.setdefault(
-                        "guard_net_weights",
-                        Path("guard/weights/guard_net_diagnostic.pt"),
+                        "narsil_ml_weights",
+                        Path("narsil/weights/narsil_ml_diagnostic.pt"),
                     )
                     scoring_kwargs.setdefault(
                         "rnafm_cache_dir",
-                        Path("guard/data/embeddings/rnafm"),
+                        Path("narsil/data/embeddings/rnafm"),
                     )
                 config_kwargs["scoring"] = ScoringConfig(**scoring_kwargs)
 
             config = PipelineConfig(**config_kwargs)
-            pipeline = GUARDPipeline(config)
+            pipeline = NARSILPipeline(config)
 
             # Convert mutations
             self._update_progress(job, 0.05, "Target Resolution")
@@ -237,7 +237,7 @@ class AppState:
                 self._update_progress(job, 0.10, "PAM Scanning")
 
                 # Patch logger to track progress
-                import guard.pipeline.runner as runner_mod
+                import narsil.pipeline.runner as runner_mod
                 original_info = runner_mod.logger.info
 
                 stage_progress = {

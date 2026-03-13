@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "guard"
+name = "narsil"
 version = "0.2.0"
-description = "GUARD — Guide RNA Automated Resistance Diagnostics: CRISPR-Cas12a diagnostic panel design pipeline"
+description = "NARSIL — Guide RNA Automated Resistance Diagnostics: CRISPR-Cas12a diagnostic panel design pipeline"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -58,10 +58,10 @@ api = [
     "websockets>=12.0",
 ]
 all = [
-    "guard[ml,primers,structure,viz,api]",
+    "narsil[ml,primers,structure,viz,api]",
 ]
 dev = [
-    "guard[all]",
+    "narsil[all]",
     "pytest>=8.0",
     "pytest-cov>=4.1",
     "pytest-asyncio>=0.23",
@@ -72,15 +72,15 @@ dev = [
 ]
 
 [project.scripts]
-guard = "guard.pipeline.cli:main"
+narsil = "narsil.pipeline.cli:main"
 
 [project.urls]
-Repository = "https://github.com/vuzan/guard"
-Documentation = "https://github.com/vuzan/guard#readme"
+Repository = "https://github.com/VUzan-bio/narsil"
+Documentation = "https://github.com/VUzan-bio/narsil#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["guard*"]
+include = ["narsil*"]
 
 [tool.ruff]
 target-version = "py310"

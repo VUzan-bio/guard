@@ -20,11 +20,11 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from guard.optimisation.profiles import list_presets, get_preset, ParameterProfile
-from guard.optimisation.sweep import sweep_parameter
-from guard.optimisation.pareto import pareto_frontier
-from guard.optimisation.top_k import collect_top_k
-from guard.optimisation.metrics import compute_diagnostic_metrics
+from narsil.optimisation.profiles import list_presets, get_preset, ParameterProfile
+from narsil.optimisation.sweep import sweep_parameter
+from narsil.optimisation.pareto import pareto_frontier
+from narsil.optimisation.top_k import collect_top_k
+from narsil.optimisation.metrics import compute_diagnostic_metrics
 
 logger = logging.getLogger(__name__)
 

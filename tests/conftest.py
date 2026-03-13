@@ -1,8 +1,8 @@
-"""Shared test fixtures for GUARD."""
+"""Shared test fixtures for NARSIL."""
 
 import pytest
 
-from guard.core.types import (
+from narsil.core.types import (
     CrRNACandidate,
     Drug,
     HeuristicScore,

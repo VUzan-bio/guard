@@ -1,4 +1,4 @@
-"""GUARD Platform — FastAPI application factory.
+"""NARSIL Platform — FastAPI application factory.
 
 Single entry point: uvicorn api.main:app --reload --port 8000
 """
@@ -24,8 +24,8 @@ from starlette.responses import Response
 from api.state import AppState
 
 # ── Security configuration from environment ──
-API_KEY = os.environ.get("GUARD_API_KEY", "")
-RATE_LIMIT = int(os.environ.get("GUARD_RATE_LIMIT", "120"))  # requests per minute
+API_KEY = os.environ.get("NARSIL_API_KEY", "")
+RATE_LIMIT = int(os.environ.get("NARSIL_RATE_LIMIT", "120"))  # requests per minute
 
 
 class SafeJSONResponse(JSONResponse):
@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global _state
 
     _state = AppState(results_dir="results/api")
-    logger.info("GUARD Platform starting — results at %s", _state.results_dir)
+    logger.info("NARSIL Platform starting — results at %s", _state.results_dir)
 
     # Wire state into route modules
     from api.routes import figures, pipeline, research, results
@@ -82,11 +82,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     _state.shutdown()
-    logger.info("GUARD Platform shutdown complete")
+    logger.info("NARSIL Platform shutdown complete")
 
 
 app = FastAPI(
-    title="GUARD Platform",
+    title="NARSIL Platform",
     description="Guide RNA Automated Resistance Diagnostics — CRISPR-Cas12a diagnostic panel design",
     version="0.2.0",
     lifespan=lifespan,
@@ -98,9 +98,9 @@ _cors_origins = os.environ.get("CORS_ORIGINS", "").split(",")
 _cors_origins = [o.strip() for o in _cors_origins if o.strip()]
 if not _cors_origins:
     _cors_origins = [
-        "https://guard-design.app",
-        "https://www.guard-design.app",
-        "https://guard-production.up.railway.app",
+        "https://narsil-design.app",
+        "https://www.narsil-design.app",
+        "https://narsil-production.up.railway.app",
         "http://localhost:5173",
         "http://localhost:3000",
     ]
@@ -120,7 +120,7 @@ _AUTH_SKIP_PATHS = {"/api/health", "/docs", "/openapi.json", "/redoc"}
 
 @app.middleware("http")
 async def check_api_key(request: Request, call_next: object) -> Response:
-    """Require X-API-Key header when GUARD_API_KEY is set."""
+    """Require X-API-Key header when NARSIL_API_KEY is set."""
     # Skip auth if no API key configured (local development)
     if not API_KEY:
         return await call_next(request)  # type: ignore[operator]
@@ -187,17 +187,17 @@ async def health() -> dict:
     return {
         "status": "ok",
         "version": "0.2.0",
-        "pipeline": "GUARD",
+        "pipeline": "NARSIL",
     }
 
 
 @app.get("/")
 async def root():
-    return JSONResponse({"status": "ok", "app": "GUARD Platform", "docs": "/docs"})
+    return JSONResponse({"status": "ok", "app": "NARSIL Platform", "docs": "/docs"})
 
 
 # Serve frontend static files if built.
-STATIC_DIR = Path("guard-ui/dist")
+STATIC_DIR = Path("narsil-ui/dist")
 if STATIC_DIR.exists():
     from starlette.requests import Request
     from starlette.responses import FileResponse, Response

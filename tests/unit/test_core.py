@@ -2,8 +2,8 @@
 
 import pytest
 
-from guard.core.constants import pam_matches
-from guard.core.types import (
+from narsil.core.constants import pam_matches
+from narsil.core.types import (
     CrRNACandidate,
     DiscriminationScore,
     Drug,

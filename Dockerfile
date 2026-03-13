@@ -1,11 +1,11 @@
-# GUARD Platform — Docker build for Railway (frontend + API)
+# NARSIL Platform — Docker build for Railway (frontend + API)
 
 # Stage 0: Build frontend static files (Node.js discarded after this stage)
 FROM node:20-slim AS frontend
 WORKDIR /ui
-COPY guard-ui/package.json guard-ui/package-lock.json ./
+COPY narsil-ui/package.json narsil-ui/package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY guard-ui/ ./
+COPY narsil-ui/ ./
 RUN npm run build
 
 # Stage 1: Build Python packages that need compilers
@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md ./
-COPY guard/ ./guard/
+COPY narsil/ ./narsil/
 # Install CPU-only PyTorch first (small ~200MB vs ~2GB for CUDA)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 # disc covers scikit-learn + lightgbm; skip ml extra (umap-learn/numba not needed at runtime)
@@ -38,16 +38,16 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Application code
 COPY pyproject.toml README.md ./
-COPY guard/ ./guard/
+COPY narsil/ ./narsil/
 COPY api/ ./api/
 COPY configs/ ./configs/
 COPY data/ ./data/
 
 # Frontend static files (built in Stage 0, ~5MB)
-COPY --from=frontend /ui/dist ./guard-ui/dist/
+COPY --from=frontend /ui/dist ./narsil-ui/dist/
 
-# GUARD-Net model package (architecture + checkpoints + features)
-COPY guard-net/ ./guard-net/
+# Narsil-ML model package (architecture + checkpoints + features)
+COPY narsil-net/ ./narsil-net/
 
 # Editable install (egg-link only, no downloads)
 RUN pip install --no-cache-dir --no-deps -e .

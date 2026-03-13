@@ -1,1 +1,1 @@
-"""GUARD Platform — FastAPI backend."""
+"""NARSIL Platform — FastAPI backend."""

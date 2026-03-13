@@ -1,4 +1,4 @@
-# GUARD — MDR-TB 14-plex Diagnostic Panel Configuration
+# NARSIL — MDR-TB 14-plex Diagnostic Panel Configuration
 # Full end-to-end pipeline: WHO catalogue → crRNA + RPA primers + multiplex panel.
 # Covers >95% clinical resistance across RIF, INH, EMB, PZA, FQ, AG + IS6110 control.
 

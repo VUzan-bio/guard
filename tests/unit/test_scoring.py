@@ -2,8 +2,8 @@
 
 import pytest
 
-from guard.core.types import CrRNACandidate, OffTargetReport
-from guard.scoring.heuristic import HeuristicScorer
+from narsil.core.types import CrRNACandidate, OffTargetReport
+from narsil.scoring.heuristic import HeuristicScorer
 
 
 class TestHeuristicScorer:

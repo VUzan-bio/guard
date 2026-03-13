@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from guard.core.types import (
+from narsil.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     DiscriminationScore,
@@ -33,7 +33,7 @@ from guard.core.types import (
     Strand,
     Target,
 )
-from guard.optimisation.metrics import (
+from narsil.optimisation.metrics import (
     DiagnosticMetrics,
     TargetMetrics,
     DrugClassMetrics,
@@ -41,7 +41,7 @@ from guard.optimisation.metrics import (
     WHO_TPP_SENSITIVITY,
     compute_diagnostic_metrics,
 )
-from guard.optimisation.profiles import (
+from narsil.optimisation.profiles import (
     ParameterProfile,
     get_preset,
     list_presets,
@@ -49,9 +49,9 @@ from guard.optimisation.profiles import (
     BALANCED,
     HIGH_SPECIFICITY,
 )
-from guard.optimisation.sweep import sweep_parameter
-from guard.optimisation.pareto import pareto_frontier, generate_profile_grid
-from guard.optimisation.top_k import collect_top_k, TargetCandidateSet
+from narsil.optimisation.sweep import sweep_parameter
+from narsil.optimisation.pareto import pareto_frontier, generate_profile_grid
+from narsil.optimisation.top_k import collect_top_k, TargetCandidateSet
 
 
 # =====================================================================
@@ -87,7 +87,7 @@ _IS6110_PROPS = {
 
 
 def _make_mutation(gene: str, pos: int, ref: str, alt: str) -> Mutation:
-    from guard.core.types import Drug
+    from narsil.core.types import Drug
     return Mutation(gene=gene, position=pos, ref_aa=ref, alt_aa=alt, drug=Drug.OTHER)
 
 

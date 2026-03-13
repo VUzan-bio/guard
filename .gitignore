@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════
-# GUARD — .gitignore
+# NARSIL — .gitignore
 # ═══════════════════════════════════════════════════════════════
 
 # Python
@@ -39,10 +39,10 @@ env/
 /package-lock.json
 
 # Frontend
-guard-ui/node_modules/
-guard-ui/dist/
-guard-ui/.env
-guard-ui/.env.*
+narsil-ui/node_modules/
+narsil-ui/dist/
+narsil-ui/.env
+narsil-ui/.env.*
 
 # Pipeline outputs (regenerated every run)
 results/
@@ -56,9 +56,9 @@ data/references/*.bt2l
 # Training data (large, downloaded separately — see README)
 data/kim2018/raw/
 data/huang2024/
-guard/data/kim2018/raw/
-guard/data/kim2018/r_package/
-guard/data/huang2024/
+narsil/data/kim2018/raw/
+narsil/data/kim2018/r_package/
+narsil/data/huang2024/
 
 # OS metadata
 .DS_Store
@@ -80,8 +80,8 @@ htmlcov/
 *.pt
 *.pth
 *.onnx
-!guard/weights/.gitkeep
+!narsil/weights/.gitkeep
 
 # RNA-FM embedding cache
-guard-net/data/embeddings/
-guard-net/data/external/
+narsil-net/data/embeddings/
+narsil-net/data/external/
