@@ -1074,7 +1074,7 @@ const HomePage = ({ goTo, connected }) => {
       if (err) { setError(err); setLaunching(false); return; }
       startInlinePipeline(data.job_id);
     } else {
-      startInlinePipeline("mock-" + scorer + "-" + Date.now());
+      startInlinePipeline("mock-" + scorer + "-" + [...selected].join(",") + "-" + Date.now());
     }
   };
 
@@ -6786,16 +6786,26 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
         setLoading(false);
       });
     } else if (activeJob.startsWith("mock-")) {
-      /* Mock mode — adapt mock data to scorer encoded in job ID */
+      /* Mock mode — adapt mock data to scorer + panel encoded in job ID */
       const isHeuristic = activeJob.includes("-heuristic-");
+      // Extract selected mutation indices from job ID (format: mock-scorer-0,1,2,...-timestamp)
+      const parts = activeJob.split("-");
+      const indicesStr = parts.length >= 4 ? parts.slice(2, -1).join("-") : "";
+      const selectedIndices = indicesStr ? indicesStr.split(",").map(Number).filter(n => !isNaN(n)) : null;
+      // Filter RESULTS to only selected mutations (+ IS6110 control always included)
+      let filtered = RESULTS;
+      if (selectedIndices && selectedIndices.length > 0 && selectedIndices.length < RESULTS.length) {
+        const selectedLabels = new Set(selectedIndices.map(i => MUTATIONS[i] ? `${MUTATIONS[i].gene}_${MUTATIONS[i].ref}${MUTATIONS[i].pos}${MUTATIONS[i].alt}` : null).filter(Boolean));
+        filtered = RESULTS.filter(r => selectedLabels.has(r.label) || r.gene === "IS6110");
+      }
       if (isHeuristic) {
-        setResults(RESULTS.map(r => ({
+        setResults(filtered.map(r => ({
           ...r,
           cnnScore: undefined, cnnCalibrated: undefined,
           pamAdjusted: undefined, mlScores: [],
         })));
       } else {
-        setResults(RESULTS);
+        setResults(filtered);
       }
     }
   }, [connected, activeJob]);
