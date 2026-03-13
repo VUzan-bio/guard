@@ -903,20 +903,6 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
         )}
       </div>
 
-      {/* Launch Pipeline button */}
-      {!isCollapsed && (
-        <div style={{ padding: "12px 16px" }}>
-          <button onClick={() => handleNav("home")} style={{
-            width: "100%", padding: "10px 16px", borderRadius: "6px",
-            background: T.primary, color: "#fff", border: "none",
-            fontSize: "13px", fontWeight: 500, fontFamily: FONT,
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-          }}>
-            <Play size={14} /> Launch pipeline
-          </button>
-        </div>
-      )}
-
       {/* Nav groups */}
       <nav style={{ flex: 1, padding: isCollapsed ? "12px 6px" : "8px 12px", overflowY: "auto" }}>
         {NAV.map((g) => (
@@ -2779,47 +2765,6 @@ const OverviewTab = ({ results, scorer, jobId }) => {
 
   return (
     <div>
-      {/* ── Stat blocks (Adaptyv style — grouped containers with internal dividers) ── */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "24px" }}>
-        {/* Block 1: Panel summary */}
-        <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: "4px", background: T.bg }}>
-          {[
-            { l: "CANDIDATES", v: totalTargets },
-            { l: "DRUGS", v: drugs.length },
-            { l: "STRATEGY", v: `${directCount}D · ${proximityCount}P` },
-          ].map((s, i) => (
-            <div key={s.l} style={{ padding: "12px 16px", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: "4px" }}>{s.l}</div>
-              <div style={{ fontSize: "18px", fontWeight: 600, color: T.text, fontFamily: MONO }}>{s.v}</div>
-            </div>
-          ))}
-        </div>
-        {/* Block 2: Discrimination */}
-        <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: "4px", background: T.bg }}>
-          {[
-            { l: "AVG DISC", v: `${avgDisc}×` },
-            { l: "≥3× PASS", v: highDisc },
-          ].map((s, i) => (
-            <div key={s.l} style={{ padding: "12px 16px", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: "4px" }}>{s.l}</div>
-              <div style={{ fontSize: "18px", fontWeight: 600, color: T.text, fontFamily: MONO }}>{s.v}</div>
-            </div>
-          ))}
-        </div>
-        {/* Block 3: Activity */}
-        <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: "4px", background: T.bg }}>
-          {[
-            { l: "AVG ACTIVITY", v: avgActivity },
-            { l: "PRIMERS", v: `${withPrimers}/${totalTargets}` },
-          ].map((s, i) => (
-            <div key={s.l} style={{ padding: "12px 16px", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: "4px" }}>{s.l}</div>
-              <div style={{ fontSize: "18px", fontWeight: 600, color: T.text, fontFamily: MONO }}>{s.v}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ── Verdict-first panel ── */}
       <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: mobile ? "20px 16px" : "24px 28px", marginBottom: "24px" }}>
         {/* Headline verdict */}
