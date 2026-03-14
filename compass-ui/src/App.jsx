@@ -42,9 +42,9 @@ const T = {
   riskAmber: "#D97706", riskAmberBg: "#FFFBEB",
   riskRed: "#DC2626", riskRedBg: "#FEF2F2",
 };
-const FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const FONT = "'Inter', sans-serif";
 const HEADING = "'Inter', sans-serif";
-const MONO = "'IBM Plex Mono', 'Menlo', 'Consolas', monospace";
+const MONO = "'Inter', monospace";
 const NUC = { A: "#059669", T: "#DC2626", G: "#D97706", C: "#4338CA" }; // nucleotide colors (kept distinct from primary)
 const BP = 768; // responsive breakpoint
 
@@ -8571,7 +8571,7 @@ const COMPASSPlatform = () => {
 
       {/* Global styles */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+        /* font loaded via index.html preload */
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
