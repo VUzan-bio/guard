@@ -10,9 +10,9 @@ Two-step process:
             lambda_disc=0.1 (low weight -- proxy labels are self-distilled).
             Early stopping on val Spearman rho (EFFICIENCY only).
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_phase2_multitask.py
-    python narsil-net/scripts/run_phase2_multitask.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_phase2_multitask.py
+    python compass-net/scripts/run_phase2_multitask.py --device cuda
 """
 
 from __future__ import annotations
@@ -33,11 +33,11 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 from run_phase1 import _setup, load_kim2018_sequences, evaluate
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def train_multitask_epoch(
             efficiency = (efficiency + noise).clamp(0.0, 1.0)
 
         # RNA-FM embeddings
-        from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+        from compass_ml.training.train_compass_ml import _get_batch_embeddings
         crrna_emb = _get_batch_embeddings(
             batch["crrna_spacer"], embedding_cache, device,
         )
@@ -126,19 +126,19 @@ def train_multitask_epoch(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Narsil-ML Phase 2 Multi-task (ablation row 4)",
+        description="Compass-ML Phase 2 Multi-task (ablation row 4)",
     )
     parser.add_argument(
         "--data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
     )
-    parser.add_argument("--cache-dir", type=str, default="E:/narsil-net-data/cache/rnafm")
+    parser.add_argument("--cache-dir", type=str, default="E:/compass-net-data/cache/rnafm")
     parser.add_argument(
         "--pretrained", type=str,
-        default="E:/narsil-net-data/weights/phase1_rlpa_best.pt",
+        default="E:/compass-net-data/weights/phase1_rlpa_best.pt",
         help="Phase 1 RLPA checkpoint to transfer from and generate proxy labels",
     )
-    parser.add_argument("--output", type=str, default="E:/narsil-net-data/weights/phase2_multitask_best.pt")
+    parser.add_argument("--output", type=str, default="E:/compass-net-data/weights/phase2_multitask_best.pt")
     parser.add_argument("--epochs", type=int, default=150)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-4)
@@ -153,18 +153,18 @@ def main():
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import (
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import (
         SingleTargetDataset, PairedTargetDataset,
         _one_hot, _introduce_target_mismatch, _reverse_complement,
     )
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.training.train_narsil_ml import (
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.training.train_compass_ml import (
         collate_single_target, collate_paired_target,
         _get_batch_embeddings, validate,
     )
-    from narsil_ml.losses.multitask_loss import MultiTaskLoss
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.losses.multitask_loss import MultiTaskLoss
+    from compass_ml.training.reproducibility import seed_everything
 
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -189,7 +189,7 @@ def main():
     logger.info("=" * 60)
 
     # Load Phase 1 RLPA model (frozen for proxy generation)
-    phase1_model = NarsilML(
+    phase1_model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=False,
@@ -263,12 +263,12 @@ def main():
     logger.info("=" * 60)
 
     # Build multi-task model
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=True,
     )
-    logger.info("NarsilML: %d params | RNA-FM=True | RLPA=True | MT=True",
+    logger.info("CompassML: %d params | RNA-FM=True | RLPA=True | MT=True",
                 model.count_trainable_params())
 
     # Transfer ALL shared weights from Phase 1 RLPA checkpoint
@@ -430,7 +430,7 @@ def main():
 
     # --- Summary ---
     print("\n" + "=" * 60)
-    print("Narsil-ML Phase 2 Multi-task Results")
+    print("Compass-ML Phase 2 Multi-task Results")
     print("=" * 60)
     print(f"Config:     CNN + RNA-FM + RLPA + Multi-task")
     print(f"Params:     {model.count_trainable_params():,}")

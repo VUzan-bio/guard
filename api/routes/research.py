@@ -34,7 +34,7 @@ def _get_state() -> AppState:
 class CompareRequest(BaseModel):
     job_id: str
     model_a: str = "heuristic"
-    model_b: str = "narsil_ml"
+    model_b: str = "compass_ml"
 
 
 class AblationRow(BaseModel):
@@ -66,7 +66,7 @@ async def compare_scorers_endpoint(req: CompareRequest) -> dict[str, Any]:
         else:
             raise HTTPException(500, "Result data not found")
 
-    from narsil.research.scorer_compare import compare_scorers
+    from compass.research.scorer_compare import compare_scorers
     return compare_scorers(result, req.model_a, req.model_b)
 
 
@@ -123,7 +123,7 @@ async def get_thermo_profile(job_id: str, target_label: str) -> dict[str, Any]:
     if not spacer:
         raise HTTPException(404, f"Target {target_label} not found in job {job_id}")
 
-    from narsil.research.thermo_profile import get_thermo_profile
+    from compass.research.thermo_profile import get_thermo_profile
     return get_thermo_profile(spacer, pam or "", snp_pos)
 
 
@@ -140,7 +140,7 @@ async def get_thermo_standalone(
     if invalid:
         raise HTTPException(400, f"Invalid bases in spacer: {invalid}")
 
-    from narsil.research.thermo_profile import get_thermo_profile
+    from compass.research.thermo_profile import get_thermo_profile
     return get_thermo_profile(spacer, pam, snp_position=None)
 
 
@@ -149,7 +149,7 @@ async def get_thermo_standalone(
 @router.get("/ablation")
 async def get_ablation() -> list[dict[str, Any]]:
     """Get ablation study results."""
-    from narsil.research.ablation_store import load_ablation_rows
+    from compass.research.ablation_store import load_ablation_rows
     return load_ablation_rows()
 
 
@@ -158,7 +158,7 @@ async def get_ablation() -> list[dict[str, Any]]:
 @router.post("/ablation")
 async def add_ablation(row: AblationRow) -> dict[str, Any]:
     """Add a new ablation row."""
-    from narsil.research.ablation_store import add_ablation_row
+    from compass.research.ablation_store import add_ablation_row
     added = add_ablation_row(row.model_dump())
     return {"ok": True, "row": added}
 
@@ -168,7 +168,7 @@ async def add_ablation(row: AblationRow) -> dict[str, Any]:
 @router.get("/nuclease/profiles")
 async def list_nuclease_profiles() -> dict[str, Any]:
     """List all available nuclease profiles with summaries."""
-    from narsil.nuclease.profile_loader import NucleaseProfile
+    from compass.nuclease.profile_loader import NucleaseProfile
     return {
         "profiles": [
             NucleaseProfile.load(vid).to_summary()
@@ -182,8 +182,8 @@ async def list_nuclease_profiles() -> dict[str, Any]:
 @router.get("/nuclease/comparison")
 async def nuclease_comparison() -> dict[str, Any]:
     """Compare PAM coverage across all loaded nuclease profiles."""
-    from narsil.nuclease.profile_loader import NucleaseProfile
-    from narsil.nuclease.pam_coverage import compare_pam_coverage
+    from compass.nuclease.profile_loader import NucleaseProfile
+    from compass.nuclease.pam_coverage import compare_pam_coverage
 
     profiles = {
         vid: NucleaseProfile.load(vid).to_summary()

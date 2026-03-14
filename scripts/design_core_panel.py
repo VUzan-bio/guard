@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Design a 14-plex MDR-TB diagnostic panel with NARSIL.
+"""Design a 14-plex MDR-TB diagnostic panel with COMPASS.
 
 Defines the WHO-critical resistance mutations for multidrug-resistant
-tuberculosis and runs the complete NARSIL pipeline (Modules 1-9) to
+tuberculosis and runs the complete COMPASS pipeline (Modules 1-9) to
 produce crRNA + RPA primer specifications for each target.
 
 Mutation selection based on:
@@ -34,7 +34,7 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure narsil is importable from any working directory
+# Ensure compass is importable from any working directory
 _repo = Path(__file__).resolve().parent.parent
 if str(_repo) not in sys.path:
     sys.path.insert(0, str(_repo))
@@ -46,7 +46,7 @@ logging.basicConfig(
 log = logging.getLogger("design_core_panel")
 
 
-from narsil.core.config import (
+from compass.core.config import (
     CandidateConfig,
     MultiplexConfig,
     PipelineConfig,
@@ -55,7 +55,7 @@ from narsil.core.config import (
     ScoringConfig,
     SyntheticMismatchConfig,
 )
-from narsil.core.types import Drug, Mutation, MutationCategory
+from compass.core.types import Drug, Mutation, MutationCategory
 
 
 # ======================================================================
@@ -201,7 +201,7 @@ def define_mdr_panel() -> list[Mutation]:
 # ======================================================================
 
 def run_panel(reference: str, gff: str, output_dir: str) -> None:
-    """Run the full NARSIL pipeline on the 14-plex MDR-TB panel."""
+    """Run the full COMPASS pipeline on the 14-plex MDR-TB panel."""
     t0 = time.time()
 
     output = Path(output_dir)
@@ -229,9 +229,9 @@ def run_panel(reference: str, gff: str, output_dir: str) -> None:
             use_heuristic=True,
             use_discrimination=True,
             discrimination_min_ratio=2.0,
-            scorer="narsil_ml",
-            narsil_ml_weights=Path("narsil/weights/narsil_ml_diagnostic.pt"),
-            rnafm_cache_dir=Path("E:/narsil-net-data/cache/rnafm"),
+            scorer="compass_ml",
+            compass_ml_weights=Path("compass/weights/compass_ml_diagnostic.pt"),
+            rnafm_cache_dir=Path("E:/compass-net-data/cache/rnafm"),
         ),
         multiplex=MultiplexConfig(
             max_plex=14,
@@ -250,14 +250,14 @@ def run_panel(reference: str, gff: str, output_dir: str) -> None:
         log.info("  %s %s (%s)", m.gene, m.label, m.drug.value)
 
     # Run pipeline
-    from narsil.pipeline.runner import NARSILPipeline
+    from compass.pipeline.runner import COMPASSPipeline
 
-    pipeline = NARSILPipeline(config)
+    pipeline = COMPASSPipeline(config)
     panel = pipeline.run_full(mutations)
 
     # Save additional panel summary
     summary = {
-        "pipeline": "NARSIL v0.2.0",
+        "pipeline": "COMPASS v0.2.0",
         "panel_name": "MDR-TB 14-plex",
         "organism": "Mycobacterium tuberculosis H37Rv",
         "reference": reference,

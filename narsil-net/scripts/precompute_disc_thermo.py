@@ -5,12 +5,12 @@ For each MUT/WT pair, computes:
   2. cumulative_dg_at_mm: cumulative R-loop dG up to mismatch position
   3. local_dg:           average of flanking dinucleotide stacking dGs
 
-Saves as: narsil-net/data/disc_thermo_features.pt
+Saves as: compass-net/data/disc_thermo_features.pt
   dict with 'features' (N x 3 tensor), 'pair_ids' (list),
   'mean' (3,), 'std' (3,) for z-score normalisation at inference.
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/precompute_disc_thermo.py
+Usage (from compass/ root):
+    python compass-net/scripts/precompute_disc_thermo.py
 """
 
 from __future__ import annotations
@@ -22,10 +22,10 @@ import sys
 import torch
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from features.thermodynamic import RNA_DNA_NN, INIT_DH, INIT_DS, compute_hybrid_dg
 from data.extract_discrimination_pairs import extract_discrimination_pairs
@@ -125,7 +125,7 @@ def compute_thermo_for_pair(guide_seq: str, spacer_position: int) -> list[float]
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    output_path = os.path.join(_ROOT_DIR, "narsil-net/data/disc_thermo_features.pt")
+    output_path = os.path.join(_ROOT_DIR, "compass-net/data/disc_thermo_features.pt")
 
     logger.info("Extracting discrimination pairs...")
     pairs = extract_discrimination_pairs()

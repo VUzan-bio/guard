@@ -36,7 +36,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     MultiplexPanel,
@@ -359,7 +359,7 @@ class MultiplexOptimizer:
                     amp_i = amplicons.get(label_i)
                     if amp_j and amp_i:
                         try:
-                            from narsil.scoring.cross_reactivity import _best_off_target_score
+                            from compass.scoring.cross_reactivity import _best_off_target_score
                             ij = _best_off_target_score(spacer_i, amp_j)
                             ji = _best_off_target_score(spacer_j, amp_i)
                             risk = max(ij["activity"], ji["activity"])

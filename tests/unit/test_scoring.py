@@ -2,8 +2,8 @@
 
 import pytest
 
-from narsil.core.types import CrRNACandidate, OffTargetReport
-from narsil.scoring.heuristic import HeuristicScorer
+from compass.core.types import CrRNACandidate, OffTargetReport
+from compass.scoring.heuristic import HeuristicScorer
 
 
 class TestHeuristicScorer:

@@ -27,4 +27,4 @@ git checkout DeepCpf1-code
 - HT3: held-out test (never seen during training or hyperparameter tuning)
 
 ## Preprocessing
-Labels: log2(indel_freq + 1) then min-max to [0, 1] (see `narsil.scoring.preprocessing.normalise_labels`).
+Labels: log2(indel_freq + 1) then min-max to [0, 1] (see `compass.scoring.preprocessing.normalise_labels`).

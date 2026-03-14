@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     RPAPrimerPair,

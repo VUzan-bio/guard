@@ -89,7 +89,7 @@ class DilatedConvBlock(nn.Module):
 
 
 class SeqCNN(nn.Module):
-    """NARSIL seq_cnn: Cas12a guide activity prediction from sequence.
+    """COMPASS seq_cnn: Cas12a guide activity prediction from sequence.
 
     Args:
         in_channels: Input channels (4 for one-hot DNA).

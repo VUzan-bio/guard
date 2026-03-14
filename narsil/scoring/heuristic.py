@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import math
 
-from narsil.core.constants import (
+from compass.core.constants import (
     GC_MAX,
     GC_MIN,
     GC_OPTIMAL_DEFAULT,
@@ -30,14 +30,14 @@ from narsil.core.constants import (
     MFE_THRESHOLD,
     SEED_REGION_END,
 )
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     HeuristicScore,
     OffTargetReport,
     ScoredCandidate,
 )
-from narsil.scoring.base import Scorer
+from compass.scoring.base import Scorer
 
 
 class HeuristicScorer(Scorer):

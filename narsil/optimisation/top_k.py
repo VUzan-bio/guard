@@ -15,8 +15,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from narsil.core.types import ScoredCandidate, PanelMember
-from narsil.optimisation.metrics import TARGET_DRUG_CLASS
+from compass.core.types import ScoredCandidate, PanelMember
+from compass.optimisation.metrics import TARGET_DRUG_CLASS
 
 logger = logging.getLogger(__name__)
 

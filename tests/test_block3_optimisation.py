@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import pytest
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     DiscriminationScore,
@@ -33,7 +33,7 @@ from narsil.core.types import (
     Strand,
     Target,
 )
-from narsil.optimisation.metrics import (
+from compass.optimisation.metrics import (
     DiagnosticMetrics,
     TargetMetrics,
     DrugClassMetrics,
@@ -41,7 +41,7 @@ from narsil.optimisation.metrics import (
     WHO_TPP_SENSITIVITY,
     compute_diagnostic_metrics,
 )
-from narsil.optimisation.profiles import (
+from compass.optimisation.profiles import (
     ParameterProfile,
     get_preset,
     list_presets,
@@ -49,9 +49,9 @@ from narsil.optimisation.profiles import (
     BALANCED,
     HIGH_SPECIFICITY,
 )
-from narsil.optimisation.sweep import sweep_parameter
-from narsil.optimisation.pareto import pareto_frontier, generate_profile_grid
-from narsil.optimisation.top_k import collect_top_k, TargetCandidateSet
+from compass.optimisation.sweep import sweep_parameter
+from compass.optimisation.pareto import pareto_frontier, generate_profile_grid
+from compass.optimisation.top_k import collect_top_k, TargetCandidateSet
 
 
 # =====================================================================
@@ -87,7 +87,7 @@ _IS6110_PROPS = {
 
 
 def _make_mutation(gene: str, pos: int, ref: str, alt: str) -> Mutation:
-    from narsil.core.types import Drug
+    from compass.core.types import Drug
     return Mutation(gene=gene, position=pos, ref_aa=ref, alt_aa=alt, drug=Drug.OTHER)
 
 

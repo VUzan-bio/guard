@@ -79,7 +79,7 @@ def _classify_rna_dna_mismatch(rna_base: str, dna_base: str) -> str:
 
 
 def extract_discrimination_pairs(
-    xlsx_path: str = "narsil-net/data/external/easydesign/Table_S2.xlsx",
+    xlsx_path: str = "compass-net/data/external/easydesign/Table_S2.xlsx",
     max_hamming: int = 1,
     min_pairs_per_guide: int = 1,
 ) -> list[DiscriminationPair]:

@@ -1,7 +1,7 @@
 """Panel-level diagnostic performance metrics aligned with WHO TPP 2024.
 
 These are IN SILICO predictions based on pipeline parameters and
-Narsil-ML scores. Real performance requires experimental validation.
+Compass-ML scores. Real performance requires experimental validation.
 
 The key insight: sensitivity and specificity at the PANEL level depend
 on per-target discrimination ratios and scoring thresholds. By sweeping
@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from narsil.core.types import ScoredCandidate, PanelMember
+from compass.core.types import ScoredCandidate, PanelMember
 
 # WHO TPP 2024 sensitivity requirements by drug class
 WHO_TPP_SENSITIVITY = {

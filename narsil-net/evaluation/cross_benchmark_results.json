@@ -1,5 +1,5 @@
 {
-  "description": "Cross-benchmark evaluation of all Narsil-ML checkpoints",
+  "description": "Cross-benchmark evaluation of all Compass-ML checkpoints",
   "benchmarks": {
     "kim2018": {
       "description": "Kim et al. 2018 HT-PAMDA (HT2+HT3 held-out test)",
@@ -33,7 +33,7 @@
       "kim_r": 0.4642,
       "ed_rho": 0.5488,
       "ed_r": 0.5341,
-      "notes": "NEW production checkpoint (narsil_ml_diagnostic.pt). Best trans-cleavage performance while retaining cis-cleavage."
+      "notes": "NEW production checkpoint (compass_ml_diagnostic.pt). Best trans-cleavage performance while retaining cis-cleavage."
     },
     {
       "name": "Multi-dataset + DA",
@@ -73,7 +73,7 @@
     "EasyDesign-only is outperformed by multi-dataset pooling on its own test set (0.51 vs 0.55).",
     "EasyDesign dataset has a train/test measurement mismatch (log-k vs fluorescence) that we identified and corrected."
   ],
-  "production_checkpoint": "narsil_ml_diagnostic.pt (= multidataset_noda_best.pt)",
+  "production_checkpoint": "compass_ml_diagnostic.pt (= multidataset_noda_best.pt)",
   "calibration": {
     "temperature": 1.07,
     "alpha": 0.045,

@@ -1,4 +1,4 @@
-"""Multi-task loss for Narsil-ML.
+"""Multi-task loss for Compass-ML.
 
 L_total = L_efficiency + lambda_rank * (1 - rho_soft) + lambda_disc * L_discrimination
 

@@ -7,9 +7,9 @@ For each 34-nt target DNA:
     4. Run through RNA-FM -> (20, 640) embedding
     5. Cache using EmbeddingCache
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/extract_rnafm_embeddings.py
-    python narsil-net/scripts/extract_rnafm_embeddings.py --batch-size 64 --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/extract_rnafm_embeddings.py
+    python compass-net/scripts/extract_rnafm_embeddings.py --batch-size 64 --device cuda
 """
 
 from __future__ import annotations
@@ -24,10 +24,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-# Add narsil/ root to path for imports
+# Add compass/ root to path for imports
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
 
 logger = logging.getLogger(__name__)
@@ -73,9 +73,9 @@ def main():
     parser = argparse.ArgumentParser(description="Extract RNA-FM embeddings for Kim 2018")
     parser.add_argument(
         "--data", type=str,
-        default=os.path.join(_ROOT_DIR, "narsil/data/kim2018/nbt4061_source_data.xlsx"),
+        default=os.path.join(_ROOT_DIR, "compass/data/kim2018/nbt4061_source_data.xlsx"),
     )
-    parser.add_argument("--cache-dir", type=str, default=os.path.join(_NARSIL_NET_DIR, "cache", "rnafm"))
+    parser.add_argument("--cache-dir", type=str, default=os.path.join(_COMPASS_NET_DIR, "cache", "rnafm"))
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
@@ -99,9 +99,9 @@ def main():
     # --- Setup cache ---
     os.makedirs(args.cache_dir, exist_ok=True)
 
-    # Bootstrap narsil_ml.data.embedding_cache
+    # Bootstrap compass_ml.data.embedding_cache
     import importlib.util
-    cache_path = os.path.join(_NARSIL_NET_DIR, "data", "embedding_cache.py")
+    cache_path = os.path.join(_COMPASS_NET_DIR, "data", "embedding_cache.py")
     spec = importlib.util.spec_from_file_location("embedding_cache", cache_path)
     cache_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cache_mod)

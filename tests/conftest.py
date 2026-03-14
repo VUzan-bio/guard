@@ -1,8 +1,8 @@
-"""Shared test fixtures for NARSIL."""
+"""Shared test fixtures for COMPASS."""
 
 import pytest
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     Drug,
     HeuristicScore,

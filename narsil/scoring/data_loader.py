@@ -13,7 +13,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 
-from narsil.scoring.preprocessing import normalise_labels, one_hot_encode
+from compass.scoring.preprocessing import normalise_labels, one_hot_encode
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def _load_sheet(
 
 
 def load_kim2018(
-    xlsx_path: str = "narsil/data/kim2018/nbt4061_source_data.xlsx",
+    xlsx_path: str = "compass/data/kim2018/nbt4061_source_data.xlsx",
 ) -> Tuple[
     Tuple[np.ndarray, np.ndarray],  # (X_train, y_train) — HT 1-1
     Tuple[np.ndarray, np.ndarray],  # (X_val, y_val)   — HT 1-2

@@ -1,4 +1,4 @@
-"""Narsil-ML: Dual-branch scoring with physics-informed attention
+"""Compass-ML: Dual-branch scoring with physics-informed attention
 and multi-task efficiency + discrimination prediction.
 
 Architecture:
@@ -18,10 +18,10 @@ CRITICAL biological distinction:
       The crRNA is the SAME for both conditions.
 
 Features can be incrementally enabled:
-    NarsilML()                                         -> CNN only
-    NarsilML(use_rnafm=True)                           -> CNN + RNA-FM
-    NarsilML(use_rnafm=True, use_rloop_attention=True) -> + RLPA
-    NarsilML(..., multitask=True)                      -> + discrimination
+    CompassML()                                         -> CNN only
+    CompassML(use_rnafm=True)                           -> CNN + RNA-FM
+    CompassML(use_rnafm=True, use_rloop_attention=True) -> + RLPA
+    CompassML(..., multitask=True)                      -> + discrimination
 
 Trainable parameters: ~150K (RNA-FM frozen, CNN ~65K, proj ~60K, RLPA ~25K).
 """
@@ -36,7 +36,7 @@ from .branches.rnafm_branch import RNAFMBranch
 from .heads.discrimination_head import DiscriminationHead
 
 
-class NarsilML(nn.Module):
+class CompassML(nn.Module):
 
     def __init__(
         self,

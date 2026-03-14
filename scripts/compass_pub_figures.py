@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""NARSIL Publication Figure Suite.
+"""COMPASS Publication Figure Suite.
 
 Style reference: Cas12a diagnostic papers (NAR / Cell Rep Methods).
 Yellow gRNA background, green/red highlights, blue heatmaps,
 black gene maps, generous whitespace.
 
-Usage:  python narsil_pub_figures.py -o figures/
+Usage:  python compass_pub_figures.py -o figures/
 """
 from __future__ import annotations
 import argparse
@@ -666,7 +666,7 @@ def fig7(out):
 
     ax.set_xlim(-60_000,gl+60_000); ax.set_ylim(-1.6,1.8)
     ax.axis("off")
-    ax.set_title("M. tuberculosis H37Rv  —  NARSIL target loci",
+    ax.set_title("M. tuberculosis H37Rv  —  COMPASS target loci",
                  fontsize=9.5,fontweight="bold",pad=10)
     ax.text(gl/2,-1.40,f"Genome  {gl:,} bp",
             fontsize=5.5,ha="center",color=Y["muted"])
@@ -1144,7 +1144,7 @@ def generate_all_figures(out_dir, cands=None):
         cands = CANDS
 
     print("═" * 60)
-    print("  NARSIL Publication Figure Suite  (Figs 1–11)")
+    print("  COMPASS Publication Figure Suite  (Figs 1–11)")
     print("  Style: Nature Methods / Cell Reports Methods / NAR")
     print("═" * 60)
 
@@ -1170,7 +1170,7 @@ def generate_all_figures(out_dir, cands=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="NARSIL Publication Figure Suite")
+    ap = argparse.ArgumentParser(description="COMPASS Publication Figure Suite")
     ap.add_argument("-o", "--output", default="figures")
     args = ap.parse_args()
     generate_all_figures(args.output)

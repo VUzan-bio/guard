@@ -1,11 +1,11 @@
 """Training script for SeqCNN — Cas12a guide activity predictor.
 
-Standalone script. Not imported by the NARSIL pipeline at runtime.
+Standalone script. Not imported by the COMPASS pipeline at runtime.
 
 Usage:
-    python -m narsil.scoring.train_cnn \
-        --data narsil/data/kim2018/sequences.csv \
-        --output narsil/weights/seq_cnn_best.pt \
+    python -m compass.scoring.train_cnn \
+        --data compass/data/kim2018/sequences.csv \
+        --output compass/weights/seq_cnn_best.pt \
         --epochs 200 --patience 20
 
 References:
@@ -29,8 +29,8 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader, TensorDataset
 
-from narsil.scoring.preprocessing import encode_dataset, normalise_labels
-from narsil.scoring.seq_cnn import SeqCNN
+from compass.scoring.preprocessing import encode_dataset, normalise_labels
+from compass.scoring.seq_cnn import SeqCNN
 
 logger = logging.getLogger(__name__)
 
@@ -323,7 +323,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default="narsil/weights/seq_cnn_best.pt",
+        default="compass/weights/seq_cnn_best.pt",
         help="Path to save best model checkpoint",
     )
     parser.add_argument("--epochs", type=int, default=200)

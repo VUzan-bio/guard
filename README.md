@@ -1,18 +1,18 @@
-# NARSIL
+# COMPASS
 
-**Guide RNA Automated Resistance Diagnostics**
+**CRISPR-Optimized Multiplex Panel And Spacer Selection**
 
-Computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels targeting drug-resistant *Mycobacterium tuberculosis*.
+End-to-end computational pipeline for designing multiplexed CRISPR-Cas12a diagnostic panels targeting drug-resistant *Mycobacterium tuberculosis* from blood.
 
-Live platform: [narsil-guide.com](https://narsil-guide.com/)
+Live platform: [compass-design.app](https://compass-design.app/)
 
 ---
 
-NARSIL takes WHO-catalogued drug-resistance mutations as input and produces a complete, optimised diagnostic panel: crRNA sequences, RPA primer pairs, discrimination predictions, and clinical compliance metrics — ready for experimental validation on electrochemical or fluorescence platforms. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses Narsil-ML — a dual-branch CNN + RNA-FM architecture with physics-informed R-loop attention — calibrated via Spearman-optimised ensemble weighting against both cis-cleavage (Kim et al. 2018) and trans-cleavage (Huang et al. 2024) benchmarks. Discrimination prediction uses a gradient-boosted model trained on 6,136 paired MUT/WT measurements with 15 thermodynamic features. NARSIL produces a 15-channel MDR-TB panel covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance, plus an IS6110 species identification control.
+COMPASS takes WHO-catalogued drug-resistance mutations as input and produces a complete, optimised diagnostic panel: crRNA sequences, RPA primer pairs, discrimination predictions, and clinical compliance metrics — ready for experimental validation on electrochemical or fluorescence platforms. The pipeline handles PAM deserts in the GC-rich *M. tuberculosis* genome (65.6% GC) through automatic proximity detection with allele-specific RPA primer design. Guide scoring uses Compass-ML — a dual-branch CNN + RNA-FM architecture with physics-informed R-loop attention — calibrated via Spearman-optimised ensemble weighting against both cis-cleavage (Kim et al. 2018) and trans-cleavage (Huang et al. 2024) benchmarks. Discrimination prediction uses a gradient-boosted model trained on 6,136 paired MUT/WT measurements with 15 thermodynamic features. COMPASS produces a 15-channel MDR-TB panel covering rifampicin, isoniazid, ethambutol, pyrazinamide, fluoroquinolone, and aminoglycoside resistance, plus an IS6110 species identification control.
 
 ## Pipeline
 
-<img width="936" height="470" alt="narsil-archit" src="https://github.com/user-attachments/assets/800af375-aea3-4ae2-80d2-4e0f7912fcfe" />
+<img width="936" height="470" alt="compass-archit" src="https://github.com/user-attachments/assets/800af375-aea3-4ae2-80d2-4e0f7912fcfe" />
 
 <br />
 
@@ -31,7 +31,7 @@ Ten modules execute sequentially across three processing blocks:
 
 | Module | Function | Method |
 |--------|----------|--------|
-| M5 Efficiency Scoring | Predict Cas12a cleavage activity | Narsil-ML ensemble (see Architecture) |
+| M5 Efficiency Scoring | Predict Cas12a cleavage activity | Compass-ML ensemble (see Architecture) |
 | M5.5 Mismatch Pair Generation | Create MUT/WT spacer pairs | Complement substitution at SNP position |
 | M6 Discrimination Scoring | Predict MUT/WT selectivity | Learned model: LightGBM, 15 thermodynamic features, 6,136 pairs (r = 0.46); fallback: position-dependent heuristic (r = 0.30) |
 | M7 Synthetic Mismatch Enhancement | Boost discrimination for borderline candidates | Deliberate mismatches at seed positions 2–6; 2–6× → 10–100× |
@@ -46,7 +46,7 @@ Ten modules execute sequentially across three processing blocks:
 
 For mutations in PAM-desert regions (e.g., *rpoB* RRDR at 70%+ GC with no T-rich PAM within 50 bp), the pipeline automatically falls back to **proximity detection**: the crRNA targets a nearby accessible site while an allele-specific RPA primer provides mutation-specific amplification.
 
-## Narsil-ML Architecture
+## Compass-ML Architecture
 
 Dual-branch architecture with physics-informed attention for diagnostic guide scoring. 235,000 trainable parameters.
 
@@ -79,13 +79,13 @@ Models trained only on cis-cleavage data show ρ = 0.04 on the trans-cleavage be
 
 ### Temperature Calibration & Ensemble
 
-Each scorer applies quantile-matched temperature scaling: `calibrated = sigmoid(logit(raw) / T)`, then `ensemble = α × heuristic + (1 − α) × calibrated`. The calibration file (narsil/weights/calibration.json) stores T and α per scorer, fitted on the validation set.
+Each scorer applies quantile-matched temperature scaling: `calibrated = sigmoid(logit(raw) / T)`, then `ensemble = α × heuristic + (1 − α) × calibrated`. The calibration file (compass/weights/calibration.json) stores T and α per scorer, fitted on the validation set.
 
 | Scorer | Parameters | T | α | Val ρ | Test ρ |
 |--------|-----------|---|---|-------|--------|
 | Heuristic | 5 weights | — | — | — | ~0.18 |
 | SeqCNN | 110K | 7.53 | 0.007 | 0.74 | 0.53 |
-| Narsil-ML | 235K | 0.74 | 0.028 | 0.71 | 0.55 |
+| Compass-ML | 235K | 0.74 | 0.028 | 0.71 | 0.55 |
 
 ## Learned Discrimination Model
 
@@ -143,7 +143,7 @@ WHO TPP compliance is evaluated per drug class: ≥95% sensitivity for RIF, ≥9
 
 ## Platform
 
-The web platform ([narsil-design.app](https://narsil-design.app)) provides six result tabs per panel run:
+The web platform ([compass-design.app](https://compass-design.app)) provides six result tabs per panel run:
 
 | Tab | Content |
 |-----|---------|
@@ -159,33 +159,33 @@ The **Research** page provides experimental tools: Scorer Comparison Lab, R-Loop
 ## Repository Structure
 
 ```
-narsil/                   Core pipeline library (10 modules)
+compass/                   Core pipeline library (10 modules)
   core/                  Target resolution, PAM scanning, filtering, scoring
   primers/               Standard RPA + AS-RPA primer design
   multiplex/             Simulated annealing optimiser, primer dimer analysis
   research/              Thermodynamic profiling, scorer comparison
   nuclease/              NucleaseProfile configuration system
-  scoring/               Heuristic, SeqCNN, Narsil-ML scorers
+  scoring/               Heuristic, SeqCNN, Compass-ML scorers
   weights/               Model checkpoints + calibration files
 
-narsil-net/               Standalone ML model
-  models/                Narsil-ML architecture, discrimination model
+compass-net/               Standalone ML model
+  models/                Compass-ML architecture, discrimination model
   data/                  Data loaders, discrimination pair extraction
   features/              Thermodynamic feature computation
   scripts/               Training scripts (Phase 1–3, multi-dataset)
 
 api/                     FastAPI REST + WebSocket backend (22 endpoints)
-narsil-ui/                React 19 + Vite SPA frontend
+compass-ui/                React 19 + Vite SPA frontend
 tests/                   97 tests across 6 files
 ```
 
 ## Training
 
-### Narsil-ML
+### Compass-ML
 
 ```bash
 # Phase 1: CNN + RNA-FM + RLPA (Kim 2018)
-cd narsil-net && python scripts/run_phase1_rlpa.py
+cd compass-net && python scripts/run_phase1_rlpa.py
 
 # Phase 2: Multi-task (efficiency + discrimination heads)
 python scripts/run_phase2_multitask.py
@@ -194,29 +194,29 @@ python scripts/run_phase2_multitask.py
 python scripts/run_multidataset.py
 
 # Temperature calibration
-python -m narsil.scoring.calibrate_narsil_ml
+python -m compass.scoring.calibrate_compass_ml
 ```
 
 ### Discrimination Model
 
 ```bash
 # Extract paired MUT/WT measurements from EasyDesign
-python narsil-net/scripts/train_discrimination.py \
-    --data_dir narsil-net/data/external/easydesign/ \
-    --output narsil/weights/disc_model.joblib
+python compass-net/scripts/train_discrimination.py \
+    --data_dir compass-net/data/external/easydesign/ \
+    --output compass/weights/disc_model.joblib
 ```
 
 ### SeqCNN (baseline)
 
 ```bash
-python -m narsil.scoring.train_cnn --data-dir narsil/data/kim2018/ --epochs 200
-python -m narsil.scoring.calibrate
+python -m compass.scoring.train_cnn --data-dir compass/data/kim2018/ --epochs 200
+python -m compass.scoring.calibrate
 ```
 
 ## Limitations
 
 - **Domain shift.** Trained on wild-type AsCas12a (Kim 2018) and LbCas12a (EasyDesign); deployed on enAsCas12a (E174R/S542R/K548R). The engineered variant's altered PAM recognition and potentially different cleavage kinetics are not captured by the training data. Active learning from experimental validation is the intended calibration mechanism.
-- **GC regime.** Training data median GC ≈ 50%; *M. tuberculosis* targets range 50–78% GC. The heuristic penalises high GC; Narsil-ML, trained on diverse sequences, partially compensates. Experimental measurement on high-GC targets will determine whether scores underpredict or overpredict actual performance.
+- **GC regime.** Training data median GC ≈ 50%; *M. tuberculosis* targets range 50–78% GC. The heuristic penalises high GC; Compass-ML, trained on diverse sequences, partially compensates. Experimental measurement on high-GC targets will determine whether scores underpredict or overpredict actual performance.
 - **Discrimination model.** Pearson r = 0.46 explains ~21% of variance. The remaining 79% includes protein-mediated effects (conformational activation kinetics, NTS threading), mismatch-type-specific structural perturbations, and experimental noise. Position and thermodynamic features are necessary but not sufficient.
 - **Multiplex modelling.** Cross-reactivity is sequence-based (Bowtie2); primer dimer stability is thermodynamic (SantaLucia NN, post-optimisation). Enzyme competition (15 crRNAs competing for Cas12a), RPA amplification bias, and reporter crosstalk are not modelled.
 - **Specificity proxy.** The formula 1 − 1/disc assumes perfectly separated signal distributions. Actual specificity depends on signal variance and threshold selection. All specificity values are marked "Pending" pending experimental validation.
@@ -242,7 +242,7 @@ python -m narsil.scoring.calibrate
 11. Kim HK, Min S, Song M, et al. Deep learning improves prediction of CRISPR-Cpf1 guide RNA activity. *Nature Biotechnology* **36**, 239–241 (2018). [DOI](https://doi.org/10.1038/nbt.4061)
 12. Huang B, Mu K, Li G, et al. Deep learning enhancing guide RNA design for CRISPR/Cas12a-based diagnostics. *iMeta* **3**, e214 (2024). [DOI](https://doi.org/10.1002/imt2.214)
 13. Chen J, Hu Z, Sun S, et al. Interpretable RNA Foundation Model from unannotated data for highly accurate RNA structure and function predictions. arXiv:2204.00300 (2022). [arXiv](https://arxiv.org/abs/2204.00300)
-14. Blondel M, Teboul O, Berthet Q, Djolonga J. Fast differentiable sorting and ranking. *ICML* (2020). [Soft Spearman loss in Narsil-ML training]
+14. Blondel M, Teboul O, Berthet Q, Djolonga J. Fast differentiable sorting and ranking. *ICML* (2020). [Soft Spearman loss in Compass-ML training]
 15. Yao Z, Li W, He K, et al. Facilitating crRNA design by integrating DNA interaction features of CRISPR-Cas12a system. *Advanced Science* **12**, e2501269 (2025). [DOI](https://doi.org/10.1002/advs.202501269)
 
 ### Mismatch Discrimination
@@ -269,11 +269,11 @@ python -m narsil.scoring.calibrate
 ## Citation
 
 ```bibtex
-@software{narsil2025,
+@software{compass2025,
   author = {Uzan, Valentin},
-  title = {NARSIL: Guide RNA Automated Resistance Diagnostics},
+  title = {COMPASS: Guide RNA Automated Resistance Diagnostics},
   year = {2025},
-  url = {https://github.com/VUzan-bio/narsil},
+  url = {https://github.com/VUzan-bio/compass},
   note = {Computational pipeline for multiplexed CRISPR-Cas12a MDR-TB diagnostics}
 }
 ```

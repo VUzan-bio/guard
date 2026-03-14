@@ -1,4 +1,4 @@
-"""Biological constants for NARSIL.
+"""Biological constants for COMPASS.
 
 Centralised to avoid magic numbers scattered across modules.
 Sources cited inline.

@@ -140,9 +140,9 @@ class AppState:
         job.started_at = datetime.now(timezone.utc)
 
         try:
-            from narsil.core.config import PipelineConfig, ReferenceConfig
-            from narsil.core.types import Drug, Mutation
-            from narsil.pipeline.runner import NARSILPipeline
+            from compass.core.config import PipelineConfig, ReferenceConfig
+            from compass.core.types import Drug, Mutation
+            from compass.pipeline.runner import COMPASSPipeline
 
             # Build config
             self._update_progress(job, 0.02, "Initializing")
@@ -167,7 +167,7 @@ class AppState:
                 "primer_max_tm", "amplicon_size_range",
             }
             # Scoring overrides applied to nested ScoringConfig
-            SCORING_OVERRIDES = {"scorer", "narsil_ml_use_rlpa", "narsil_ml_use_rnafm"}
+            SCORING_OVERRIDES = {"scorer", "compass_ml_use_rlpa", "compass_ml_use_rnafm"}
             config_kwargs: dict[str, Any] = {
                 "name": job.name,
                 "output_dir": output_dir,
@@ -181,21 +181,21 @@ class AppState:
                     scoring_kwargs[key] = val
 
             if scoring_kwargs:
-                from narsil.core.config import ScoringConfig
-                # Auto-resolve Narsil-ML weights path
-                if scoring_kwargs.get("scorer") == "narsil_ml":
+                from compass.core.config import ScoringConfig
+                # Auto-resolve Compass-ML weights path
+                if scoring_kwargs.get("scorer") == "compass_ml":
                     scoring_kwargs.setdefault(
-                        "narsil_ml_weights",
-                        Path("narsil/weights/narsil_ml_diagnostic.pt"),
+                        "compass_ml_weights",
+                        Path("compass/weights/compass_ml_diagnostic.pt"),
                     )
                     scoring_kwargs.setdefault(
                         "rnafm_cache_dir",
-                        Path("narsil/data/embeddings/rnafm"),
+                        Path("compass/data/embeddings/rnafm"),
                     )
                 config_kwargs["scoring"] = ScoringConfig(**scoring_kwargs)
 
             config = PipelineConfig(**config_kwargs)
-            pipeline = NARSILPipeline(config)
+            pipeline = COMPASSPipeline(config)
 
             # Convert mutations
             self._update_progress(job, 0.05, "Target Resolution")
@@ -237,7 +237,7 @@ class AppState:
                 self._update_progress(job, 0.10, "PAM Scanning")
 
                 # Patch logger to track progress
-                import narsil.pipeline.runner as runner_mod
+                import compass.pipeline.runner as runner_mod
                 original_info = runner_mod.logger.info
 
                 stage_progress = {

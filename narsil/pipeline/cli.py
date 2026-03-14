@@ -1,10 +1,10 @@
-"""NARSIL command-line interface.
+"""COMPASS command-line interface.
 
 Usage:
-    narsil run -c configs/mdr_14plex.yaml              # Modules 1-5 (basic)
-    narsil run-full -c configs/mdr_14plex.yaml          # Modules 1-10 (end-to-end)
-    narsil design -r H37Rv.fasta -g H37Rv.gff3          # 14-plex MDR-TB panel
-    narsil info                                          # Pipeline version + capabilities
+    compass run -c configs/mdr_14plex.yaml              # Modules 1-5 (basic)
+    compass run-full -c configs/mdr_14plex.yaml          # Modules 1-10 (end-to-end)
+    compass design -r H37Rv.fasta -g H37Rv.gff3          # 14-plex MDR-TB panel
+    compass info                                          # Pipeline version + capabilities
 """
 
 from __future__ import annotations
@@ -20,19 +20,19 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-logger = logging.getLogger("narsil.cli")
+logger = logging.getLogger("compass.cli")
 
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Run Modules 1-5 (basic pipeline)."""
-    from narsil.core.config import PipelineConfig
-    from narsil.pipeline.runner import NARSILPipeline
+    from compass.core.config import PipelineConfig
+    from compass.pipeline.runner import COMPASSPipeline
 
     config = PipelineConfig.from_yaml(args.config)
     if args.output:
         config.output_dir = Path(args.output)
 
-    pipeline = NARSILPipeline(config)
+    pipeline = COMPASSPipeline(config)
     mutations = _load_mutations(args)
     results = pipeline.run(mutations)
 
@@ -42,14 +42,14 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def cmd_run_full(args: argparse.Namespace) -> None:
     """Run Modules 1-10 (full end-to-end pipeline)."""
-    from narsil.core.config import PipelineConfig
-    from narsil.pipeline.runner import NARSILPipeline
+    from compass.core.config import PipelineConfig
+    from compass.pipeline.runner import COMPASSPipeline
 
     config = PipelineConfig.from_yaml(args.config)
     if args.output:
         config.output_dir = Path(args.output)
 
-    pipeline = NARSILPipeline(config)
+    pipeline = COMPASSPipeline(config)
     mutations = _load_mutations(args)
 
     t0 = time.time()
@@ -74,9 +74,9 @@ def cmd_design(args: argparse.Namespace) -> None:
 
 def cmd_info(args: argparse.Namespace) -> None:
     """Print pipeline version and capabilities."""
-    from narsil import __version__
+    from compass import __version__
     info = {
-        "name": "NARSIL",
+        "name": "COMPASS",
         "full_name": "Guide RNA Automated Resistance Diagnostics",
         "version": __version__,
         "modules": [
@@ -104,7 +104,7 @@ def cmd_info(args: argparse.Namespace) -> None:
 def _load_mutations(args: argparse.Namespace) -> list:
     """Load mutations from a panel definition file or use default MDR-TB panel."""
     if hasattr(args, "panel") and args.panel:
-        from narsil.targets.who_parser import WHOCatalogueParser
+        from compass.targets.who_parser import WHOCatalogueParser
         parser = WHOCatalogueParser()
         return parser.parse(args.panel)
 
@@ -116,8 +116,8 @@ def _load_mutations(args: argparse.Namespace) -> list:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="narsil",
-        description="NARSIL — CRISPR-Cas12a diagnostic assay design pipeline",
+        prog="compass",
+        description="COMPASS — CRISPR-Cas12a diagnostic assay design pipeline",
     )
     sub = parser.add_subparsers(dest="command")
 

@@ -10,7 +10,7 @@ Approach A — FeatureDiscriminationModel (LightGBM, XGBoost fallback):
   Best when paired experimental data is limited (<10K pairs).
 
 Approach B — NeuralDiscriminationHead (PyTorch):
-  Paired Narsil-ML embeddings → [mut, wt, mut-wt, mut*wt] → MLP → ratio.
+  Paired Compass-ML embeddings → [mut, wt, mut-wt, mut*wt] → MLP → ratio.
   Leverages the pre-trained encoder's learned representations.
   Best when encoder is available and data is sufficient.
 
@@ -223,11 +223,11 @@ class FeatureDiscriminationModel:
 class NeuralDiscriminationModel:
     """Neural network predicting discrimination from paired embeddings.
 
-    Wraps the existing DiscriminationHead from narsil-net/heads/.
+    Wraps the existing DiscriminationHead from compass-net/heads/.
     Input: paired encoder representations (mut_pooled, wt_pooled).
     Output: predicted discrimination ratio (> 0, via Softplus).
 
-    For standalone use (without Narsil-ML encoder), can also operate
+    For standalone use (without Compass-ML encoder), can also operate
     on concatenated thermodynamic features + one-hot encoded sequence.
 
     Usage:
@@ -475,7 +475,7 @@ class DiscriminationPredictor:
 
     def predict_ratio_single(self, features: dict[str, float]) -> float:
         """Predict ratio for a single feature dict."""
-        from narsil_ml_thermo import FEATURE_NAMES
+        from compass_ml_thermo import FEATURE_NAMES
         try:
             from thermo_discrimination_features import FEATURE_NAMES
         except ImportError:

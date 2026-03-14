@@ -4,10 +4,10 @@ from __future__ import annotations
 import sys, os, json, logging
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 import torch
 from torch.utils.data import DataLoader
@@ -20,29 +20,29 @@ logger = logging.getLogger(__name__)
 def main():
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument("--checkpoint", default="E:/narsil-net-data/weights/phase2_multitask_best.pt")
+    p.add_argument("--checkpoint", default="E:/compass-net-data/weights/phase2_multitask_best.pt")
     p.add_argument("--device", default="cuda")
     p.add_argument("--batch-size", type=int, default=256)
     args = p.parse_args()
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.training.train_narsil_ml import collate_single_target
-    from narsil_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.training.train_compass_ml import collate_single_target
+    from compass_ml.data.embedding_cache import EmbeddingCache
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     logger.info("Device: %s", device)
 
-    xlsx_path = "narsil/data/kim2018/nbt4061_source_data.xlsx"
+    xlsx_path = "compass/data/kim2018/nbt4061_source_data.xlsx"
     (seqs_train, y_train), (seqs_val, y_val), (seqs_test, y_test) = load_kim2018_sequences(xlsx_path)
     logger.info("Loaded: train=%d, val=%d, test=%d", len(seqs_train), len(seqs_val), len(seqs_test))
 
-    cache = EmbeddingCache("E:/narsil-net-data/cache/rnafm")
+    cache = EmbeddingCache("E:/compass-net-data/cache/rnafm")
     logger.info("Embedding cache: %d entries", len(cache))
 
-    model = NarsilML(use_rnafm=True, use_rloop_attention=True, multitask=True)
+    model = CompassML(use_rnafm=True, use_rloop_attention=True, multitask=True)
     ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state_dict"])
     model = model.to(device)
@@ -66,7 +66,7 @@ def main():
         logger.info("  %-20s %.4f", k, v)
 
     print("\n" + "=" * 60)
-    print("Narsil-ML Phase 2 Multi-task Results")
+    print("Compass-ML Phase 2 Multi-task Results")
     print("=" * 60)
     print(f"Config:     CNN + RNA-FM + RLPA + Multi-task")
     print(f"Params:     {model.count_trainable_params():,}")

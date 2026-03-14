@@ -1,4 +1,4 @@
-"""Shared style for all NARSIL figures.
+"""Shared style for all COMPASS figures.
 
 Conventions follow Nature Methods / Nucleic Acids Research:
 - Arial/Helvetica font family
@@ -52,12 +52,12 @@ PALETTE = {
 
 # Sequential colourmap for heatmaps
 CMAP_SEQ = mpl.colors.LinearSegmentedColormap.from_list(
-    "narsil_seq", [PALETTE["heatmap_low"], PALETTE["light_blue"], PALETTE["blue"]]
+    "compass_seq", [PALETTE["heatmap_low"], PALETTE["light_blue"], PALETTE["blue"]]
 )
 
 # Diverging colourmap for discrimination (blue = low activity, red = high)
 CMAP_DIV = mpl.colors.LinearSegmentedColormap.from_list(
-    "narsil_div", [PALETTE["diverging_low"], PALETTE["diverging_mid"], PALETTE["diverging_high"]]
+    "compass_div", [PALETTE["diverging_low"], PALETTE["diverging_mid"], PALETTE["diverging_high"]]
 )
 
 # Categorical colours for model comparison
@@ -80,7 +80,7 @@ FULL_PAGE = (180 * MM_TO_INCH, 220 * MM_TO_INCH)
 
 
 def apply_style() -> None:
-    """Apply NARSIL publication style to all matplotlib figures."""
+    """Apply COMPASS publication style to all matplotlib figures."""
     mpl.rcParams.update({
         # Font
         "font.family": "sans-serif",

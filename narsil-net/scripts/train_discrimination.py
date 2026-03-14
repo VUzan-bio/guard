@@ -10,8 +10,8 @@ Outputs:
   - checkpoints/disc_cv_results.json — CV metrics and feature importance
 
 Usage:
-    python narsil-net/scripts/train_discrimination.py
-    python narsil-net/scripts/train_discrimination.py --folds 5 --no-neural
+    python compass-net/scripts/train_discrimination.py
+    python compass-net/scripts/train_discrimination.py --folds 5 --no-neural
 
 References:
   - Huang et al. (2024) iMeta — EasyDesign dataset
@@ -33,8 +33,8 @@ import numpy as np
 # Ensure project root is importable
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
-sys.path.insert(0, str(_PROJECT_ROOT / "narsil-net" / "data"))
-sys.path.insert(0, str(_PROJECT_ROOT / "narsil-net"))
+sys.path.insert(0, str(_PROJECT_ROOT / "compass-net" / "data"))
+sys.path.insert(0, str(_PROJECT_ROOT / "compass-net"))
 
 from extract_discrimination_pairs import extract_discrimination_pairs, pairs_to_dataframe
 from thermo_discrimination_features import compute_features_batch, FEATURE_NAMES, compute_features_for_pair
@@ -105,9 +105,9 @@ def compute_heuristic_baseline(pairs: list) -> dict:
     """Compute heuristic discrimination predictions for comparison.
 
     Uses the position_sensitivity × mismatch_destab model from
-    narsil/scoring/discrimination.py as the baseline.
+    compass/scoring/discrimination.py as the baseline.
     """
-    from narsil.candidates.synthetic_mismatch import (
+    from compass.candidates.synthetic_mismatch import (
         MISMATCH_DESTABILISATION,
         POSITION_SENSITIVITY_PROFILES,
         MismatchType,
@@ -282,7 +282,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train discrimination prediction models")
     parser.add_argument("--folds", type=int, default=5, help="Number of CV folds")
     parser.add_argument("--no-neural", action="store_true", help="Skip neural model training")
-    parser.add_argument("--checkpoint-dir", type=str, default="narsil-net/checkpoints",
+    parser.add_argument("--checkpoint-dir", type=str, default="compass-net/checkpoints",
                         help="Directory for model checkpoints")
     parser.add_argument("--skip-cv", action="store_true", help="Skip CV, only train final models")
     args = parser.parse_args()

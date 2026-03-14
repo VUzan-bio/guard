@@ -62,12 +62,12 @@ class ScoringConfig(BaseModel):
     use_discrimination: bool = True
     ml_model_path: Optional[Path] = None
     ml_model_name: str = "heuristic"
-    # Narsil-ML integration (replaces SeqCNN when weights available)
-    scorer: str = "seq_cnn"  # "seq_cnn" or "narsil_ml"
-    narsil_ml_weights: Optional[Path] = None
+    # Compass-ML integration (replaces SeqCNN when weights available)
+    scorer: str = "seq_cnn"  # "seq_cnn" or "compass_ml"
+    compass_ml_weights: Optional[Path] = None
     rnafm_cache_dir: Optional[Path] = None
-    narsil_ml_use_rlpa: bool = True
-    narsil_ml_use_rnafm: bool = True
+    compass_ml_use_rlpa: bool = True
+    compass_ml_use_rnafm: bool = True
     jepa_encoder_path: Optional[Path] = None
     jepa_head_path: Optional[Path] = None
     jepa_mode: str = "efficiency"
@@ -101,7 +101,7 @@ class PrimerConfig(BaseModel):
 
 class PipelineConfig(BaseModel):
     """Top-level config — one object drives the full pipeline."""
-    name: str = "narsil_run"
+    name: str = "compass_run"
     output_dir: Path = Path("results")
     organism: str = "mtb"
     reference: ReferenceConfig

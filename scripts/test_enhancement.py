@@ -8,7 +8,7 @@ repo = Path(__file__).resolve().parent.parent
 if str(repo) not in sys.path:
     sys.path.insert(0, str(repo))
 
-from narsil.candidates.synthetic_mismatch import generate_enhanced_variants, EnhancementConfig
+from compass.candidates.synthetic_mismatch import generate_enhanced_variants, EnhancementConfig
 
 config = EnhancementConfig(cas_variant="enAsCas12a", allow_double_synthetic=True)
 

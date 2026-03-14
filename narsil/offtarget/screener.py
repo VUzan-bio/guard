@@ -38,8 +38,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from narsil.core.constants import ASCAS12A_PAM, ENASCAS12A_PAMS, pam_matches
-from narsil.core.types import (
+from compass.core.constants import ASCAS12A_PAM, ENASCAS12A_PAMS, pam_matches
+from compass.core.types import (
     CrRNACandidate,
     OffTargetHit,
     OffTargetReport,

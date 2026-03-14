@@ -1,9 +1,9 @@
-"""Transfer CNN weights from SeqCNN v1 to Narsil-ML CNN branch.
+"""Transfer CNN weights from SeqCNN v1 to Compass-ML CNN branch.
 
 The CNN branch is architecturally IDENTICAL to v1's conv layers,
 with matching layer names for direct weight transfer:
 
-    SeqCNN v1 (narsil/scoring/seq_cnn.py)    Narsil-ML CNNBranch
+    SeqCNN v1 (compass/scoring/seq_cnn.py)    Compass-ML CNNBranch
     ---------------------------------------- ----------------------------
     multi_scale.branch3.0 (Conv1d)          cnn.branch3.0 (Conv1d)
     multi_scale.branch3.1 (BatchNorm1d)     cnn.branch3.1 (BatchNorm1d)
@@ -13,13 +13,13 @@ with matching layer names for direct weight transfer:
     dilated.conv2.*                         cnn.dilated2.*
     reduce.*                                cnn.reduce.*
 
-v1 head (pool + dense layers) is NOT transferred -- Narsil-ML has
+v1 head (pool + dense layers) is NOT transferred -- Compass-ML has
 its own efficiency head with different input dimensions.
 
 Usage:
-    from narsil_ml.training.transfer_weights import transfer_v1_to_narsil_ml
-    model = NarsilML(use_rnafm=True)
-    model, n = transfer_v1_to_narsil_ml("narsil/weights/seq_cnn_best.pt", model)
+    from compass_ml.training.transfer_weights import transfer_v1_to_compass_ml
+    model = CompassML(use_rnafm=True)
+    model, n = transfer_v1_to_compass_ml("compass/weights/seq_cnn_best.pt", model)
     print(f"Transferred {n} parameter tensors")
 """
 
@@ -29,11 +29,11 @@ import logging
 
 import torch
 
-from ..narsil_ml import NarsilML
+from ..compass_ml import CompassML
 
 logger = logging.getLogger(__name__)
 
-# Mapping: v1 layer prefix -> Narsil-ML layer prefix
+# Mapping: v1 layer prefix -> Compass-ML layer prefix
 LAYER_MAPPING = {
     "multi_scale.branch3": "cnn.branch3",
     "multi_scale.branch5": "cnn.branch5",
@@ -47,16 +47,16 @@ LAYER_MAPPING = {
 SKIP_PREFIXES = {"pool", "head"}
 
 
-def transfer_v1_to_narsil_ml(
+def transfer_v1_to_compass_ml(
     v1_checkpoint: str,
-    narsil_ml: NarsilML,
+    compass_ml: CompassML,
     strict_cnn: bool = True,
-) -> tuple[NarsilML, int]:
-    """Load v1 CNN weights into Narsil-ML's CNN branch.
+) -> tuple[CompassML, int]:
+    """Load v1 CNN weights into Compass-ML's CNN branch.
 
     Args:
         v1_checkpoint: path to v1 checkpoint (.pt file).
-        narsil_ml: NarsilML instance with randomly initialised CNN branch.
+        compass_ml: CompassML instance with randomly initialised CNN branch.
         strict_cnn: if True, raise on shape mismatch in mapped layers.
 
     Returns:
@@ -67,7 +67,7 @@ def transfer_v1_to_narsil_ml(
     if "model_state_dict" in v1_state:
         v1_state = v1_state["model_state_dict"]
 
-    narsil_state = narsil_ml.state_dict()
+    compass_state = compass_ml.state_dict()
     transferred = 0
     skipped = 0
 
@@ -77,27 +77,27 @@ def transfer_v1_to_narsil_ml(
             skipped += 1
             continue
 
-        # Map v1 name to Narsil-ML name
-        narsil_name = None
-        for v1_prefix, narsil_prefix in LAYER_MAPPING.items():
+        # Map v1 name to Compass-ML name
+        compass_name = None
+        for v1_prefix, compass_prefix in LAYER_MAPPING.items():
             if v1_name.startswith(v1_prefix):
-                narsil_name = v1_name.replace(v1_prefix, narsil_prefix, 1)
+                compass_name = v1_name.replace(v1_prefix, compass_prefix, 1)
                 break
 
-        if narsil_name is None:
+        if compass_name is None:
             logger.debug("No mapping for v1 layer: %s", v1_name)
             skipped += 1
             continue
 
-        if narsil_name not in narsil_state:
-            logger.warning("Mapped name %s not found in Narsil-ML", narsil_name)
+        if compass_name not in compass_state:
+            logger.warning("Mapped name %s not found in Compass-ML", compass_name)
             skipped += 1
             continue
 
-        if narsil_state[narsil_name].shape != v1_param.shape:
+        if compass_state[compass_name].shape != v1_param.shape:
             msg = (
                 f"Shape mismatch: {v1_name} {tuple(v1_param.shape)} "
-                f"vs {narsil_name} {tuple(narsil_state[narsil_name].shape)}"
+                f"vs {compass_name} {tuple(compass_state[compass_name].shape)}"
             )
             if strict_cnn:
                 raise ValueError(msg)
@@ -105,14 +105,14 @@ def transfer_v1_to_narsil_ml(
             skipped += 1
             continue
 
-        narsil_state[narsil_name] = v1_param
+        compass_state[compass_name] = v1_param
         transferred += 1
 
-    narsil_ml.load_state_dict(narsil_state)
+    compass_ml.load_state_dict(compass_state)
 
     # Report
     non_cnn_params = sum(
-        1 for n in narsil_state if not n.startswith("cnn.")
+        1 for n in compass_state if not n.startswith("cnn.")
     )
     logger.info(
         "Weight transfer: %d tensors transferred, %d skipped, "
@@ -120,4 +120,4 @@ def transfer_v1_to_narsil_ml(
         transferred, skipped, non_cnn_params,
     )
 
-    return narsil_ml, transferred
+    return compass_ml, transferred

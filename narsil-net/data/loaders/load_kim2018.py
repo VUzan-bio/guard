@@ -57,7 +57,7 @@ def _load_sheet(xlsx_path: str, sheet_name: str) -> tuple[list[str], np.ndarray]
 
 
 def load_kim2018_domains(
-    xlsx_path: str = "narsil/data/kim2018/nbt4061_source_data.xlsx",
+    xlsx_path: str = "compass/data/kim2018/nbt4061_source_data.xlsx",
 ) -> dict:
     """Load Kim 2018 as multi-domain data.
 

@@ -30,7 +30,7 @@ from typing import Optional
 
 from Bio.Seq import Seq
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     MismatchPair,

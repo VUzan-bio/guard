@@ -1,10 +1,10 @@
-"""Active learning loop for Narsil-ML domain adaptation.
+"""Active learning loop for Compass-ML domain adaptation.
 
 Workflow:
     1. MC-dropout inference -> estimate uncertainty per candidate
     2. Select batch via UCB acquisition + sequence diversity
     3. Measure trans-cleavage on electrochemical platform
-    4. Fine-tune Narsil-ML on augmented dataset (Phase 3)
+    4. Fine-tune Compass-ML on augmented dataset (Phase 3)
     5. Recompute Pareto frontier -> track improvement
     6. Repeat 3-4 cycles
 
@@ -55,7 +55,7 @@ def mc_dropout_inference(
     learning signal from experimental validation.
 
     Args:
-        model: NarsilML (must have dropout layers).
+        model: CompassML (must have dropout layers).
         loader: DataLoader yielding candidate batches.
         n_samples: number of stochastic forward passes.
         device: torch device.
@@ -75,7 +75,7 @@ def mc_dropout_inference(
         # Get crRNA embeddings if available
         crrna_emb = None
         if embedding_cache is not None and "crrna_spacer" in batch:
-            from .train_narsil_ml import _get_batch_embeddings
+            from .train_compass_ml import _get_batch_embeddings
             crrna_emb = _get_batch_embeddings(
                 batch["crrna_spacer"], embedding_cache, device,
             )

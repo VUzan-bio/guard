@@ -1,6 +1,6 @@
-"""Tests for Narsil-ML pipeline integration (narsil/scoring/narsil_ml_scorer.py).
+"""Tests for Compass-ML pipeline integration (compass/scoring/compass_ml_scorer.py).
 
-Tests that the NarsilMlScorer adapter:
+Tests that the CompassMlScorer adapter:
 1. Loads weights and produces valid efficiency scores
 2. Falls back gracefully when weights/cache unavailable
 3. Implements the same Scorer interface as SequenceMLScorer
@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     HeuristicScore,
@@ -26,8 +26,8 @@ from narsil.core.types import (
     ScoredCandidate,
     Strand,
 )
-from narsil.scoring.base import Scorer
-from narsil.scoring.preprocessing import one_hot_encode
+from compass.scoring.base import Scorer
+from compass.scoring.preprocessing import one_hot_encode
 
 
 # ---------------------------------------------------------------------------
@@ -67,19 +67,19 @@ def _make_offtarget(candidate_id: str = "test_ATCGATCG") -> OffTargetReport:
 # ---------------------------------------------------------------------------
 
 class TestInterfaceCompliance:
-    """NarsilMlScorer must implement the Scorer ABC."""
+    """CompassMlScorer must implement the Scorer ABC."""
 
     def test_is_subclass_of_scorer(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        assert issubclass(NarsilMlScorer, Scorer)
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        assert issubclass(CompassMlScorer, Scorer)
 
     def test_has_score_method(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        assert hasattr(NarsilMlScorer, "score")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        assert hasattr(CompassMlScorer, "score")
 
     def test_has_score_batch_method(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        assert hasattr(NarsilMlScorer, "score_batch")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        assert hasattr(CompassMlScorer, "score_batch")
 
 
 # ---------------------------------------------------------------------------
@@ -90,13 +90,13 @@ class TestFallbackNoWeights:
     """When weights are unavailable, scorer falls back to heuristic."""
 
     def test_init_without_weights(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         assert scorer.model is None
 
     def test_score_without_model_uses_heuristic(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         candidate = _make_candidate()
         ot = _make_offtarget(candidate.candidate_id)
 
@@ -107,8 +107,8 @@ class TestFallbackNoWeights:
         assert len(result.ml_scores) == 0
 
     def test_score_batch_without_model(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
 
         candidates = [_make_candidate(spacer=f"ATCGATCGATCG{'ATCG'}{i:04d}"[:20]) for i in range(3)]
         offtargets = [_make_offtarget(c.candidate_id) for c in candidates]
@@ -120,8 +120,8 @@ class TestFallbackNoWeights:
         assert all(r.rank is not None for r in results)
 
     def test_predict_efficiency_without_model(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         candidate = _make_candidate()
         assert scorer.predict_efficiency(candidate) == 0.5
 
@@ -131,14 +131,14 @@ class TestFallbackNoWeights:
 # ---------------------------------------------------------------------------
 
 class TestWithMockModel:
-    """Test scoring with a mocked Narsil-ML model."""
+    """Test scoring with a mocked Compass-ML model."""
 
     def _make_mock_scorer(self):
-        """Create a NarsilMlScorer with a mock model that returns fixed predictions."""
+        """Create a CompassMlScorer with a mock model that returns fixed predictions."""
         import torch
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
 
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
 
         # Mock the model
         mock_model = MagicMock()
@@ -170,7 +170,7 @@ class TestWithMockModel:
         # ML score should be added
         assert len(result.ml_scores) >= 1
         ml = result.ml_scores[-1]
-        assert ml.model_name == "narsil_ml"
+        assert ml.model_name == "compass_ml"
         assert 0.0 <= ml.predicted_efficiency <= 1.0
 
     def test_score_batch_with_model(self):
@@ -186,7 +186,7 @@ class TestWithMockModel:
         assert len(results) == 3
         # All should have ML scores
         for r in results:
-            assert any(m.model_name == "narsil_ml" for m in r.ml_scores)
+            assert any(m.model_name == "compass_ml" for m in r.ml_scores)
         # Should be ranked
         ranks = [r.rank for r in results]
         assert sorted(ranks) == [1, 2, 3]
@@ -207,15 +207,15 @@ class TestContextEncoding:
     """Test the 34-nt context window construction."""
 
     def test_encode_context_shape(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         candidate = _make_candidate()
         context = scorer._encode_context(candidate)
         assert context.shape == (4, 34)
 
     def test_encode_context_is_one_hot(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         candidate = _make_candidate()
         context = scorer._encode_context(candidate)
         # Each position should sum to 0 (N/padding) or 1 (valid base)
@@ -223,8 +223,8 @@ class TestContextEncoding:
         assert all(s in (0.0, 1.0) for s in col_sums)
 
     def test_encode_proximity_candidate(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         candidate = _make_candidate(
             strategy=DetectionStrategy.PROXIMITY,
             mutation_pos=None,
@@ -241,8 +241,8 @@ class TestRNAFMEmbedding:
     """Test crRNA spacer derivation and embedding lookup."""
 
     def test_get_rnafm_no_cache_returns_none(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             use_rnafm=True,
             rnafm_cache_dir=None,
@@ -252,9 +252,9 @@ class TestRNAFMEmbedding:
 
     def test_get_rnafm_with_mock_cache(self):
         import torch
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
 
-        scorer = NarsilMlScorer(
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             use_rnafm=True,
         )
@@ -270,9 +270,9 @@ class TestRNAFMEmbedding:
         assert emb.shape == (20, 640)
 
     def test_cache_miss_returns_none(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
 
-        scorer = NarsilMlScorer(
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             use_rnafm=True,
         )
@@ -290,20 +290,20 @@ class TestRNAFMEmbedding:
 # Test: Real model loading (integration test, skipped if weights missing)
 # ---------------------------------------------------------------------------
 
-_WEIGHTS_PATH = Path("c:/Users/pushg/Documents/narsil/narsil/weights/narsil_ml_best.pt")
-_NARSIL_NET_DIR = Path("c:/Users/pushg/Documents/narsil/narsil-net")
+_WEIGHTS_PATH = Path("c:/Users/pushg/Documents/compass/compass/weights/compass_ml_best.pt")
+_COMPASS_NET_DIR = Path("c:/Users/pushg/Documents/compass/compass-net")
 
 
 @pytest.mark.skipif(
-    not _WEIGHTS_PATH.exists() or not _NARSIL_NET_DIR.exists(),
-    reason="Narsil-ML weights or narsil-net/ directory not available",
+    not _WEIGHTS_PATH.exists() or not _COMPASS_NET_DIR.exists(),
+    reason="Compass-ML weights or compass-net/ directory not available",
 )
 class TestRealModelIntegration:
-    """Integration tests with actual Narsil-ML weights."""
+    """Integration tests with actual Compass-ML weights."""
 
     def test_load_real_weights(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path=str(_WEIGHTS_PATH),
             use_rnafm=True,
             use_rlpa=True,
@@ -312,8 +312,8 @@ class TestRealModelIntegration:
         assert scorer.model is not None
 
     def test_predict_real_candidate(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path=str(_WEIGHTS_PATH),
             use_rnafm=True,
             use_rlpa=True,
@@ -325,8 +325,8 @@ class TestRealModelIntegration:
         assert 0.0 <= score <= 1.0
 
     def test_score_real_batch(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path=str(_WEIGHTS_PATH),
             use_rnafm=True,
             use_rlpa=True,
@@ -347,8 +347,8 @@ class TestRealModelIntegration:
 
     def test_cnn_only_fallback(self):
         """Without RNA-FM cache, model should still work (CNN-only)."""
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path=str(_WEIGHTS_PATH),
             use_rnafm=True,
             use_rlpa=True,
@@ -360,8 +360,8 @@ class TestRealModelIntegration:
         assert 0.0 <= score <= 1.0
 
     def test_validation_rho_loaded(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path=str(_WEIGHTS_PATH),
             use_rnafm=True,
             use_rlpa=True,
@@ -378,8 +378,8 @@ class TestCalibration:
     """Test temperature calibration and ensemble scoring."""
 
     def test_no_calibration_file_uses_raw(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             calibration_path="/nonexistent/cal.json",
         )
@@ -388,16 +388,16 @@ class TestCalibration:
         assert scorer.alpha == 0.0
 
     def test_calibrated_score_identity_when_uncalibrated(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             calibration_path="/nonexistent/cal.json",
         )
         assert scorer.calibrated_score(0.7) == 0.7
 
     def test_calibrated_score_spreads_distribution(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         scorer.calibrated = True
         scorer.temperature = 5.0
 
@@ -411,8 +411,8 @@ class TestCalibration:
         assert high > low
 
     def test_ensemble_score_blends(self):
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
         scorer.alpha = 0.35
         result = scorer.ensemble_score_val(0.8, 0.6)
         expected = 0.35 * 0.8 + 0.65 * 0.6
@@ -420,17 +420,17 @@ class TestCalibration:
 
     def test_calibration_loads_from_json(self, tmp_path):
         import json
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
 
-        cal_file = tmp_path / "narsil_ml_calibration.json"
+        cal_file = tmp_path / "compass_ml_calibration.json"
         cal_file.write_text(json.dumps({
-            "model": "narsil_ml",
+            "model": "compass_ml",
             "temperature": 4.5,
             "alpha": 0.30,
             "val_rho_ensemble": 0.72,
         }))
 
-        scorer = NarsilMlScorer(
+        scorer = CompassMlScorer(
             weights_path="/nonexistent/path.pt",
             calibration_path=str(cal_file),
         )
@@ -442,9 +442,9 @@ class TestCalibration:
     def test_score_populates_calibrated_fields(self):
         """When calibrated, score() should populate cnn_calibrated and ensemble_score."""
         import torch
-        from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
+        from compass.scoring.compass_ml_scorer import CompassMlScorer
 
-        scorer = NarsilMlScorer(weights_path="/nonexistent/path.pt")
+        scorer = CompassMlScorer(weights_path="/nonexistent/path.pt")
 
         # Mock model
         mock_model = MagicMock()
@@ -485,22 +485,22 @@ class TestCalibration:
 # ---------------------------------------------------------------------------
 
 class TestConfigIntegration:
-    """Test that ScoringConfig correctly supports narsil_ml scorer."""
+    """Test that ScoringConfig correctly supports compass_ml scorer."""
 
     def test_config_default_is_seq_cnn(self):
-        from narsil.core.config import ScoringConfig
+        from compass.core.config import ScoringConfig
         config = ScoringConfig()
         assert config.scorer == "seq_cnn"
 
-    def test_config_narsil_ml_fields(self):
-        from narsil.core.config import ScoringConfig
+    def test_config_compass_ml_fields(self):
+        from compass.core.config import ScoringConfig
         config = ScoringConfig(
-            scorer="narsil_ml",
-            narsil_ml_weights=Path("narsil/weights/narsil_ml_best.pt"),
-            rnafm_cache_dir=Path("narsil/data/embeddings/rnafm"),
-            narsil_ml_use_rlpa=True,
-            narsil_ml_use_rnafm=True,
+            scorer="compass_ml",
+            compass_ml_weights=Path("compass/weights/compass_ml_best.pt"),
+            rnafm_cache_dir=Path("compass/data/embeddings/rnafm"),
+            compass_ml_use_rlpa=True,
+            compass_ml_use_rnafm=True,
         )
-        assert config.scorer == "narsil_ml"
-        assert config.narsil_ml_use_rlpa is True
-        assert config.narsil_ml_use_rnafm is True
+        assert config.scorer == "compass_ml"
+        assert config.compass_ml_use_rlpa is True
+        assert config.compass_ml_use_rnafm is True

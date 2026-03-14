@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     HeuristicScore,
     MLScore,

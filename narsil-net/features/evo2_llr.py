@@ -1,7 +1,7 @@
 """Evo 2 log-likelihood ratio at the mutation site.
 
 Computes a SINGLE SCALAR per target: how "surprised" is Evo 2 by the
-resistance mutation? This is passed to Narsil-ML as an optional scalar
+resistance mutation? This is passed to Compass-ML as an optional scalar
 feature via the n_scalar_features parameter.
 
 NOT a full embedding branch -- just one pre-computed number per target.

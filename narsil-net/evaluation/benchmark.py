@@ -1,21 +1,21 @@
-"""Benchmark and ablation evaluation for Narsil-ML.
+"""Benchmark and ablation evaluation for Compass-ML.
 
 Produces the ablation table comparing model configurations:
     - Heuristic (baseline, 0 params)
     - SeqCNN v1 (CNN only, ~65K params)
-    - Narsil-ML: CNN only (sanity check = v1)
-    - Narsil-ML: CNN + RNA-FM
-    - Narsil-ML: CNN + RNA-FM + RLPA
-    - Narsil-ML: CNN + RNA-FM + RLPA + multi-task
+    - Compass-ML: CNN only (sanity check = v1)
+    - Compass-ML: CNN + RNA-FM
+    - Compass-ML: CNN + RNA-FM + RLPA
+    - Compass-ML: CNN + RNA-FM + RLPA + multi-task
 
 All configurations evaluated with 5-fold clustered CV.
 Reports: mean +/- std of Spearman rho across folds.
 Results averaged over 3 random seeds per configuration.
 
 Usage:
-    python -m narsil_ml.evaluation.benchmark \\
-        --data narsil/data/kim2018/nbt4061_source_data.xlsx \\
-        --output narsil-net/results/ablation.json
+    python -m compass_ml.evaluation.benchmark \\
+        --data compass/data/kim2018/nbt4061_source_data.xlsx \\
+        --output compass-net/results/ablation.json
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import torch
 from scipy.stats import spearmanr, pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-from ..narsil_ml import NarsilML
+from ..compass_ml import CompassML
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,8 @@ def evaluate_predictions(
     }
 
 
-def predict_narsil_ml(
-    model: NarsilML,
+def predict_compass_ml(
+    model: CompassML,
     target_onehots: torch.Tensor,
     crrna_embeddings: torch.Tensor | None = None,
     device: torch.device | None = None,
@@ -77,7 +77,7 @@ def predict_narsil_ml(
     """Run inference on a batch of targets.
 
     Args:
-        model: trained NarsilML.
+        model: trained CompassML.
         target_onehots: (N, 4, 34) one-hot target DNA.
         crrna_embeddings: (N, 20, 640) RNA-FM embeddings or None.
         device: torch device.
@@ -114,25 +114,25 @@ def predict_narsil_ml(
 
 ABLATION_CONFIGS = [
     {
-        "name": "Narsil-ML: CNN only",
+        "name": "Compass-ML: CNN only",
         "use_rnafm": False,
         "use_rloop_attention": False,
         "multitask": False,
     },
     {
-        "name": "Narsil-ML: CNN + RNA-FM",
+        "name": "Compass-ML: CNN + RNA-FM",
         "use_rnafm": True,
         "use_rloop_attention": False,
         "multitask": False,
     },
     {
-        "name": "Narsil-ML: CNN + RNA-FM + RLPA",
+        "name": "Compass-ML: CNN + RNA-FM + RLPA",
         "use_rnafm": True,
         "use_rloop_attention": True,
         "multitask": False,
     },
     {
-        "name": "Narsil-ML: CNN + RNA-FM + RLPA + MT",
+        "name": "Compass-ML: CNN + RNA-FM + RLPA + MT",
         "use_rnafm": True,
         "use_rloop_attention": True,
         "multitask": True,
@@ -174,7 +174,7 @@ def run_ablation(
         all_rhos: list[float] = []
 
         for seed in range(n_seeds):
-            model = NarsilML(**cfg)
+            model = CompassML(**cfg)
             n_params = model.count_trainable_params()
 
             if train_fn and evaluate_fn:

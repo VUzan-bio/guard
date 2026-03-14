@@ -1,4 +1,4 @@
-"""Multi-dataset domain-adversarial training for Narsil-ML.
+"""Multi-dataset domain-adversarial training for Compass-ML.
 
 Combines Kim 2018 (HT1-1 + HT1-2) with EasyDesign trans-cleavage data.
 Uses gradient reversal (Ganin et al. 2016) to learn domain-invariant
@@ -7,8 +7,8 @@ features that capture universal Cas12a biology, not batch effects.
 Evaluation on the SAME Kim 2018 HT2+HT3 test set for fair comparison
 with single-dataset rows.
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_multidataset.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_multidataset.py --device cuda
 """
 
 from __future__ import annotations
@@ -21,10 +21,10 @@ from scipy.stats import spearmanr, pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from run_phase1 import _setup, load_kim2018_sequences
 
@@ -33,15 +33,15 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narsil-ML multi-dataset + domain adversarial")
-    parser.add_argument("--data", type=str, default="narsil/data/kim2018/nbt4061_source_data.xlsx")
+    parser = argparse.ArgumentParser(description="Compass-ML multi-dataset + domain adversarial")
+    parser.add_argument("--data", type=str, default="compass/data/kim2018/nbt4061_source_data.xlsx")
     parser.add_argument("--easydesign", type=str,
-                        default="narsil-net/data/external/easydesign/Table_S2.xlsx")
-    parser.add_argument("--cache-dir", type=str, default="E:/narsil-net-data/cache/rnafm")
+                        default="compass-net/data/external/easydesign/Table_S2.xlsx")
+    parser.add_argument("--cache-dir", type=str, default="E:/compass-net-data/cache/rnafm")
     parser.add_argument("--pretrained", type=str,
-                        default="E:/narsil-net-data/weights/phase1_rlpa_best.pt")
+                        default="E:/compass-net-data/weights/phase1_rlpa_best.pt")
     parser.add_argument("--output", type=str,
-                        default="E:/narsil-net-data/weights/multidataset_da_best.pt")
+                        default="E:/compass-net-data/weights/multidataset_da_best.pt")
     parser.add_argument("--epochs", type=int, default=80)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=3e-4)
@@ -55,13 +55,13 @@ def main():
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.multi_dataset import MultiDatasetLoader, DatasetMeta, collate_multi
-    from narsil_ml.data.balanced_sampler import DomainBalancedSampler
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
-    from narsil_ml.training.reproducibility import seed_everything
-    from narsil_ml.heads.domain_head import domain_adaptation_lambda
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.multi_dataset import MultiDatasetLoader, DatasetMeta, collate_multi
+    from compass_ml.data.balanced_sampler import DomainBalancedSampler
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
+    from compass_ml.training.reproducibility import seed_everything
+    from compass_ml.heads.domain_head import domain_adaptation_lambda
     from torch.utils.data import DataLoader
 
     seed_everything(args.seed)
@@ -70,7 +70,7 @@ def main():
 
     # --- Load Kim 2018 as multi-domain ---
     logger.info("Loading Kim 2018 data (multi-domain)...")
-    from narsil_ml.data.loaders.load_kim2018 import load_kim2018_domains
+    from compass_ml.data.loaders.load_kim2018 import load_kim2018_domains
     kim_data = load_kim2018_domains(args.data)
 
     datasets = []
@@ -91,7 +91,7 @@ def main():
     easydesign_available = False
     if not args.no_easydesign:
         try:
-            from narsil_ml.data.loaders.load_easydesign import load_easydesign
+            from compass_ml.data.loaders.load_easydesign import load_easydesign
             ed_data = load_easydesign(args.easydesign, use_augmented=False)
             datasets.append({
                 "metadata": DatasetMeta(
@@ -139,8 +139,8 @@ def main():
     )
 
     # Val/test loaders (standard, from Kim 2018 data using existing pipeline)
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.training.train_narsil_ml import collate_single_target
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.training.train_compass_ml import collate_single_target
 
     val_ds = SingleTargetDataset(seqs_val, y_val.tolist())
     test_ds = SingleTargetDataset(seqs_test, y_test.tolist())
@@ -148,7 +148,7 @@ def main():
     test_loader = DataLoader(test_ds, batch_size=256, shuffle=False, collate_fn=collate_single_target)
 
     # --- Build model ---
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=False,
@@ -358,7 +358,7 @@ def main():
     config_str += ")"
 
     print("\n" + "=" * 60)
-    print(f"Narsil-ML Row 6: {config_str}")
+    print(f"Compass-ML Row 6: {config_str}")
     print("=" * 60)
     print(f"Config:     {config_str}")
     print(f"Params:     {model.count_trainable_params():,}")

@@ -28,7 +28,7 @@ Key design decisions for high-GC genomes (M.tb, P. aeruginosa):
      find nearest PAMs within ±200 bp of mutation on each strand.
      Generate proximity candidates flagged for AS-RPA primer design.
 
-Self-contained: no imports from narsil.core.constants for PAM logic.
+Self-contained: no imports from compass.core.constants for PAM logic.
 All IUPAC matching, PAM definitions, and candidate generation here.
 
 PAM desert problem (M.tb rpoB RRDR):
@@ -65,7 +65,7 @@ from typing import Optional
 
 from Bio.Seq import Seq
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     PAMVariant,

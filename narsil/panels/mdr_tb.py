@@ -15,7 +15,7 @@ Panel coverage:
   MTB:  IS6110 (species ID control — added by pipeline)
 """
 
-from narsil.core.types import Drug, Mutation, MutationCategory
+from compass.core.types import Drug, Mutation, MutationCategory
 
 
 def define_mdr_panel() -> list[Mutation]:

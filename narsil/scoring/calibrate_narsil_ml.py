@@ -1,14 +1,14 @@
-"""Temperature calibration and ensemble weight optimisation for Narsil-ML.
+"""Temperature calibration and ensemble weight optimisation for Compass-ML.
 
 Same approach as SeqCNN calibration (calibrate.py) but adapted for the
-Narsil-ML dual-branch architecture. The model's sigmoid output saturates
+Compass-ML dual-branch architecture. The model's sigmoid output saturates
 similarly, so we apply temperature scaling to spread predictions.
 
-The ensemble combines calibrated Narsil-ML scores with heuristic scores
+The ensemble combines calibrated Compass-ML scores with heuristic scores
 using weight alpha, found by maximising Spearman rho on the validation set.
 
 Usage:
-    python -m narsil.scoring.calibrate_narsil_ml [--weights PATH] [--data PATH]
+    python -m compass.scoring.calibrate_compass_ml [--weights PATH] [--data PATH]
 
 If no validation data is available yet, generates a default calibration
 from the model's output distribution on Kim 2018 data (same data used
@@ -28,20 +28,20 @@ from scipy.stats import spearmanr
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "narsil_ml_diagnostic.pt"
-_DEFAULT_OUTPUT = Path(__file__).resolve().parent.parent / "weights" / "narsil_ml_calibration.json"
+_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_diagnostic.pt"
+_DEFAULT_OUTPUT = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_calibration.json"
 
 
-def _predict_batch_narsil_ml(
+def _predict_batch_compass_ml(
     model,
     X: np.ndarray,
     device,
     use_rnafm: bool = False,
     batch_size: int = 512,
 ) -> np.ndarray:
-    """Run Narsil-ML inference on one-hot encoded sequences.
+    """Run Compass-ML inference on one-hot encoded sequences.
 
-    Returns raw sigmoid outputs (not logits) since Narsil-ML's
+    Returns raw sigmoid outputs (not logits) since Compass-ML's
     architecture doesn't expose pre-sigmoid logits as cleanly as SeqCNN.
     We calibrate in probability space using Platt-style temperature scaling.
 
@@ -152,17 +152,17 @@ def _compute_heuristic_scores(X: np.ndarray) -> np.ndarray:
     return np.array(scores, dtype=np.float32)
 
 
-def calibrate_narsil_ml(
+def calibrate_compass_ml(
     weights_path: str | Path = _DEFAULT_WEIGHTS,
-    data_path: str | Path = "narsil/data/kim2018/nbt4061_source_data.xlsx",
+    data_path: str | Path = "compass/data/kim2018/nbt4061_source_data.xlsx",
     output_path: str | Path = _DEFAULT_OUTPUT,
     use_rnafm: bool = False,
     use_rlpa: bool = True,
 ) -> dict:
-    """Run full Narsil-ML calibration: find optimal T and alpha, save to JSON.
+    """Run full Compass-ML calibration: find optimal T and alpha, save to JSON.
 
     Args:
-        weights_path: Path to narsil_ml_best.pt checkpoint.
+        weights_path: Path to compass_ml_best.pt checkpoint.
         data_path: Path to Kim 2018 source data (Excel).
         output_path: Where to save calibration JSON.
         use_rnafm: Whether to use RNA-FM embeddings (requires cache).
@@ -171,26 +171,26 @@ def calibrate_narsil_ml(
     import sys
     import importlib
     import torch
-    from narsil.scoring.data_loader import load_kim2018
+    from compass.scoring.data_loader import load_kim2018
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Import Narsil-ML model
-    narsil_ml_dir = Path(__file__).resolve().parent.parent.parent / "narsil-net"
-    narsil_ml_str = str(narsil_ml_dir)
-    if "narsil_ml" not in sys.modules:
-        if narsil_ml_str not in sys.path:
-            sys.path.insert(0, narsil_ml_str)
+    # Import Compass-ML model
+    compass_ml_dir = Path(__file__).resolve().parent.parent.parent / "compass-net"
+    compass_ml_str = str(compass_ml_dir)
+    if "compass_ml" not in sys.modules:
+        if compass_ml_str not in sys.path:
+            sys.path.insert(0, compass_ml_str)
         spec = importlib.util.spec_from_file_location(
-            "narsil_ml",
-            str(narsil_ml_dir / "__init__.py"),
-            submodule_search_locations=[narsil_ml_str],
+            "compass_ml",
+            str(compass_ml_dir / "__init__.py"),
+            submodule_search_locations=[compass_ml_str],
         )
         mod = importlib.util.module_from_spec(spec)
-        sys.modules["narsil_ml"] = mod
+        sys.modules["compass_ml"] = mod
         spec.loader.exec_module(mod)
 
-    from narsil_ml import NarsilML
+    from compass_ml import CompassML
 
     # Load checkpoint first to detect architecture
     checkpoint = torch.load(str(weights_path), map_location=device, weights_only=False)
@@ -203,7 +203,7 @@ def calibrate_narsil_ml(
         use_rnafm = True
 
     # Load model with correct architecture
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=use_rnafm,
         use_rloop_attention=use_rlpa,
         multitask=False,
@@ -218,7 +218,7 @@ def calibrate_narsil_ml(
     (X_train, y_train), (X_val, y_val), (X_test, y_test) = load_kim2018(data_path)
 
     # Get raw predictions on validation set
-    val_raw = _predict_batch_narsil_ml(model, X_val, device, use_rnafm=use_rnafm)
+    val_raw = _predict_batch_compass_ml(model, X_val, device, use_rnafm=use_rnafm)
 
     # Find optimal temperature
     optimal_T = find_optimal_temperature(val_raw, y_val)
@@ -242,7 +242,7 @@ def calibrate_narsil_ml(
     ens_rho, _ = spearmanr(ensemble, y_val)
 
     # Test set metrics
-    test_raw = _predict_batch_narsil_ml(model, X_test, device, use_rnafm=use_rnafm)
+    test_raw = _predict_batch_compass_ml(model, X_test, device, use_rnafm=use_rnafm)
     test_logits = _logit(test_raw)
     test_calibrated = _sigmoid(test_logits / optimal_T)
     test_heuristic = _compute_heuristic_scores(X_test)
@@ -253,7 +253,7 @@ def calibrate_narsil_ml(
     test_ens_rho, _ = spearmanr(test_ensemble, y_test)
 
     calibration = {
-        "model": "narsil_ml",
+        "model": "compass_ml",
         "temperature": round(optimal_T, 4),
         "alpha": round(optimal_alpha, 4),
         "use_rnafm": use_rnafm,
@@ -274,7 +274,7 @@ def calibrate_narsil_ml(
     with open(output_path, "w") as f:
         json.dump(calibration, f, indent=2)
 
-    print(f"\nNarsil-ML Temperature calibration:")
+    print(f"\nCompass-ML Temperature calibration:")
     print(f"  Optimal T = {optimal_T:.2f}")
     print(f"  Raw GN:        range [{val_raw.min():.3f}, {val_raw.max():.3f}], val rho = {raw_rho:.4f}")
     print(f"  Calibrated GN: range [{gn_calibrated.min():.3f}, {gn_calibrated.max():.3f}], val rho = {cal_rho:.4f}")
@@ -295,14 +295,14 @@ def calibrate_narsil_ml(
 if __name__ == "__main__":
     import argparse
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description="Calibrate Narsil-ML scores")
+    parser = argparse.ArgumentParser(description="Calibrate Compass-ML scores")
     parser.add_argument("--weights", default=str(_DEFAULT_WEIGHTS))
-    parser.add_argument("--data", default="narsil/data/kim2018/nbt4061_source_data.xlsx")
+    parser.add_argument("--data", default="compass/data/kim2018/nbt4061_source_data.xlsx")
     parser.add_argument("--output", default=str(_DEFAULT_OUTPUT))
     parser.add_argument("--rlpa", action="store_true", default=True)
     parser.add_argument("--no-rlpa", dest="rlpa", action="store_false")
     args = parser.parse_args()
-    calibrate_narsil_ml(
+    calibrate_compass_ml(
         weights_path=args.weights,
         data_path=args.data,
         output_path=args.output,

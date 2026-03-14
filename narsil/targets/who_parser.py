@@ -2,7 +2,7 @@
 
 The catalogue is distributed as an Excel/TSV file with columns for gene, mutation,
 drug, confidence grading, etc. This parser normalises the heterogeneous notation
-into the canonical form used throughout NARSIL.
+into the canonical form used throughout COMPASS.
 
 Reference: WHO (2023). Catalogue of mutations in Mycobacterium tuberculosis complex
 and their association with drug resistance, 2nd edition.
@@ -17,7 +17,7 @@ from typing import Optional
 
 import pandas as pd
 
-from narsil.core.types import Drug, Mutation
+from compass.core.types import Drug, Mutation
 
 logger = logging.getLogger(__name__)
 

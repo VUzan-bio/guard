@@ -41,7 +41,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from narsil.core.types import CrRNACandidate
+from compass.core.types import CrRNACandidate
 
 logger = logging.getLogger(__name__)
 
@@ -935,7 +935,7 @@ class CandidateFilter:
         Spacer-only MFE misses DR-spacer interactions that can sequester
         the spacer's seed region and reduce Cas12a activity.
         """
-        from narsil.core.constants import CAS12A_DR
+        from compass.core.constants import CAS12A_DR
 
         # Convert spacer DNA to RNA for folding
         _dna_to_rna = {"A": "A", "T": "U", "G": "G", "C": "C"}

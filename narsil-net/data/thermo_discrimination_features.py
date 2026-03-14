@@ -43,22 +43,22 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Ensure narsil-net is importable
-_NARSIL_NET_DIR = Path(__file__).resolve().parent.parent
-if str(_NARSIL_NET_DIR) not in sys.path:
-    sys.path.insert(0, str(_NARSIL_NET_DIR))
+# Ensure compass-net is importable
+_COMPASS_NET_DIR = Path(__file__).resolve().parent.parent
+if str(_COMPASS_NET_DIR) not in sys.path:
+    sys.path.insert(0, str(_COMPASS_NET_DIR))
 
-_NARSIL_DIR = _NARSIL_NET_DIR.parent
-if str(_NARSIL_DIR) not in sys.path:
-    sys.path.insert(0, str(_NARSIL_DIR))
+_COMPASS_DIR = _COMPASS_NET_DIR.parent
+if str(_COMPASS_DIR) not in sys.path:
+    sys.path.insert(0, str(_COMPASS_DIR))
 
 # Import existing infrastructure
 try:
     from features.thermodynamic import RNA_DNA_NN, INIT_DH, INIT_DS
 except ImportError:
-    from narsil.research.thermo_profile import RNA_DNA_NN, INIT_DH, INIT_DS
+    from compass.research.thermo_profile import RNA_DNA_NN, INIT_DH, INIT_DS
 
-from narsil.candidates.synthetic_mismatch import (
+from compass.candidates.synthetic_mismatch import (
     MISMATCH_DESTABILISATION,
     POSITION_SENSITIVITY_PROFILES,
     MismatchType,
@@ -280,7 +280,7 @@ def compute_features_batch(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    from narsil_ml_data_extract import extract_discrimination_pairs
+    from compass_ml_data_extract import extract_discrimination_pairs
 
     # Handle import from different locations
     import importlib

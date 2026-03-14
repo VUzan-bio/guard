@@ -20,9 +20,9 @@ import copy
 import logging
 from dataclasses import dataclass
 
-from narsil.core.types import PanelMember, ScoredCandidate
-from narsil.optimisation.metrics import DiagnosticMetrics, compute_diagnostic_metrics
-from narsil.optimisation.profiles import ParameterProfile, BALANCED
+from compass.core.types import PanelMember, ScoredCandidate
+from compass.optimisation.metrics import DiagnosticMetrics, compute_diagnostic_metrics
+from compass.optimisation.profiles import ParameterProfile, BALANCED
 
 logger = logging.getLogger(__name__)
 

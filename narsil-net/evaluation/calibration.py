@@ -1,4 +1,4 @@
-"""Calibration check and temperature scaling for Narsil-ML.
+"""Calibration check and temperature scaling for Compass-ML.
 
 Active learning requires meaningful uncertainty estimates. If MC-dropout
 predictions are miscalibrated, the acquisition function will select

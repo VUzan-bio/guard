@@ -1,5 +1,5 @@
 """
-Compare PAM coverage across Cas12a variants on the NARSIL panel.
+Compare PAM coverage across Cas12a variants on the COMPASS panel.
 
 For each variant with a scanner_variant mapping, runs the ACTUAL PAM
 scanner against the H37Rv genome around each mutation site.
@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from narsil.nuclease.profile_loader import NucleaseProfile
+from compass.nuclease.profile_loader import NucleaseProfile
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +85,8 @@ def _resolve_panel_targets() -> Optional[List[dict]]:
     Returns list of {label, drug, target} dicts, or None if genome unavailable.
     """
     try:
-        from narsil.panels.mdr_tb import define_mdr_panel
-        from narsil.targets.resolver import TargetResolver
+        from compass.panels.mdr_tb import define_mdr_panel
+        from compass.targets.resolver import TargetResolver
 
         resolver = TargetResolver()
         mutations = define_mdr_panel()
@@ -113,7 +113,7 @@ def _resolve_panel_targets() -> Optional[List[dict]]:
 
 def _scan_variant(scanner_key: str, targets: List[dict]) -> dict:
     """Run PAM scanner with a specific variant config on all targets."""
-    from narsil.candidates.scanner import PAMScanner, CONFIGS
+    from compass.candidates.scanner import PAMScanner, CONFIGS
 
     if scanner_key not in CONFIGS:
         raise ValueError(f"Unknown scanner variant: {scanner_key}")

@@ -226,7 +226,7 @@ class RNAFMEncoder(nn.Module):
 # ======================================================================
 
 class RNAFMLoRABranch(nn.Module):
-    """Live RNA-FM with LoRA adapters + projection to Narsil-ML feature space.
+    """Live RNA-FM with LoRA adapters + projection to Compass-ML feature space.
 
     Input: list of RNA strings (crRNA spacers, 20-nt)
     Output: (batch, 34, proj_dim) per-position features aligned to target DNA

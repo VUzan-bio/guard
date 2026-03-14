@@ -35,10 +35,10 @@ import math
 import sys
 from pathlib import Path
 
-# Import NN parameters from narsil-net thermodynamic module
-_NARSIL_NET_DIR = Path(__file__).resolve().parent.parent.parent / "narsil-net"
-if str(_NARSIL_NET_DIR) not in sys.path:
-    sys.path.insert(0, str(_NARSIL_NET_DIR))
+# Import NN parameters from compass-net thermodynamic module
+_COMPASS_NET_DIR = Path(__file__).resolve().parent.parent.parent / "compass-net"
+if str(_COMPASS_NET_DIR) not in sys.path:
+    sys.path.insert(0, str(_COMPASS_NET_DIR))
 
 try:
     from features.thermodynamic import (

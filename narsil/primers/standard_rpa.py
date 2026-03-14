@@ -32,7 +32,7 @@ from typing import Optional
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.Seq import Seq
 
-from narsil.core.constants import (
+from compass.core.constants import (
     RPA_AMPLICON_MAX,
     RPA_AMPLICON_MIN,
     RPA_AMPLICON_SOFT_PENALTY_START,
@@ -41,7 +41,7 @@ from narsil.core.constants import (
     RPA_TM_MAX,
     RPA_TM_MIN,
 )
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     RPAPrimer,

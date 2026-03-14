@@ -64,7 +64,7 @@ def extract_input_window(
     The window is centered on PAM + spacer. Flanking context fills to
     total_len. If spacer < 23 nt, more downstream context is included.
 
-    For NARSIL integration: the scanner provides PAM, spacer, and
+    For COMPASS integration: the scanner provides PAM, spacer, and
     flanking context from the target's flanking_seq.
     """
     core = pam + spacer

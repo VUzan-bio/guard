@@ -7,7 +7,7 @@ combines calibrated CNN scores with heuristic scores using weight α.
 Both T and α are found by maximising Spearman ρ on the validation set.
 
 Usage:
-    python -m narsil.scoring.calibrate
+    python -m compass.scoring.calibrate
 """
 
 from __future__ import annotations
@@ -114,14 +114,14 @@ def _compute_heuristic_scores(X: np.ndarray) -> np.ndarray:
 
 
 def calibrate_and_save(
-    cnn_weights: str = "narsil/weights/seq_cnn_best.pt",
-    data_path: str = "narsil/data/kim2018/nbt4061_source_data.xlsx",
-    output_path: str = "narsil/weights/calibration.json",
+    cnn_weights: str = "compass/weights/seq_cnn_best.pt",
+    data_path: str = "compass/data/kim2018/nbt4061_source_data.xlsx",
+    output_path: str = "compass/weights/calibration.json",
 ) -> dict:
     """Run full calibration: find optimal T and α, save to JSON."""
     import torch
-    from narsil.scoring.data_loader import load_kim2018
-    from narsil.scoring.seq_cnn import SeqCNN
+    from compass.scoring.data_loader import load_kim2018
+    from compass.scoring.seq_cnn import SeqCNN
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

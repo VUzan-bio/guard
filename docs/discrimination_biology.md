@@ -1,7 +1,7 @@
 # Discrimination Biology: Why Cas12a Distinguishes Some Mutations Better Than Others
 
 This document explains the biophysical basis for CRISPR-Cas12a discrimination ratios
-in the NARSIL pipeline, why certain drug classes show low predicted specificity, and how
+in the COMPASS pipeline, why certain drug classes show low predicted specificity, and how
 the pipeline addresses these challenges.
 
 ## Three Factors Governing Discrimination
@@ -23,8 +23,8 @@ position-dependent sensitivity gradient:
 target specificity of CRISPR-Cas12a. *Mol Cell* **71**, 816–824 (2018).
 [DOI: 10.1016/j.molcel.2018.06.043](https://doi.org/10.1016/j.molcel.2018.06.043)
 
-**Implementation:** `narsil/scoring/discrimination.py` — position-dependent penalty
-lookup; `narsil-net/attention/rloop_attention.py` — RLPA causal attention encoding
+**Implementation:** `compass/scoring/discrimination.py` — position-dependent penalty
+lookup; `compass-net/attention/rloop_attention.py` — RLPA causal attention encoding
 directional R-loop propagation.
 
 ### 2. Mismatch Type (Transition vs Transversion)
@@ -37,8 +37,8 @@ mismatch determines how much it destabilises the RNA:DNA heteroduplex:
 - **Transitions** (purine ↔ purine or pyrimidine ↔ pyrimidine, e.g., A→G, C→T):
   Smaller distortion, partially tolerated, lower discrimination.
 
-The heuristic scorer (`narsil/scoring/heuristic.py`) applies a fixed penalty per
-position but does not model mismatch type. Narsil-ML learns mismatch-type effects
+The heuristic scorer (`compass/scoring/heuristic.py`) applies a fixed penalty per
+position but does not model mismatch type. Compass-ML learns mismatch-type effects
 implicitly from the one-hot encoded sequence context.
 
 **Reference:** Kim D, Kim J, Hur JK, et al. Genome-wide analysis reveals
@@ -56,8 +56,8 @@ This means:
 - AT-rich regions amplify mismatch penalties → higher discrimination
 - GC-rich regions rescue mismatches → lower discrimination
 
-**Implementation:** `narsil/scoring/heuristic.py` — GC content feature (weight 0.20);
-`narsil-net/features/thermodynamic.py` — local GC and melting temperature features.
+**Implementation:** `compass/scoring/heuristic.py` — GC content feature (weight 0.20);
+`compass-net/features/thermodynamic.py` — local GC and melting temperature features.
 
 ## Why EMB and PZA Show Low Specificity
 
@@ -79,7 +79,7 @@ diagnostic-grade specificity (≥3× required for WHO TPP compliance).
 
 ### Synthetic Mismatch Enhancement (Module 6)
 
-For targets with low natural discrimination, Module 6 (`narsil/candidates/synthetic_mismatch.py`)
+For targets with low natural discrimination, Module 6 (`compass/candidates/synthetic_mismatch.py`)
 introduces an engineered second mismatch in the seed region of the crRNA. This creates
 a double-mismatch penalty on wildtype DNA that is disproportionately larger than the
 single-mismatch penalty on mutant DNA:
@@ -91,13 +91,13 @@ single-mismatch penalty on mutant DNA:
 The SM optimizer selects positions and substitutions that maximise the wildtype penalty
 while preserving mutant activity above the efficiency threshold.
 
-### Narsil-ML vs Heuristic Scoring
+### Compass-ML vs Heuristic Scoring
 
 The heuristic scorer computes discrimination as a position-dependent lookup table.
 It captures the dominant effect (position) but misses mismatch type and sequence
 context interactions.
 
-Narsil-ML (`narsil/scoring/narsil_ml_scorer.py`) improves discrimination prediction
+Compass-ML (`compass/scoring/compass_ml_scorer.py`) improves discrimination prediction
 through three mechanisms:
 
 1. **CNN branch** — Learns nonlinear nucleotide interactions from 15K Cas12a
@@ -116,9 +116,9 @@ through three mechanisms:
 **Expected impact on diagnostics:**
 - Sensitivity: Similar to heuristic (~93%) — both agree on which targets have
   viable candidates.
-- Specificity: Should improve — Narsil-ML's discrimination predictions are better
+- Specificity: Should improve — Compass-ML's discrimination predictions are better
   calibrated, moving from ~79% toward higher values.
-- Ranking: More trustworthy — candidates Narsil-ML says are discriminating are
+- Ranking: More trustworthy — candidates Compass-ML says are discriminating are
   more likely to actually discriminate in the lab.
 
 ### Active Learning Loop (Future)
@@ -128,13 +128,13 @@ The active learning module will:
 
 1. Select the highest-information candidates for electrochemical testing
 2. Measure real MUT/WT signal ratios on the platform
-3. Feed measured discrimination back into Narsil-ML fine-tuning
+3. Feed measured discrimination back into Compass-ML fine-tuning
 4. Iteratively close the gap between predicted and measured performance
 
 This is the path from in silico 79% specificity to experimentally validated
 98% specificity.
 
-## Comparison: Heuristic vs Narsil-ML Diagnostics
+## Comparison: Heuristic vs Compass-ML Diagnostics
 
 To generate a thesis-quality comparison figure:
 
@@ -142,12 +142,12 @@ To generate a thesis-quality comparison figure:
 # Run with heuristic scorer (default)
 python scripts/run_full_pipeline.py --config config/default.yaml
 
-# Run with Narsil-ML scorer
+# Run with Compass-ML scorer
 python scripts/run_full_pipeline.py --config config/default.yaml \
-  --override scoring.scorer=narsil_ml \
-  --override scoring.narsil_ml_weights=narsil/weights/narsil_ml_best.pt
+  --override scoring.scorer=compass_ml \
+  --override scoring.compass_ml_weights=compass/weights/compass_ml_best.pt
 ```
 
 The Diagnostics tab will show `Scored by: Heuristic (Level 1)` vs
-`Scored by: Narsil-ML (Level 3)`, allowing direct comparison of sensitivity,
+`Scored by: Compass-ML (Level 3)`, allowing direct comparison of sensitivity,
 specificity, and per-drug-class WHO compliance.

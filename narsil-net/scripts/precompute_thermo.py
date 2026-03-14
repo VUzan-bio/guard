@@ -4,7 +4,7 @@ Saves a (N, 3) tensor: [folding_dg, hybrid_dg, melting_tm] per sequence,
 plus normalization stats (mean, std) for each feature.
 
 Usage:
-    python narsil-net/scripts/precompute_thermo.py
+    python compass-net/scripts/precompute_thermo.py
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ import numpy as np
 import torch
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from run_phase1 import _setup, load_kim2018_sequences
 from features.thermodynamic import compute_all_features
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    xlsx_path = "narsil/data/kim2018/nbt4061_source_data.xlsx"
+    xlsx_path = "compass/data/kim2018/nbt4061_source_data.xlsx"
     (seqs_train, y_train), (seqs_val, y_val), (seqs_test, y_test) = load_kim2018_sequences(xlsx_path)
     all_seqs = seqs_train + seqs_val + seqs_test
     all_labels = np.concatenate([y_train, y_val, y_test])
@@ -64,7 +64,7 @@ def main():
     features_norm = (features_array - mean) / std
 
     # Save
-    out_path = os.path.join("E:/narsil-net-data/cache", "thermo_features.pt")
+    out_path = os.path.join("E:/compass-net-data/cache", "thermo_features.pt")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     torch.save({
         "features": torch.from_numpy(features_norm),

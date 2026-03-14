@@ -5,7 +5,7 @@ for deterministic operation. Required for credible ablation tables --
 results must be reproducible across runs.
 
 Usage:
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.training.reproducibility import seed_everything
     seed_everything(42)
 """
 

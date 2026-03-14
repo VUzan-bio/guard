@@ -4,13 +4,13 @@ RNA-FM inference is too slow to run every training batch. This cache
 stores pre-computed embeddings on disk for O(1) lookup during training.
 
 Usage (one-time):
-    python -m narsil_ml.data.embedding_cache \\
+    python -m compass_ml.data.embedding_cache \\
         --sequences sequences.txt \\
-        --cache_dir narsil-net/cache/rnafm \\
+        --cache_dir compass-net/cache/rnafm \\
         --model_path RNA-FM_pretrained.pth
 
 During training:
-    cache = EmbeddingCache("narsil-net/cache/rnafm")
+    cache = EmbeddingCache("compass-net/cache/rnafm")
     emb = cache.get("AUGCCGAUUCGA...")  # (20, 640) tensor
 """
 

@@ -1,5 +1,5 @@
 """Pipeline orchestration and CLI."""
 
-from narsil.pipeline.runner import NARSILPipeline
+from compass.pipeline.runner import COMPASSPipeline
 
-__all__ = ["NARSILPipeline"]
+__all__ = ["COMPASSPipeline"]

@@ -1,12 +1,12 @@
-"""Narsil-ML: Dual-branch CRISPR-Cas12a guide scoring with physics-informed attention.
+"""Compass-ML: Dual-branch CRISPR-Cas12a guide scoring with physics-informed attention.
 
 Architecture:
     CNN (target DNA) + RNA-FM (crRNA) -> RLPA -> efficiency + discrimination
 
 Usage:
-    from narsil_ml import NarsilML
+    from compass_ml import CompassML
 
-    model = NarsilML(use_rnafm=True, use_rloop_attention=True, multitask=True)
+    model = CompassML(use_rnafm=True, use_rloop_attention=True, multitask=True)
     output = model(
         target_onehot=target_dna,      # (batch, 4, 34)
         crrna_rnafm_emb=crrna_emb,     # (batch, 20, 640)
@@ -16,7 +16,7 @@ Usage:
     discrimination = output["discrimination"] # (batch, 1)
 """
 
-from .narsil_ml import NarsilML
+from .compass_ml import CompassML
 
 __version__ = "0.1.0"
-__all__ = ["NarsilML"]
+__all__ = ["CompassML"]

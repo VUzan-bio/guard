@@ -1,7 +1,7 @@
-"""Smoke tests for Narsil-ML architecture.
+"""Smoke tests for Compass-ML architecture.
 
-Run from the narsil/ root:
-    python narsil-net/test_narsil_ml.py
+Run from the compass/ root:
+    python compass-net/test_compass_ml.py
 """
 
 from __future__ import annotations
@@ -12,11 +12,11 @@ import importlib
 import importlib.util
 
 # ---------------------------------------------------------------------------
-# Bootstrap: make narsil-net/ importable as "narsil_ml" despite the hyphen
+# Bootstrap: make compass-net/ importable as "compass_ml" despite the hyphen
 # ---------------------------------------------------------------------------
 
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # narsil-net/
-_ROOT_DIR = os.path.dirname(_SCRIPT_DIR)                   # narsil/
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # compass-net/
+_ROOT_DIR = os.path.dirname(_SCRIPT_DIR)                   # compass/
 
 def _register(full_name: str, file_path: str, search_paths: list[str] | None = None):
     """Register a module/package in sys.modules from an explicit file path."""
@@ -31,10 +31,10 @@ def _register(full_name: str, file_path: str, search_paths: list[str] | None = N
     return spec, mod
 
 def _setup():
-    """Register narsil-net/ as the 'narsil_ml' package."""
+    """Register compass-net/ as the 'compass_ml' package."""
     # 1. Register the top-level package
     pkg_init = os.path.join(_SCRIPT_DIR, "__init__.py")
-    _register("narsil_ml", pkg_init, [_SCRIPT_DIR])
+    _register("compass_ml", pkg_init, [_SCRIPT_DIR])
 
     # 2. Register each subpackage
     for sub in ["branches", "attention", "heads", "losses", "data",
@@ -42,10 +42,10 @@ def _setup():
         sub_dir = os.path.join(_SCRIPT_DIR, sub)
         sub_init = os.path.join(sub_dir, "__init__.py")
         if os.path.isfile(sub_init):
-            _register(f"narsil_ml.{sub}", sub_init, [sub_dir])
+            _register(f"compass_ml.{sub}", sub_init, [sub_dir])
 
-    # 3. Register narsil_ml.narsil_ml (the main model module)
-    _register("narsil_ml.narsil_ml", os.path.join(_SCRIPT_DIR, "narsil_ml.py"))
+    # 3. Register compass_ml.compass_ml (the main model module)
+    _register("compass_ml.compass_ml", os.path.join(_SCRIPT_DIR, "compass_ml.py"))
 
     # 4. Register individual child modules so relative imports resolve
     for sub in ["branches", "attention", "heads", "losses", "data",
@@ -56,21 +56,21 @@ def _setup():
         for fname in sorted(os.listdir(sub_dir)):
             if fname.endswith(".py") and fname != "__init__.py":
                 mod_name = fname[:-3]
-                full = f"narsil_ml.{sub}.{mod_name}"
+                full = f"compass_ml.{sub}.{mod_name}"
                 fpath = os.path.join(sub_dir, fname)
                 _register(full, fpath)
 
     # 5. Execute modules in dependency order
-    _exec("narsil_ml.branches")
-    _exec("narsil_ml.attention")
-    _exec("narsil_ml.heads")
-    _exec("narsil_ml.losses")
-    _exec("narsil_ml.data")
-    _exec("narsil_ml.features")
-    _exec("narsil_ml.narsil_ml")
-    _exec("narsil_ml.evaluation")
-    _exec("narsil_ml.training")
-    _exec("narsil_ml")
+    _exec("compass_ml.branches")
+    _exec("compass_ml.attention")
+    _exec("compass_ml.heads")
+    _exec("compass_ml.losses")
+    _exec("compass_ml.data")
+    _exec("compass_ml.features")
+    _exec("compass_ml.compass_ml")
+    _exec("compass_ml.evaluation")
+    _exec("compass_ml.training")
+    _exec("compass_ml")
 
 def _exec(full_name: str):
     """Execute a registered module and all its children."""
@@ -107,7 +107,7 @@ import torch
 
 
 def test_cnn_branch():
-    from narsil_ml.branches.cnn_branch import CNNBranch
+    from compass_ml.branches.cnn_branch import CNNBranch
     model = CNNBranch(in_channels=4, branches=32, out_dim=64)
     x = torch.randn(2, 4, 34)
     out = model(x)
@@ -116,7 +116,7 @@ def test_cnn_branch():
 
 
 def test_rnafm_branch():
-    from narsil_ml.branches.rnafm_branch import RNAFMBranch
+    from compass_ml.branches.rnafm_branch import RNAFMBranch
     model = RNAFMBranch(embed_dim=640, proj_dim=64, target_len=34)
     emb = torch.randn(2, 20, 640)
     out = model(emb)
@@ -129,7 +129,7 @@ def test_rnafm_branch():
 
 
 def test_rloop_attention():
-    from narsil_ml.attention.rloop_attention import RLoopAttention
+    from compass_ml.attention.rloop_attention import RLoopAttention
     model = RLoopAttention(d_model=128)
     model.eval()  # disable dropout so attn weights sum to 1
     x = torch.randn(2, 34, 128)
@@ -141,32 +141,32 @@ def test_rloop_attention():
     print(f"  RLPA: {sum(p.numel() for p in model.parameters())} params")
 
 
-def test_narsil_ml_cnn_only():
-    from narsil_ml.narsil_ml import NarsilML
-    model = NarsilML(use_rnafm=False, use_rloop_attention=False, multitask=False)
+def test_compass_ml_cnn_only():
+    from compass_ml.compass_ml import CompassML
+    model = CompassML(use_rnafm=False, use_rloop_attention=False, multitask=False)
     x = torch.randn(2, 4, 34)
     out = model(target_onehot=x)
     assert "efficiency" in out
     assert out["efficiency"].shape == (2, 1)
     assert "discrimination" not in out
     n = model.count_trainable_params()
-    print(f"  NarsilML (CNN only): {n} params")
+    print(f"  CompassML (CNN only): {n} params")
 
 
-def test_narsil_ml_dual_branch():
-    from narsil_ml.narsil_ml import NarsilML
-    model = NarsilML(use_rnafm=True, use_rloop_attention=False, multitask=False)
+def test_compass_ml_dual_branch():
+    from compass_ml.compass_ml import CompassML
+    model = CompassML(use_rnafm=True, use_rloop_attention=False, multitask=False)
     x = torch.randn(2, 4, 34)
     emb = torch.randn(2, 20, 640)
     out = model(target_onehot=x, crrna_rnafm_emb=emb)
     assert out["efficiency"].shape == (2, 1)
     n = model.count_trainable_params()
-    print(f"  NarsilML (CNN + RNA-FM): {n} params")
+    print(f"  CompassML (CNN + RNA-FM): {n} params")
 
 
-def test_narsil_ml_full():
-    from narsil_ml.narsil_ml import NarsilML
-    model = NarsilML(use_rnafm=True, use_rloop_attention=True, multitask=True)
+def test_compass_ml_full():
+    from compass_ml.compass_ml import CompassML
+    model = CompassML(use_rnafm=True, use_rloop_attention=True, multitask=True)
     x = torch.randn(2, 4, 34)
     emb = torch.randn(2, 20, 640)
     wt = torch.randn(2, 4, 34)
@@ -175,27 +175,27 @@ def test_narsil_ml_full():
     assert "discrimination" in out and out["discrimination"].shape == (2, 1)
     assert "attn_weights" in out and out["attn_weights"].shape == (2, 34, 34)
     n = model.count_trainable_params()
-    print(f"  NarsilML (full): {n} params")
+    print(f"  CompassML (full): {n} params")
     assert n < 250_000, f"Too many params: {n} > 250K"
 
 
-def test_narsil_ml_with_scalars():
-    from narsil_ml.narsil_ml import NarsilML
-    model = NarsilML(use_rnafm=True, n_scalar_features=3)
+def test_compass_ml_with_scalars():
+    from compass_ml.compass_ml import CompassML
+    model = CompassML(use_rnafm=True, n_scalar_features=3)
     x = torch.randn(2, 4, 34)
     emb = torch.randn(2, 20, 640)
     scalars = torch.randn(2, 3)
     out = model(target_onehot=x, crrna_rnafm_emb=emb, scalar_features=scalars)
     assert out["efficiency"].shape == (2, 1)
-    print(f"  NarsilML (+ 3 scalars): {model.count_trainable_params()} params")
+    print(f"  CompassML (+ 3 scalars): {model.count_trainable_params()} params")
 
 
 def test_multitask_loss():
     # Re-exec in case bootstrap didn't fully resolve
-    mod = sys.modules.get("narsil_ml.losses.multitask_loss")
+    mod = sys.modules.get("compass_ml.losses.multitask_loss")
     if mod and not hasattr(mod, "MultiTaskLoss"):
         mod.__spec__.loader.exec_module(mod)
-    from narsil_ml.losses.multitask_loss import MultiTaskLoss
+    from compass_ml.losses.multitask_loss import MultiTaskLoss
     loss_fn = MultiTaskLoss(lambda_disc=0.3, lambda_rank=0.5)
     pred_eff = torch.rand(8, 1)
     true_eff = torch.rand(8)
@@ -212,7 +212,7 @@ def test_multitask_loss():
 
 
 def test_spearman_loss():
-    from narsil_ml.losses.spearman_loss import differentiable_spearman
+    from compass_ml.losses.spearman_loss import differentiable_spearman
     x = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0], requires_grad=True)
     y = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     rho = differentiable_spearman(x, y)
@@ -223,7 +223,7 @@ def test_spearman_loss():
 
 
 def test_paired_loader():
-    from narsil_ml.data.paired_loader import PairedTargetDataset
+    from compass_ml.data.paired_loader import PairedTargetDataset
     seqs = ["TTTGATCGATCGATCGATCGATCGATCGATCGAT"] * 5
     acts = [0.8, 0.6, 0.9, 0.3, 0.7]
     ds = PairedTargetDataset(seqs, acts)
@@ -238,7 +238,7 @@ def test_paired_loader():
 
 def test_embedding_cache():
     import tempfile
-    from narsil_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.data.embedding_cache import EmbeddingCache
     with tempfile.TemporaryDirectory() as tmpdir:
         cache = EmbeddingCache(tmpdir)
         seqs = ["AUGCCGAUUCGA", "GCUAUUGCCAAU"]
@@ -253,7 +253,7 @@ def test_embedding_cache():
 
 
 def test_clustered_split():
-    from narsil_ml.data.split_strategy import clustered_split
+    from compass_ml.data.split_strategy import clustered_split
     import random
     random.seed(42)
     seqs = ["".join(random.choices("ACGT", k=34)) for _ in range(100)]
@@ -266,7 +266,7 @@ def test_clustered_split():
 
 
 def test_discrimination_head():
-    from narsil_ml.heads.discrimination_head import DiscriminationHead
+    from compass_ml.heads.discrimination_head import DiscriminationHead
     head = DiscriminationHead(input_dim=64, hidden_dim=64)
     mut = torch.randn(2, 64)
     wt = torch.randn(2, 64)
@@ -278,7 +278,7 @@ def test_discrimination_head():
 
 def test_calibration():
     import numpy as np
-    from narsil_ml.evaluation.calibration import reliability_diagram, check_calibration
+    from compass_ml.evaluation.calibration import reliability_diagram, check_calibration
     np.random.seed(42)
     preds = np.random.rand(100)
     targets = np.clip(preds + np.random.randn(100) * 0.1, 0, 1)
@@ -289,7 +289,7 @@ def test_calibration():
 
 
 def test_temperature_scaling():
-    from narsil_ml.evaluation.calibration import TemperatureScaling
+    from compass_ml.evaluation.calibration import TemperatureScaling
     ts = TemperatureScaling()
     logits = torch.randn(50)
     targets = torch.sigmoid(logits + torch.randn(50) * 0.5)
@@ -301,17 +301,17 @@ def main():
     _setup()
 
     print("=" * 60)
-    print("Narsil-ML Architecture Tests")
+    print("Compass-ML Architecture Tests")
     print("=" * 60)
 
     tests = [
         ("CNN branch", test_cnn_branch),
         ("RNA-FM branch (20->34 alignment)", test_rnafm_branch),
         ("R-Loop Propagation Attention", test_rloop_attention),
-        ("NarsilML: CNN only", test_narsil_ml_cnn_only),
-        ("NarsilML: CNN + RNA-FM", test_narsil_ml_dual_branch),
-        ("NarsilML: full (CNN+RNA-FM+RLPA+MT)", test_narsil_ml_full),
-        ("NarsilML: with scalar features", test_narsil_ml_with_scalars),
+        ("CompassML: CNN only", test_compass_ml_cnn_only),
+        ("CompassML: CNN + RNA-FM", test_compass_ml_dual_branch),
+        ("CompassML: full (CNN+RNA-FM+RLPA+MT)", test_compass_ml_full),
+        ("CompassML: with scalar features", test_compass_ml_with_scalars),
         ("Discrimination head", test_discrimination_head),
         ("Differentiable Spearman", test_spearman_loss),
         ("Multi-task loss", test_multitask_loss),

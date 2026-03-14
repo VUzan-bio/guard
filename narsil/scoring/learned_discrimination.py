@@ -28,7 +28,7 @@ from typing import Optional
 
 import numpy as np
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     DiscriminationScore,
@@ -36,8 +36,8 @@ from narsil.core.types import (
     OffTargetReport,
     ScoredCandidate,
 )
-from narsil.scoring.base import Scorer
-from narsil.scoring.discrimination import (
+from compass.scoring.base import Scorer
+from compass.scoring.discrimination import (
     HeuristicDiscriminationScorer,
     DISCRIMINATION_THRESHOLD,
     PROXIMITY_DEFAULT_RATIO,
@@ -45,13 +45,13 @@ from narsil.scoring.discrimination import (
 
 logger = logging.getLogger(__name__)
 
-# Ensure narsil-net is importable
-_NARSIL_NET_DIR = Path(__file__).resolve().parent.parent.parent / "narsil-net"
-if str(_NARSIL_NET_DIR) not in sys.path:
-    sys.path.insert(0, str(_NARSIL_NET_DIR))
-_NARSIL_NET_DATA = _NARSIL_NET_DIR / "data"
-if str(_NARSIL_NET_DATA) not in sys.path:
-    sys.path.insert(0, str(_NARSIL_NET_DATA))
+# Ensure compass-net is importable
+_COMPASS_NET_DIR = Path(__file__).resolve().parent.parent.parent / "compass-net"
+if str(_COMPASS_NET_DIR) not in sys.path:
+    sys.path.insert(0, str(_COMPASS_NET_DIR))
+_COMPASS_NET_DATA = _COMPASS_NET_DIR / "data"
+if str(_COMPASS_NET_DATA) not in sys.path:
+    sys.path.insert(0, str(_COMPASS_NET_DATA))
 
 # DNA → RNA complement
 _DNA_TO_RNA = {"A": "U", "T": "A", "C": "G", "G": "C"}
@@ -72,7 +72,7 @@ class LearnedDiscriminationScorer(Scorer):
 
     Usage:
         scorer = LearnedDiscriminationScorer(
-            model_path="narsil-net/checkpoints/disc_xgb.pkl",
+            model_path="compass-net/checkpoints/disc_xgb.pkl",
             cas_variant="enAsCas12a",
         )
         scored = scorer.score_with_pair(candidate, pair, offtarget)
@@ -101,7 +101,7 @@ class LearnedDiscriminationScorer(Scorer):
         # Try to load the trained model
         if model_path is None:
             # Default checkpoint location
-            model_path = _NARSIL_NET_DIR / "checkpoints" / "disc_xgb.pkl"
+            model_path = _COMPASS_NET_DIR / "checkpoints" / "disc_xgb.pkl"
 
         self._model_path = Path(model_path)
         self._try_load_model()

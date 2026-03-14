@@ -25,15 +25,15 @@ from typing import Optional
 
 import numpy as np
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     HeuristicScore,
     MLScore,
     OffTargetReport,
     ScoredCandidate,
 )
-from narsil.scoring.base import Scorer
-from narsil.scoring.preprocessing import extract_input_window, one_hot_encode
+from compass.scoring.base import Scorer
+from compass.scoring.preprocessing import extract_input_window, one_hot_encode
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class SequenceMLScorer(Scorer):
         if self._fallback:
             base = self._fallback.score(candidate, offtarget)
         else:
-            from narsil.scoring.heuristic import HeuristicScorer
+            from compass.scoring.heuristic import HeuristicScorer
             base = HeuristicScorer().score(candidate, offtarget)
 
         # Add ML prediction if model available
@@ -186,7 +186,7 @@ class SequenceMLScorer(Scorer):
         """Load a trained SeqCNN model from checkpoint."""
         try:
             import torch
-            from narsil.scoring.seq_cnn import SeqCNN
+            from compass.scoring.seq_cnn import SeqCNN
 
             self._device = torch.device(
                 self._device_name

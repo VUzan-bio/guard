@@ -9,7 +9,7 @@ v1 architecture:
     Conv1d(120, 96, k=1)       -> 96 channels
 
 This branch preserves the same layer structure but parameterises the
-output dimension for flexibility in Narsil-ML fusion.
+output dimension for flexibility in Compass-ML fusion.
 
 Input:  (batch, 4, 34) one-hot encoded target DNA
 Output: (batch, 34, out_dim) per-position feature vectors

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Full MDR-TB 14-plex pipeline: design → enhance → visualise.
 
-Runs the complete NARSIL workflow:
+Runs the complete COMPASS workflow:
   1. Design crRNA candidates for all 14 WHO-critical resistance mutations
   2. Apply synthetic mismatch enhancement on all direct candidates
   3. Generate publication-quality figures (11 figures, PNG + SVG)
@@ -33,7 +33,7 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure narsil is importable when run from scripts/ or repo root
+# Ensure compass is importable when run from scripts/ or repo root
 _repo = Path(__file__).resolve().parent.parent
 if str(_repo) not in sys.path:
     sys.path.insert(0, str(_repo))
@@ -76,7 +76,7 @@ def step2_enhance(output_dir: Path) -> dict:
     log.info("  STEP 2: SYNTHETIC MISMATCH ENHANCEMENT")
     log.info("=" * 70)
 
-    from narsil.candidates.synthetic_mismatch import (
+    from compass.candidates.synthetic_mismatch import (
         generate_enhanced_variants,
         EnhancementConfig,
         EnhancementReport,
@@ -208,15 +208,15 @@ def step3_figures(output_dir: Path):
     log.info("=" * 70)
 
     try:
-        from scripts.narsil_pub_figures import generate_all_figures
+        from scripts.compass_pub_figures import generate_all_figures
     except ImportError:
         # Fallback: try direct import if running from scripts/
         try:
-            from narsil_pub_figures import generate_all_figures
+            from compass_pub_figures import generate_all_figures
         except ImportError:
             log.warning(
-                "Cannot import narsil_pub_figures. "
-                "Make sure narsil_pub_figures.py is in scripts/. "
+                "Cannot import compass_pub_figures. "
+                "Make sure compass_pub_figures.py is in scripts/. "
                 "Skipping figure generation."
             )
             return
@@ -232,7 +232,7 @@ def step3_figures(output_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Full MDR-TB 14-plex NARSIL pipeline",
+        description="Full MDR-TB 14-plex COMPASS pipeline",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

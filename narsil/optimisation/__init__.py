@@ -21,7 +21,7 @@ Key components:
     collect_top_k: ranked alternatives per target with tradeoff annotations
 """
 
-from narsil.optimisation.metrics import (
+from compass.optimisation.metrics import (
     DiagnosticMetrics,
     DrugClassMetrics,
     TargetMetrics,
@@ -30,10 +30,10 @@ from narsil.optimisation.metrics import (
     WHO_TPP_SPECIFICITY,
     TARGET_DRUG_CLASS,
 )
-from narsil.optimisation.profiles import ParameterProfile, get_preset, list_presets
-from narsil.optimisation.sweep import sweep_parameter
-from narsil.optimisation.pareto import pareto_frontier, generate_profile_grid
-from narsil.optimisation.top_k import TargetCandidateSet, collect_top_k
+from compass.optimisation.profiles import ParameterProfile, get_preset, list_presets
+from compass.optimisation.sweep import sweep_parameter
+from compass.optimisation.pareto import pareto_frontier, generate_profile_grid
+from compass.optimisation.top_k import TargetCandidateSet, collect_top_k
 
 __all__ = [
     "DiagnosticMetrics",

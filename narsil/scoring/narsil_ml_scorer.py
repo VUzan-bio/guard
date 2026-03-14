@@ -1,7 +1,7 @@
-"""Narsil-ML scorer adapter for the NARSIL pipeline.
+"""Compass-ML scorer adapter for the COMPASS pipeline.
 
-Bridges the standalone Narsil-ML model (narsil-net/) with the pipeline's
-Module 5 scoring interface. Replaces SequenceMLScorer when Narsil-ML
+Bridges the standalone Compass-ML model (compass-net/) with the pipeline's
+Module 5 scoring interface. Replaces SequenceMLScorer when Compass-ML
 weights are available.
 
 Architecture: dual-branch CNN + RNA-FM with optional RLPA attention.
@@ -13,9 +13,9 @@ When RNA-FM embeddings are unavailable (cache miss), falls back to
 CNN-only scoring which is still superior to the old SeqCNN v1.
 
 Usage in runner.py:
-    scorer = NarsilMlScorer(
-        weights_path="narsil/weights/narsil_ml_best.pt",
-        rnafm_cache_dir="narsil/data/embeddings/rnafm",
+    scorer = CompassMlScorer(
+        weights_path="compass/weights/compass_ml_best.pt",
+        rnafm_cache_dir="compass/data/embeddings/rnafm",
     )
     scored = scorer.score_batch(candidates, offtargets)
 """
@@ -31,30 +31,30 @@ from typing import Optional
 
 import numpy as np
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     HeuristicScore,
     MLScore,
     OffTargetReport,
     ScoredCandidate,
 )
-from narsil.scoring.base import Scorer
-from narsil.scoring.preprocessing import extract_input_window, one_hot_encode
+from compass.scoring.base import Scorer
+from compass.scoring.preprocessing import extract_input_window, one_hot_encode
 
 logger = logging.getLogger(__name__)
 
 _CONTEXT_LENGTH = 34
-_NARSIL_NET_DIR = Path(__file__).resolve().parent.parent.parent / "narsil-net"
-_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "narsil_ml_diagnostic.pt"
-_DEFAULT_CALIBRATION = Path(__file__).resolve().parent.parent / "weights" / "narsil_ml_calibration.json"
+_COMPASS_NET_DIR = Path(__file__).resolve().parent.parent.parent / "compass-net"
+_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_diagnostic.pt"
+_DEFAULT_CALIBRATION = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_calibration.json"
 
 # Complement tables
 _DNA_COMPLEMENT = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N"}
 _DNA_TO_RNA_RC = {"A": "U", "T": "A", "C": "G", "G": "C", "N": "N"}
 
 
-class NarsilMlScorer(Scorer):
-    """Pipeline-compatible scorer using Narsil-ML.
+class CompassMlScorer(Scorer):
+    """Pipeline-compatible scorer using Compass-ML.
 
     Implements the Scorer interface (score/score_batch) so the pipeline
     can use it as a drop-in replacement for SequenceMLScorer.
@@ -102,7 +102,7 @@ class NarsilMlScorer(Scorer):
             self._load_model(weights_path, use_rnafm, use_rlpa, multitask)
         else:
             logger.warning(
-                "Narsil-ML weights not found at %s — scorer will use heuristic fallback",
+                "Compass-ML weights not found at %s — scorer will use heuristic fallback",
                 weights_path,
             )
 
@@ -161,7 +161,7 @@ class NarsilMlScorer(Scorer):
         """Score a single candidate.
 
         Always computes heuristic as the base score (composite_score uses it).
-        Adds Narsil-ML prediction as an MLScore if model is available.
+        Adds Compass-ML prediction as an MLScore if model is available.
         When calibrated, populates cnn_calibrated and ensemble_score fields
         so composite_score and Block 3 thresholds use calibrated values.
         """
@@ -169,14 +169,14 @@ class NarsilMlScorer(Scorer):
         if self._fallback:
             base = self._fallback.score(candidate, offtarget)
         else:
-            from narsil.scoring.heuristic import HeuristicScorer
+            from compass.scoring.heuristic import HeuristicScorer
             base = HeuristicScorer().score(candidate, offtarget)
 
-        # Add Narsil-ML prediction
+        # Add Compass-ML prediction
         if self.model is not None:
             prediction = self._predict_single(candidate)
             base.ml_scores.append(MLScore(
-                model_name="narsil_ml",
+                model_name="compass_ml",
                 predicted_efficiency=prediction,
             ))
             base.cnn_score = prediction
@@ -208,7 +208,7 @@ class NarsilMlScorer(Scorer):
         scored = []
         for c, o, pred in zip(candidates, offtargets, predictions):
             s = self.score(c, o)
-            s.ml_scores = [MLScore(model_name="narsil_ml", predicted_efficiency=pred)]
+            s.ml_scores = [MLScore(model_name="compass_ml", predicted_efficiency=pred)]
             s.cnn_score = pred
 
             # Apply calibration to batch predictions
@@ -314,9 +314,9 @@ class NarsilMlScorer(Scorer):
         """Compute 3 thermodynamic features for a MUT/WT pair."""
         import torch
         try:
-            narsil_ml_str = str(_NARSIL_NET_DIR)
-            if narsil_ml_str not in sys.path:
-                sys.path.insert(0, narsil_ml_str)
+            compass_ml_str = str(_COMPASS_NET_DIR)
+            if compass_ml_str not in sys.path:
+                sys.path.insert(0, compass_ml_str)
             from features.thermodynamic import RNA_DNA_NN, compute_hybrid_dg
 
             # Extract crRNA from candidate spacer
@@ -386,7 +386,7 @@ class NarsilMlScorer(Scorer):
         use_rlpa: bool,
         multitask: bool,
     ) -> None:
-        """Load Narsil-ML from checkpoint.
+        """Load Compass-ML from checkpoint.
 
         Auto-detects multitask capability: if checkpoint contains disc_head
         keys, enables multitask even if not explicitly requested.
@@ -395,22 +395,22 @@ class NarsilMlScorer(Scorer):
             import torch
             import importlib
 
-            # narsil-net/ has a hyphen so can't be imported directly.
-            # Register it as 'narsil_ml' package in sys.modules.
-            narsil_ml_str = str(_NARSIL_NET_DIR)
-            if "narsil_ml" not in sys.modules:
-                if narsil_ml_str not in sys.path:
-                    sys.path.insert(0, narsil_ml_str)
+            # compass-net/ has a hyphen so can't be imported directly.
+            # Register it as 'compass_ml' package in sys.modules.
+            compass_ml_str = str(_COMPASS_NET_DIR)
+            if "compass_ml" not in sys.modules:
+                if compass_ml_str not in sys.path:
+                    sys.path.insert(0, compass_ml_str)
                 spec = importlib.util.spec_from_file_location(
-                    "narsil_ml",
-                    str(_NARSIL_NET_DIR / "__init__.py"),
-                    submodule_search_locations=[narsil_ml_str],
+                    "compass_ml",
+                    str(_COMPASS_NET_DIR / "__init__.py"),
+                    submodule_search_locations=[compass_ml_str],
                 )
                 mod = importlib.util.module_from_spec(spec)
-                sys.modules["narsil_ml"] = mod
+                sys.modules["compass_ml"] = mod
                 spec.loader.exec_module(mod)
 
-            from narsil_ml import NarsilML
+            from compass_ml import CompassML
 
             self._device = torch.device(self._device_name)
 
@@ -453,7 +453,7 @@ class NarsilMlScorer(Scorer):
             self._n_thermo = n_thermo
             self._pos_embed_dim = pos_embed_dim
 
-            self.model = NarsilML(
+            self.model = CompassML(
                 use_rnafm=use_rnafm,
                 use_rloop_attention=use_rlpa,
                 multitask=multitask,
@@ -470,14 +470,14 @@ class NarsilMlScorer(Scorer):
             unexpected = ckpt_keys - model_keys
             if unexpected:
                 logger.info(
-                    "Narsil-ML: filtering %d unexpected keys from checkpoint: %s",
+                    "Compass-ML: filtering %d unexpected keys from checkpoint: %s",
                     len(unexpected),
                     list(unexpected)[:5],
                 )
                 state_dict = {k: v for k, v in state_dict.items() if k in model_keys}
             if missing:
                 logger.info(
-                    "Narsil-ML: %d keys missing from checkpoint (expected for partial load): %s",
+                    "Compass-ML: %d keys missing from checkpoint (expected for partial load): %s",
                     len(missing),
                     list(missing)[:5],
                 )
@@ -506,7 +506,7 @@ class NarsilMlScorer(Scorer):
             self._thermo_norm_std = metadata.get("thermo_norm_std", [])
 
             logger.info(
-                "Loaded Narsil-ML from %s (%d params, val_rho=%.4f, rnafm=%s, rlpa=%s, mt=%s)",
+                "Loaded Compass-ML from %s (%d params, val_rho=%.4f, rnafm=%s, rlpa=%s, mt=%s)",
                 path, n_params, self._val_rho or 0.0,
                 use_rnafm, use_rlpa, multitask,
             )
@@ -516,22 +516,22 @@ class NarsilMlScorer(Scorer):
                     self._disc_val_r or 0.0,
                 )
         except Exception as e:
-            logger.warning("Failed to load Narsil-ML from %s: %s", path, e)
+            logger.warning("Failed to load Compass-ML from %s: %s", path, e)
             self.model = None
 
     def _load_rnafm_cache(self, cache_dir: Path) -> None:
         """Load RNA-FM embedding cache."""
         try:
-            # Import EmbeddingCache from narsil-net's data subpackage
-            narsil_ml_str = str(_NARSIL_NET_DIR)
-            if narsil_ml_str not in sys.path:
-                sys.path.insert(0, narsil_ml_str)
+            # Import EmbeddingCache from compass-net's data subpackage
+            compass_ml_str = str(_COMPASS_NET_DIR)
+            if compass_ml_str not in sys.path:
+                sys.path.insert(0, compass_ml_str)
 
             # Direct file import to avoid subpackage registration issues
             import importlib.util
-            cache_module_path = _NARSIL_NET_DIR / "data" / "embedding_cache.py"
+            cache_module_path = _COMPASS_NET_DIR / "data" / "embedding_cache.py"
             spec = importlib.util.spec_from_file_location(
-                "narsil_ml_embedding_cache", str(cache_module_path),
+                "compass_ml_embedding_cache", str(cache_module_path),
             )
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
@@ -548,7 +548,7 @@ class NarsilMlScorer(Scorer):
     def _load_calibration(self, path: Path) -> None:
         """Load temperature and ensemble weight from calibration JSON."""
         if not path.exists():
-            logger.info("No Narsil-ML calibration at %s — using raw scores", path)
+            logger.info("No Compass-ML calibration at %s — using raw scores", path)
             return
         try:
             with open(path) as f:
@@ -558,13 +558,13 @@ class NarsilMlScorer(Scorer):
             self.calibrated = True
             self._calibration_meta = cal
             logger.info(
-                "Loaded Narsil-ML calibration: T=%.2f, alpha=%.4f (val ensemble rho=%.4f)",
+                "Loaded Compass-ML calibration: T=%.2f, alpha=%.4f (val ensemble rho=%.4f)",
                 self.temperature,
                 self.alpha,
                 cal.get("val_rho_ensemble", 0.0),
             )
         except Exception as e:
-            logger.warning("Failed to load Narsil-ML calibration from %s: %s", path, e)
+            logger.warning("Failed to load Compass-ML calibration from %s: %s", path, e)
 
     # ------------------------------------------------------------------
     # Private — encoding

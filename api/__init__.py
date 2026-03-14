@@ -1,1 +1,1 @@
-"""NARSIL Platform — FastAPI backend."""
+"""COMPASS Platform — FastAPI backend."""

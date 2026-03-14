@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-from narsil.viz.style import (
+from compass.viz.style import (
     CMAP_DIV, PALETTE, apply_style, add_panel_label,
     DOUBLE_COL, save_figure,
 )

@@ -1,7 +1,7 @@
 """Core types, constants, and configuration."""
 
-from narsil.core.config import PipelineConfig
-from narsil.core.types import (
+from compass.core.config import PipelineConfig
+from compass.core.types import (
     CrRNACandidate,
     DiscriminationScore,
     ExperimentalResult,

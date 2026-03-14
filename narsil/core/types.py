@@ -1,4 +1,4 @@
-"""Domain models for NARSIL.
+"""Domain models for COMPASS.
 
 Every module communicates through these types. They define the pipeline contract:
   Mutation → Target → CrRNACandidate → ScoredCandidate → MultiplexPanel → ExperimentalResult
@@ -68,7 +68,7 @@ class PAMVariant(str, Enum):
 
 
 class Drug(str, Enum):
-    """Antimicrobial drugs covered by NARSIL diagnostic panels.
+    """Antimicrobial drugs covered by COMPASS diagnostic panels.
 
     Covers first-line, second-line, and Group A/B/C agents
     per WHO 2022 treatment guidelines.

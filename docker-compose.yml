@@ -1,5 +1,5 @@
 services:
-  narsil-platform:
+  compass-platform:
     build: .
     ports:
       - "8000:8000"

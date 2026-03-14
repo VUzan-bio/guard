@@ -46,6 +46,6 @@
     "features": "one-hot + RNA-FM + RLPA, pooled",
     "kim_rho": 0.49,
     "ed_rho": 0.549,
-    "notes": "Current production checkpoint (narsil_ml_diagnostic.pt). Best all-rounder."
+    "notes": "Current production checkpoint (compass_ml_diagnostic.pt). Best all-rounder."
   }
 ]

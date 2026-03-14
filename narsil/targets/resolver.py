@@ -38,8 +38,8 @@ from typing import Optional, Sequence
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-from narsil.core.constants import FLANKING_WINDOW, H37RV_ACCESSION
-from narsil.core.types import Mutation, Strand, Target
+from compass.core.constants import FLANKING_WINDOW, H37RV_ACCESSION
+from compass.core.types import Mutation, Strand, Target
 
 logger = logging.getLogger(__name__)
 

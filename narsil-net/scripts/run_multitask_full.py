@@ -1,4 +1,4 @@
-"""Full multi-task Narsil-ML training with REAL discrimination pairs.
+"""Full multi-task Compass-ML training with REAL discrimination pairs.
 
 Unlike Phase 2 (proxy disc from self-distillation), this uses measured
 EasyDesign discrimination pairs (HD=0 vs HD=1, ~6K pairs) alongside
@@ -18,11 +18,11 @@ Data:
       Split 80/10/10 by guide (no guide leakage between splits)
 
 Output:
-    narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt
+    compass-net/checkpoints/multitask/compass_ml_multitask_best.pt
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_multitask_full.py
-    python narsil-net/scripts/run_multitask_full.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_multitask_full.py
+    python compass-net/scripts/run_multitask_full.py --device cuda
 """
 
 from __future__ import annotations
@@ -47,11 +47,11 @@ from torch.utils.data import DataLoader, Dataset
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 from run_phase1 import _setup, load_kim2018_sequences, evaluate
 
 logger = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ def train_multitask_epoch(
     discrimination batches (EasyDesign pairs). This ensures both tasks
     get gradient signal every epoch.
     """
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
 
     model.train()
     total_loss = 0.0
@@ -294,7 +294,7 @@ def validate_multitask(
     Returns:
         (val_loss, eff_rho, disc_r, disc_rho)
     """
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
 
     model.eval()
     total_loss = 0.0
@@ -375,25 +375,25 @@ def validate_multitask(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Full multi-task Narsil-ML (efficiency + real discrimination)",
+        description="Full multi-task Compass-ML (efficiency + real discrimination)",
     )
     parser.add_argument(
         "--data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
     )
     parser.add_argument(
         "--disc-data", type=str,
-        default="narsil-net/data/external/easydesign/Table_S2.xlsx",
+        default="compass-net/data/external/easydesign/Table_S2.xlsx",
     )
-    parser.add_argument("--cache-dir", type=str, default="narsil-net/cache/rnafm")
+    parser.add_argument("--cache-dir", type=str, default="compass-net/cache/rnafm")
     parser.add_argument(
         "--pretrained", type=str,
-        default="narsil/weights/narsil_ml_best.pt",
+        default="compass/weights/compass_ml_best.pt",
         help="Phase 1 checkpoint to transfer shared encoder weights from",
     )
     parser.add_argument(
         "--output", type=str,
-        default="narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt",
+        default="compass-net/checkpoints/multitask/compass_ml_multitask_best.pt",
     )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -416,13 +416,13 @@ def main():
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.data.extract_discrimination_pairs import extract_discrimination_pairs
-    from narsil_ml.training.train_narsil_ml import collate_single_target
-    from narsil_ml.losses.multitask_loss import MultiTaskLoss
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.data.extract_discrimination_pairs import extract_discrimination_pairs
+    from compass_ml.training.train_compass_ml import collate_single_target
+    from compass_ml.losses.multitask_loss import MultiTaskLoss
+    from compass_ml.training.reproducibility import seed_everything
 
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -503,12 +503,12 @@ def main():
     # =====================================================================
     # Build multi-task model
     # =====================================================================
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=True,
     )
-    logger.info("NarsilML multi-task: %d params", model.count_trainable_params())
+    logger.info("CompassML multi-task: %d params", model.count_trainable_params())
 
     # Transfer shared weights from Phase 1 checkpoint
     pretrained_path = os.path.join(_ROOT_DIR, args.pretrained)
@@ -733,7 +733,7 @@ def main():
     # Summary
     # =====================================================================
     print("\n" + "=" * 70)
-    print("Narsil-ML Multi-Task Training Results")
+    print("Compass-ML Multi-Task Training Results")
     print("=" * 70)
     print(f"Config:         CNN + RNA-FM + RLPA + Multi-task (real disc)")
     print(f"Total params:   {model.count_trainable_params():,}")

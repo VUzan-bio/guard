@@ -13,11 +13,11 @@ For each 34-nt target:
 The crRNA is the SAME for all variants (only target DNA changes).
 RNA-FM embedding is identical across variants (it encodes the crRNA).
 
-Saves: narsil-net/data/synthetic_disc_pairs.pt
+Saves: compass-net/data/synthetic_disc_pairs.pt
   dict with 'mut_seqs', 'wt_seqs', 'mm_positions', 'ratios'
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/generate_synthetic_pairs.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/generate_synthetic_pairs.py --device cuda
 """
 
 from __future__ import annotations
@@ -32,10 +32,10 @@ import torch
 from torch.utils.data import DataLoader
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +59,14 @@ def main():
     parser = argparse.ArgumentParser(description="Generate synthetic disc pairs")
     parser.add_argument(
         "--checkpoint", type=str,
-        default="narsil-net/checkpoints/enhancements/C_position_best.pt",
+        default="compass-net/checkpoints/enhancements/C_position_best.pt",
         help="Checkpoint with trained efficiency head",
     )
     parser.add_argument(
         "--data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
     )
-    parser.add_argument("--output", type=str, default="narsil-net/data/synthetic_disc_pairs.pt")
+    parser.add_argument("--output", type=str, default="compass-net/data/synthetic_disc_pairs.pt")
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
@@ -76,8 +76,8 @@ def main():
     from run_phase1 import _setup, load_kim2018_sequences
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.embedding_cache import EmbeddingCache
 
     device = torch.device(args.device)
 
@@ -92,9 +92,9 @@ def main():
     # Load checkpoint — try C, then B, then A, then multitask baseline
     ckpt_path = os.path.join(_ROOT_DIR, args.checkpoint)
     fallbacks = [
-        "narsil-net/checkpoints/enhancements/B_thermo_best.pt",
-        "narsil-net/checkpoints/enhancements/A_contrastive_best.pt",
-        "narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt",
+        "compass-net/checkpoints/enhancements/B_thermo_best.pt",
+        "compass-net/checkpoints/enhancements/A_contrastive_best.pt",
+        "compass-net/checkpoints/multitask/compass_ml_multitask_best.pt",
     ]
     if not os.path.exists(ckpt_path):
         for fb in fallbacks:
@@ -132,7 +132,7 @@ def main():
                 has_thermo = True
             break
 
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True, use_rloop_attention=True,
         multitask=has_disc, n_thermo=n_thermo, pos_embed_dim=pos_embed_dim,
     )
@@ -142,7 +142,7 @@ def main():
     logger.info("Loaded model from %s", ckpt_path)
 
     # Embedding cache
-    cache = EmbeddingCache(os.path.join(_ROOT_DIR, "narsil-net/cache/rnafm"))
+    cache = EmbeddingCache(os.path.join(_ROOT_DIR, "compass-net/cache/rnafm"))
 
     # Generate synthetic pairs
     bases = "ACGT"

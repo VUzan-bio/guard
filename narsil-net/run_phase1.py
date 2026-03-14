@@ -3,9 +3,9 @@
 Sanity check: this should reproduce SeqCNN v1 performance.
 Expected: val rho ~0.74, test rho ~0.53.
 
-Usage (from narsil/ root):
-    python narsil-net/run_phase1.py
-    python narsil-net/run_phase1.py --use-rnafm --cache-dir narsil-net/cache/rnafm
+Usage (from compass/ root):
+    python compass-net/run_phase1.py
+    python compass-net/run_phase1.py --use-rnafm --cache-dir compass-net/cache/rnafm
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from scipy.stats import spearmanr, pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 # ---------------------------------------------------------------------------
-# Bootstrap: make narsil-net/ importable as "narsil_ml"
+# Bootstrap: make compass-net/ importable as "compass_ml"
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -82,14 +82,14 @@ def _exec(full_name: str, silent: bool = True):
 
 def _setup():
     pkg_init = os.path.join(_SCRIPT_DIR, "__init__.py")
-    _register("narsil_ml", pkg_init, [_SCRIPT_DIR])
+    _register("compass_ml", pkg_init, [_SCRIPT_DIR])
     for sub in ["branches", "attention", "heads", "losses", "data",
                 "training", "evaluation", "features"]:
         sub_dir = os.path.join(_SCRIPT_DIR, sub)
         sub_init = os.path.join(sub_dir, "__init__.py")
         if os.path.isfile(sub_init):
-            _register(f"narsil_ml.{sub}", sub_init, [sub_dir])
-    _register("narsil_ml.narsil_ml", os.path.join(_SCRIPT_DIR, "narsil_ml.py"))
+            _register(f"compass_ml.{sub}", sub_init, [sub_dir])
+    _register("compass_ml.compass_ml", os.path.join(_SCRIPT_DIR, "compass_ml.py"))
     for sub in ["branches", "attention", "heads", "losses", "data",
                 "training", "evaluation", "features"]:
         sub_dir = os.path.join(_SCRIPT_DIR, sub)
@@ -98,15 +98,15 @@ def _setup():
         for fname in sorted(os.listdir(sub_dir)):
             if fname.endswith(".py") and fname != "__init__.py":
                 _register(
-                    f"narsil_ml.{sub}.{fname[:-3]}",
+                    f"compass_ml.{sub}.{fname[:-3]}",
                     os.path.join(sub_dir, fname),
                 )
     # Execute in dependency order, two passes for cross-package deps
     exec_order = [
-        "narsil_ml.branches", "narsil_ml.attention", "narsil_ml.heads",
-        "narsil_ml.losses", "narsil_ml.data", "narsil_ml.features",
-        "narsil_ml.narsil_ml", "narsil_ml.evaluation", "narsil_ml.training",
-        "narsil_ml",
+        "compass_ml.branches", "compass_ml.attention", "compass_ml.heads",
+        "compass_ml.losses", "compass_ml.data", "compass_ml.features",
+        "compass_ml.compass_ml", "compass_ml.evaluation", "compass_ml.training",
+        "compass_ml",
     ]
     for m in exec_order:
         _exec(m, silent=True)
@@ -128,7 +128,7 @@ def load_kim2018_sequences(
 ]:
     """Load Kim 2018 data as raw 34-nt sequences + normalised labels.
 
-    Same logic as narsil/scoring/data_loader.py but preserves raw sequences
+    Same logic as compass/scoring/data_loader.py but preserves raw sequences
     so they can flow through SingleTargetDataset (which does its own encoding).
     """
     path = os.path.join(_ROOT_DIR, xlsx_path)
@@ -203,7 +203,7 @@ def evaluate(
     use_rnafm=False,
 ) -> dict[str, float]:
     """Evaluate on a dataset. Returns Spearman, Pearson, MSE, MAE, top-k."""
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
 
     model.eval()
     all_preds = []
@@ -255,16 +255,16 @@ def evaluate(
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Narsil-ML Phase 1 training")
+    parser = argparse.ArgumentParser(description="Compass-ML Phase 1 training")
     parser.add_argument(
         "--data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
-        help="Path to Kim 2018 Excel (relative to narsil/ root)",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
+        help="Path to Kim 2018 Excel (relative to compass/ root)",
     )
     parser.add_argument("--use-rnafm", action="store_true")
     parser.add_argument("--use-rlpa", action="store_true")
-    parser.add_argument("--cache-dir", type=str, default="narsil-net/cache/rnafm")
-    parser.add_argument("--output", type=str, default="narsil-net/weights/phase1_best.pt")
+    parser.add_argument("--cache-dir", type=str, default="compass-net/cache/rnafm")
+    parser.add_argument("--output", type=str, default="compass-net/weights/phase1_best.pt")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
@@ -282,11 +282,11 @@ def main():
     # Bootstrap imports
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.training.train_narsil_ml import train_phase, collate_single_target
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.training.train_compass_ml import train_phase, collate_single_target
+    from compass_ml.training.reproducibility import seed_everything
 
     seed_everything(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -332,20 +332,20 @@ def main():
     )
 
     # --- Build model ---
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=args.use_rnafm,
         use_rloop_attention=args.use_rlpa,
         multitask=False,
     )
     logger.info(
-        "NarsilML: %d params | RNA-FM=%s | RLPA=%s",
+        "CompassML: %d params | RNA-FM=%s | RLPA=%s",
         model.count_trainable_params(), args.use_rnafm, args.use_rlpa,
     )
 
     # --- Optional v1 weight transfer ---
     if args.transfer_v1:
-        from narsil_ml.training.transfer_weights import transfer_v1_to_narsil_ml
-        n_transferred = transfer_v1_to_narsil_ml(model, args.transfer_v1)
+        from compass_ml.training.transfer_weights import transfer_v1_to_compass_ml
+        n_transferred = transfer_v1_to_compass_ml(model, args.transfer_v1)
         logger.info("Transferred %d layers from v1 checkpoint", n_transferred)
 
     # --- Embedding cache (for RNA-FM mode) ---
@@ -391,7 +391,7 @@ def main():
 
     # --- Summary ---
     print("\n" + "=" * 60)
-    print("Narsil-ML Phase 1 Results")
+    print("Compass-ML Phase 1 Results")
     print("=" * 60)
     config_str = "CNN only"
     if args.use_rnafm:

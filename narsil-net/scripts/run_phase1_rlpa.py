@@ -7,9 +7,9 @@ while CNN+RNA-FM layers are pre-trained.
 Key question: does the biophysics-informed attention prior improve
 generalization on 15K samples, or does it overfit?
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_phase1_rlpa.py
-    python narsil-net/scripts/run_phase1_rlpa.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_phase1_rlpa.py
+    python compass-net/scripts/run_phase1_rlpa.py --device cuda
 """
 
 from __future__ import annotations
@@ -31,32 +31,32 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 
-# Add narsil-net/scripts/../.. to path so run_phase1 is importable
+# Add compass-net/scripts/../.. to path so run_phase1 is importable
 sys.path.insert(0, _ROOT_DIR)
 
 # Import the bootstrap and data loading from run_phase1
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 from run_phase1 import _setup, load_kim2018_sequences, evaluate
 
 logger = logging.getLogger(__name__)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narsil-ML Phase 1 + RLPA (ablation row 3)")
+    parser = argparse.ArgumentParser(description="Compass-ML Phase 1 + RLPA (ablation row 3)")
     parser.add_argument(
         "--data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
     )
-    parser.add_argument("--cache-dir", type=str, default="E:/narsil-net-data/cache/rnafm")
+    parser.add_argument("--cache-dir", type=str, default="E:/compass-net-data/cache/rnafm")
     parser.add_argument(
         "--pretrained", type=str,
-        default="E:/narsil-net-data/weights/phase1_rnafm_best.pt",
+        default="E:/compass-net-data/weights/phase1_rnafm_best.pt",
         help="CNN+RNA-FM checkpoint to transfer weights from",
     )
-    parser.add_argument("--output", type=str, default="E:/narsil-net-data/weights/phase1_rlpa_best.pt")
+    parser.add_argument("--output", type=str, default="E:/compass-net-data/weights/phase1_rlpa_best.pt")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
@@ -69,14 +69,14 @@ def main():
         format="%(asctime)s %(levelname)s %(message)s",
     )
 
-    # Bootstrap narsil_ml package
+    # Bootstrap compass_ml package
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.training.train_narsil_ml import train_phase, collate_single_target
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.training.train_compass_ml import train_phase, collate_single_target
+    from compass_ml.training.reproducibility import seed_everything
 
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -121,13 +121,13 @@ def main():
     )
 
     # --- Build model with RLPA ---
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=False,
     )
     logger.info(
-        "NarsilML: %d params | RNA-FM=True | RLPA=True",
+        "CompassML: %d params | RNA-FM=True | RLPA=True",
         model.count_trainable_params(),
     )
 
@@ -206,7 +206,7 @@ def main():
             target_onehot = sample["target_onehot"].unsqueeze(0).to(device)
             crrna_spacer = sample["crrna_spacer"]
 
-            from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+            from compass_ml.training.train_compass_ml import _get_batch_embeddings
             crrna_emb = _get_batch_embeddings([crrna_spacer], cache, device)
 
             output = model(target_onehot=target_onehot, crrna_rnafm_emb=crrna_emb)
@@ -227,7 +227,7 @@ def main():
 
     # --- Summary ---
     print("\n" + "=" * 60)
-    print("Narsil-ML Phase 1 + RLPA Results")
+    print("Compass-ML Phase 1 + RLPA Results")
     print("=" * 60)
     print(f"Config:     CNN + RNA-FM + RLPA")
     print(f"Params:     {model.count_trainable_params():,}")

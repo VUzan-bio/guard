@@ -479,7 +479,7 @@ def _generate_synthetic_sites(
             # so the crRNA base is the complement of the spacer base
             # Wait — this needs clarification.
             #
-            # Convention in NARSIL:
+            # Convention in COMPASS:
             #   spacer_seq is the TARGET-SENSE DNA sequence (same as MUT target)
             #   The actual crRNA sequence is the COMPLEMENT of spacer_seq (in RNA)
             #   i.e., crRNA_base = RNA_complement_of(spacer_DNA_base)
@@ -487,7 +487,7 @@ def _generate_synthetic_sites(
             # For the crRNA to match MUT perfectly:
             #   crRNA[i] = RNA_complement(MUT_target[i])
             #
-            # Since spacer_seq == MUT_target (by NARSIL convention):
+            # Since spacer_seq == MUT_target (by COMPASS convention):
             #   crRNA[i] = RNA_complement(spacer_seq[i])
             original_dna  # this is the MUT target base, complement gives crRNA base
         )
@@ -871,7 +871,7 @@ def enhance_candidate_batch(
 
     Optional: detection_strategy (default "direct")
 
-    This is the batch interface for integration with the NARSIL pipeline.
+    This is the batch interface for integration with the COMPASS pipeline.
     """
     if config is None:
         config = EnhancementConfig()
@@ -934,7 +934,7 @@ def enhance_from_scored_candidates(
     mismatch_pairs: list,     # list of MismatchPair objects
     config: Optional[EnhancementConfig] = None,
 ) -> list[EnhancementReport]:
-    """Integration point for the NARSIL pipeline.
+    """Integration point for the COMPASS pipeline.
 
     Takes ScoredCandidate and MismatchPair objects directly from the pipeline
     and produces EnhancementReports.

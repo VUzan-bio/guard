@@ -1,4 +1,4 @@
-"""Training pipeline for Narsil-ML.
+"""Training pipeline for Compass-ML.
 
 Three-phase training strategy:
 
@@ -29,9 +29,9 @@ Training features:
     - Gaussian label noise augmentation (sigma=0.02)
 
 Usage:
-    python -m narsil_ml.training.train_narsil_ml \\
-        --data narsil/data/kim2018/nbt4061_source_data.xlsx \\
-        --output narsil-net/weights/narsil_ml_best.pt \\
+    python -m compass_ml.training.train_compass_ml \\
+        --data compass/data/kim2018/nbt4061_source_data.xlsx \\
+        --output compass-net/weights/compass_ml_best.pt \\
         --phase 1 --use-rnafm --epochs 200
 """
 
@@ -49,7 +49,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader, TensorDataset
 
-from ..narsil_ml import NarsilML
+from ..compass_ml import CompassML
 from ..losses.multitask_loss import MultiTaskLoss
 from ..data.embedding_cache import EmbeddingCache
 from .reproducibility import seed_everything
@@ -101,7 +101,7 @@ PHASE_CONFIGS = {
 
 
 def train_one_epoch(
-    model: NarsilML,
+    model: CompassML,
     loader: DataLoader,
     loss_fn: MultiTaskLoss,
     optimizer: torch.optim.Optimizer,
@@ -151,7 +151,7 @@ def train_one_epoch(
 
 
 def validate(
-    model: NarsilML,
+    model: CompassML,
     loader: DataLoader,
     loss_fn: MultiTaskLoss,
     device: torch.device,
@@ -195,20 +195,20 @@ def validate(
 
 
 def train_phase(
-    model: NarsilML,
+    model: CompassML,
     train_loader: DataLoader,
     val_loader: DataLoader,
     phase: int = 1,
-    save_path: str = "narsil_ml_best.pt",
+    save_path: str = "compass_ml_best.pt",
     embedding_cache: EmbeddingCache | None = None,
     device: torch.device | None = None,
     seed: int = 42,
     **overrides,
-) -> tuple[NarsilML, dict[str, list[float]]]:
+) -> tuple[CompassML, dict[str, list[float]]]:
     """Full training for one phase.
 
     Args:
-        model: NarsilML instance.
+        model: CompassML instance.
         train_loader: training DataLoader.
         val_loader: validation DataLoader.
         phase: training phase (1, 2, or 3).
@@ -340,7 +340,7 @@ def train_phase(
 
 
 def generate_proxy_disc_labels(
-    model: NarsilML,
+    model: CompassML,
     paired_loader: DataLoader,
     embedding_cache: EmbeddingCache | None,
     device: torch.device,
@@ -435,13 +435,13 @@ def collate_paired_target(batch: list[dict]) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Narsil-ML")
+    parser = argparse.ArgumentParser(description="Train Compass-ML")
     parser.add_argument("--phase", type=int, default=1, choices=[1, 2, 3])
     parser.add_argument("--use-rnafm", action="store_true")
     parser.add_argument("--use-rlpa", action="store_true")
     parser.add_argument("--multitask", action="store_true")
-    parser.add_argument("--cache-dir", type=str, default="narsil-net/cache/rnafm")
-    parser.add_argument("--output", type=str, default="narsil-net/weights/narsil_ml_best.pt")
+    parser.add_argument("--cache-dir", type=str, default="compass-net/cache/rnafm")
+    parser.add_argument("--output", type=str, default="compass-net/weights/compass_ml_best.pt")
     parser.add_argument("--checkpoint", type=str, default=None, help="Resume from checkpoint")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
@@ -458,13 +458,13 @@ def main() -> None:
     logger.info("Device: %s", device)
 
     # Build model
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=args.use_rnafm,
         use_rloop_attention=args.use_rlpa,
         multitask=args.multitask,
     )
     logger.info(
-        "Narsil-ML: %d trainable params | RNA-FM: %s | RLPA: %s | MT: %s",
+        "Compass-ML: %d trainable params | RNA-FM: %s | RLPA: %s | MT: %s",
         model.count_trainable_params(),
         args.use_rnafm, args.use_rlpa, args.multitask,
     )
@@ -484,7 +484,7 @@ def main() -> None:
     # Data loading placeholder -- in practice, integrate with Kim 2018 loader
     logger.info(
         "Data loading not implemented in CLI. Use train_phase() directly "
-        "with your DataLoaders. See narsil-net/training/train_narsil_ml.py."
+        "with your DataLoaders. See compass-net/training/train_compass_ml.py."
     )
 
     # Build overrides from CLI args

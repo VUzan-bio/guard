@@ -4,7 +4,7 @@
 Training data: 10,634 samples (log-k fluorescence activity).
 Test data: 1,358 samples (raw fluorescence values, 45-nt context).
 
-This is the most relevant external dataset for NARSIL because it measures
+This is the most relevant external dataset for COMPASS because it measures
 TRANS-CLEAVAGE (the same readout as our electrochemical diagnostic),
 not cis-cleavage indels like Kim 2018.
 
@@ -31,7 +31,7 @@ import pandas as pd
 
 
 def load_easydesign(
-    xlsx_path: str = "narsil-net/data/external/easydesign/Table_S2.xlsx",
+    xlsx_path: str = "compass-net/data/external/easydesign/Table_S2.xlsx",
     use_augmented: bool = False,
 ) -> dict:
     """Load EasyDesign data for multi-domain training.

@@ -92,7 +92,7 @@ async def discrimination_figure(job_id: str) -> Response:
     result = _load_result(job_id)
 
     def generate():
-        from narsil.viz.discrimination import DiscriminationHeatmap
+        from compass.viz.discrimination import DiscriminationHeatmap
 
         members = result.get("members", [])
         ratios = {}
@@ -126,7 +126,7 @@ async def ranking_figure(job_id: str) -> Response:
     result = _load_result(job_id)
 
     def generate():
-        from narsil.viz.ranking import CandidateRankingPlot
+        from compass.viz.ranking import CandidateRankingPlot
 
         members = result.get("members", [])
         top_per_target = {}
@@ -159,7 +159,7 @@ async def multiplex_figure(job_id: str) -> Response:
 
     def generate():
         import numpy as np
-        from narsil.viz.multiplex import MultiplexMatrixPlot
+        from compass.viz.multiplex import MultiplexMatrixPlot
 
         matrix = result.get("cross_reactivity_matrix")
         members = result.get("members", [])
@@ -190,7 +190,7 @@ async def dashboard_figure(job_id: str) -> Response:
     result = _load_result(job_id)
 
     def generate():
-        from narsil.viz.target_overview import TargetDashboard
+        from compass.viz.target_overview import TargetDashboard
 
         members = result.get("members", [])
         targets_data = []

@@ -59,7 +59,7 @@ class NucleaseProfile:
 
     @property
     def scanner_variant(self) -> Optional[str]:
-        """Maps to narsil.candidates.scanner.CONFIGS key, if available."""
+        """Maps to compass.candidates.scanner.CONFIGS key, if available."""
         return self._data.get("scanner_variant")
 
     @property

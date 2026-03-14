@@ -148,7 +148,7 @@ def _get_score(selected: dict, model: str, heuristic: dict) -> float | None:
         if ml.get("model_name") == model:
             return ml.get("predicted_efficiency")
 
-    if model in ("narsil_ml", "narsil_ml_diagnostic"):
+    if model in ("compass_ml", "compass_ml_diagnostic"):
         if selected.get("ensemble_score") is not None:
             return selected["ensemble_score"]
         if selected.get("cnn_calibrated") is not None:

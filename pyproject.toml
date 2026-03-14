@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "narsil"
+name = "compass"
 version = "0.2.0"
-description = "NARSIL — Guide RNA Automated Resistance Diagnostics: CRISPR-Cas12a diagnostic panel design pipeline"
+description = "COMPASS — Guide RNA Automated Resistance Diagnostics: CRISPR-Cas12a diagnostic panel design pipeline"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -58,10 +58,10 @@ api = [
     "websockets>=12.0",
 ]
 all = [
-    "narsil[ml,primers,structure,viz,api]",
+    "compass[ml,primers,structure,viz,api]",
 ]
 dev = [
-    "narsil[all]",
+    "compass[all]",
     "pytest>=8.0",
     "pytest-cov>=4.1",
     "pytest-asyncio>=0.23",
@@ -72,15 +72,15 @@ dev = [
 ]
 
 [project.scripts]
-narsil = "narsil.pipeline.cli:main"
+compass = "compass.pipeline.cli:main"
 
 [project.urls]
-Repository = "https://github.com/VUzan-bio/narsil"
-Documentation = "https://github.com/VUzan-bio/narsil#readme"
+Repository = "https://github.com/VUzan-bio/compass"
+Documentation = "https://github.com/VUzan-bio/compass#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["narsil*"]
+include = ["compass*"]
 
 [tool.ruff]
 target-version = "py310"

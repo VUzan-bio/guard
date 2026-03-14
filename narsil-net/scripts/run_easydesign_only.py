@@ -1,7 +1,7 @@
-"""Train Narsil-ML exclusively on EasyDesign trans-cleavage data.
+"""Train Compass-ML exclusively on EasyDesign trans-cleavage data.
 
 EasyDesign (Huang et al., iMeta 2024) measures Cas12a TRANS-CLEAVAGE
-fluorescence — the same readout mechanism as the NARSIL electrochemical
+fluorescence — the same readout mechanism as the COMPASS electrochemical
 biosensor. This is the most relevant training signal for diagnostic
 guide scoring, unlike Kim 2018 which measures cis-cleavage indels.
 
@@ -17,9 +17,9 @@ a consistent trans-cleavage benchmark with uniform labels.
 Data: 10,634 log-k samples -> 8,508 train / 1,063 val / 1,063 test
 Cross-benchmark: Kim 2018 cis-cleavage test set (HT2 + HT3)
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_easydesign_only.py
-    python narsil-net/scripts/run_easydesign_only.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_easydesign_only.py
+    python compass-net/scripts/run_easydesign_only.py --device cuda
 """
 
 from __future__ import annotations
@@ -40,11 +40,11 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 # ---------------------------------------------------------------------------
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from run_phase1 import _setup, load_kim2018_sequences, evaluate
 
@@ -60,18 +60,18 @@ def normalise_minmax(activities: np.ndarray) -> np.ndarray:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narsil-ML EasyDesign-only training")
+    parser = argparse.ArgumentParser(description="Compass-ML EasyDesign-only training")
     parser.add_argument(
         "--ed-data", type=str,
-        default="narsil-net/data/external/easydesign/Table_S2.xlsx",
+        default="compass-net/data/external/easydesign/Table_S2.xlsx",
     )
     parser.add_argument(
         "--kim-data", type=str,
-        default="narsil/data/kim2018/nbt4061_source_data.xlsx",
+        default="compass/data/kim2018/nbt4061_source_data.xlsx",
         help="Kim 2018 data for cross-benchmark evaluation",
     )
-    parser.add_argument("--cache-dir", type=str, default="E:/narsil-net-data/cache/rnafm")
-    parser.add_argument("--output", type=str, default="E:/narsil-net-data/weights/easydesign_best.pt")
+    parser.add_argument("--cache-dir", type=str, default="E:/compass-net-data/cache/rnafm")
+    parser.add_argument("--output", type=str, default="E:/compass-net-data/weights/easydesign_best.pt")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
@@ -86,12 +86,12 @@ def main():
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.training.train_narsil_ml import train_phase, collate_single_target
-    from narsil_ml.training.reproducibility import seed_everything
-    from narsil_ml.data.loaders.load_easydesign import load_easydesign
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.training.train_compass_ml import train_phase, collate_single_target
+    from compass_ml.training.reproducibility import seed_everything
+    from compass_ml.data.loaders.load_easydesign import load_easydesign
 
     seed_everything(args.seed)
     device = torch.device(args.device)
@@ -157,13 +157,13 @@ def main():
     )
 
     # --- Build model: same architecture as production (CNN + RNA-FM + RLPA) ---
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rloop_attention=True,
         multitask=False,
     )
     logger.info(
-        "NarsilML: %d params | RNA-FM=True | RLPA=True",
+        "CompassML: %d params | RNA-FM=True | RLPA=True",
         model.count_trainable_params(),
     )
 
@@ -240,10 +240,10 @@ def main():
     logger.info("=" * 60)
 
     existing_checkpoints = [
-        ("Kim-only (RLPA)", "E:/narsil-net-data/weights/phase1_rlpa_best.pt"),
-        ("Multi-dataset no DA", "E:/narsil-net-data/weights/multidataset_noda_best.pt"),
-        ("Multi-dataset + DA", "E:/narsil-net-data/weights/multidataset_da_best.pt"),
-        ("Phase1 + RNA-FM", "E:/narsil-net-data/weights/phase1_rnafm_best.pt"),
+        ("Kim-only (RLPA)", "E:/compass-net-data/weights/phase1_rlpa_best.pt"),
+        ("Multi-dataset no DA", "E:/compass-net-data/weights/multidataset_noda_best.pt"),
+        ("Multi-dataset + DA", "E:/compass-net-data/weights/multidataset_da_best.pt"),
+        ("Phase1 + RNA-FM", "E:/compass-net-data/weights/phase1_rnafm_best.pt"),
     ]
 
     all_results = []
@@ -259,7 +259,7 @@ def main():
             has_rnafm = any(k.startswith("rnafm.") for k in state_dict)
             has_rlpa = any(k.startswith("attention.") for k in state_dict)
 
-            ckpt_model = NarsilML(
+            ckpt_model = CompassML(
                 use_rnafm=has_rnafm,
                 use_rloop_attention=has_rlpa,
                 multitask=False,
@@ -288,7 +288,7 @@ def main():
 
     # --- Summary ---
     print("\n" + "=" * 60)
-    print("Narsil-ML EasyDesign-Only Results")
+    print("Compass-ML EasyDesign-Only Results")
     print("=" * 60)
     print(f"Config:         CNN + RNA-FM + RLPA (trained on EasyDesign log-k only)")
     print(f"Params:         {model.count_trainable_params():,}")

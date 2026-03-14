@@ -2,8 +2,8 @@
 
 import pytest
 
-from narsil.core.constants import pam_matches
-from narsil.core.types import (
+from compass.core.constants import pam_matches
+from compass.core.types import (
     CrRNACandidate,
     DiscriminationScore,
     Drug,

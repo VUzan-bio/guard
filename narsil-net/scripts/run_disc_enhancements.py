@@ -6,12 +6,12 @@ Each enhancement builds on the previous checkpoint:
   C: Position-aware mismatch embedding (from B)
   D: Synthetic pair augmentation (from C)
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_disc_enhancements.py --enhancement A --device cuda
-    python narsil-net/scripts/run_disc_enhancements.py --enhancement B --device cuda
-    python narsil-net/scripts/run_disc_enhancements.py --enhancement C --device cuda
-    python narsil-net/scripts/run_disc_enhancements.py --enhancement D --device cuda
-    python narsil-net/scripts/run_disc_enhancements.py --enhancement ALL --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_disc_enhancements.py --enhancement A --device cuda
+    python compass-net/scripts/run_disc_enhancements.py --enhancement B --device cuda
+    python compass-net/scripts/run_disc_enhancements.py --enhancement C --device cuda
+    python compass-net/scripts/run_disc_enhancements.py --enhancement D --device cuda
+    python compass-net/scripts/run_disc_enhancements.py --enhancement ALL --device cuda
 """
 
 from __future__ import annotations
@@ -32,10 +32,10 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader, Dataset
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from run_phase1 import _setup, load_kim2018_sequences, evaluate
 from scripts.run_multitask_full import (
@@ -158,8 +158,8 @@ def train_enhancement_epoch(
     use_thermo=False, use_position=False, use_weights=False,
 ):
     """Train one epoch with contrastive disc loss and optional enhanced features."""
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
-    from narsil_ml.losses.multitask_loss import MultiTaskLoss
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
+    from compass_ml.losses.multitask_loss import MultiTaskLoss
 
     model.train()
     total_eff_loss = 0.0
@@ -259,7 +259,7 @@ def train_enhancement_epoch(
 
 def validate_disc(model, disc_loader, device, embedding_cache, use_thermo=False, use_position=False):
     """Validate discrimination only, returning Pearson r and Spearman rho."""
-    from narsil_ml.training.train_narsil_ml import _get_batch_embeddings
+    from compass_ml.training.train_compass_ml import _get_batch_embeddings
 
     model.eval()
     all_preds = []
@@ -312,7 +312,7 @@ def validate_disc(model, disc_loader, device, embedding_cache, use_thermo=False,
 
 def load_model_from_checkpoint(ckpt_path, device, n_thermo=0, pos_embed_dim=0):
     """Load model, auto-detecting architecture from checkpoint."""
-    from narsil_ml.narsil_ml import NarsilML
+    from compass_ml.compass_ml import CompassML
 
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     state_dict = ckpt["model_state_dict"]
@@ -337,7 +337,7 @@ def load_model_from_checkpoint(ckpt_path, device, n_thermo=0, pos_embed_dim=0):
     actual_thermo = max(n_thermo, max(ckpt_n_thermo, 0))
     actual_pos = max(pos_embed_dim, ckpt_pos_dim)
 
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True, use_rloop_attention=True,
         multitask=True, n_thermo=actual_thermo, pos_embed_dim=actual_pos,
     )
@@ -448,11 +448,11 @@ def run_enhancement(
     thermo_data_path: str | None = None,
 ):
     """Run one enhancement training phase."""
-    from narsil_ml.data.embedding_cache import EmbeddingCache
-    from narsil_ml.data.extract_discrimination_pairs import extract_discrimination_pairs
-    from narsil_ml.training.train_narsil_ml import collate_single_target
-    from narsil_ml.losses.contrastive_disc_loss import ContrastiveDiscriminationLoss
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.data.embedding_cache import EmbeddingCache
+    from compass_ml.data.extract_discrimination_pairs import extract_discrimination_pairs
+    from compass_ml.training.train_compass_ml import collate_single_target
+    from compass_ml.losses.contrastive_disc_loss import ContrastiveDiscriminationLoss
+    from compass_ml.training.reproducibility import seed_everything
 
     seed_everything(seed)
 
@@ -468,7 +468,7 @@ def run_enhancement(
         load_kim2018_sequences(os.path.join(_ROOT_DIR, data_path))
 
     disc_pairs = extract_discrimination_pairs(
-        os.path.join(_ROOT_DIR, "narsil-net/data/external/easydesign/Table_S2.xlsx")
+        os.path.join(_ROOT_DIR, "compass-net/data/external/easydesign/Table_S2.xlsx")
     )
     disc_train, disc_val, disc_test = split_disc_pairs(disc_pairs, seed=seed)
 
@@ -487,7 +487,7 @@ def run_enhancement(
             logger.warning("Thermo data not found at %s — using zeros", td_path)
 
     # Create datasets
-    from narsil_ml.data.paired_loader import SingleTargetDataset
+    from compass_ml.data.paired_loader import SingleTargetDataset
     eff_train_ds = SingleTargetDataset(seqs_train, y_train.tolist())
     eff_val_ds = SingleTargetDataset(seqs_val, y_val.tolist())
 
@@ -668,8 +668,8 @@ def main():
     parser.add_argument("--device", type=str,
                         default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--data", type=str,
-                        default="narsil/data/kim2018/nbt4061_source_data.xlsx")
-    parser.add_argument("--cache-dir", type=str, default="narsil-net/cache/rnafm")
+                        default="compass/data/kim2018/nbt4061_source_data.xlsx")
+    parser.add_argument("--cache-dir", type=str, default="compass-net/cache/rnafm")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -683,7 +683,7 @@ def main():
 
     # Read baseline metrics
     baseline_path = os.path.join(
-        _ROOT_DIR, "narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt"
+        _ROOT_DIR, "compass-net/checkpoints/multitask/compass_ml_multitask_best.pt"
     )
     if not os.path.exists(baseline_path):
         logger.error("Multitask baseline not found at %s", baseline_path)
@@ -704,7 +704,7 @@ def main():
         if enh == "A":
             # Precompute thermo if B will follow
             if "B" in enhancements:
-                thermo_path = os.path.join(_ROOT_DIR, "narsil-net/data/disc_thermo_features.pt")
+                thermo_path = os.path.join(_ROOT_DIR, "compass-net/data/disc_thermo_features.pt")
                 if not os.path.exists(thermo_path):
                     logger.info("Precomputing thermo features...")
                     from scripts.precompute_disc_thermo import main as precompute_main
@@ -712,8 +712,8 @@ def main():
 
             metrics = run_enhancement(
                 enhancement="A",
-                parent_ckpt="narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt",
-                output_path=os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/A_contrastive_best.pt"),
+                parent_ckpt="compass-net/checkpoints/multitask/compass_ml_multitask_best.pt",
+                output_path=os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/A_contrastive_best.pt"),
                 device=device, n_epochs=60, patience=15,
                 lr=5e-5, lr_disc=5e-5, lambda_disc=0.3,
                 margin=0.5, alpha=0.6,
@@ -729,8 +729,8 @@ def main():
                                metrics["eff_rho"])
                 metrics = run_enhancement(
                     enhancement="A",
-                    parent_ckpt="narsil-net/checkpoints/multitask/narsil_ml_multitask_best.pt",
-                    output_path=os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/A_contrastive_best.pt"),
+                    parent_ckpt="compass-net/checkpoints/multitask/compass_ml_multitask_best.pt",
+                    output_path=os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/A_contrastive_best.pt"),
                     device=device, n_epochs=60, patience=15,
                     lr=5e-5, lr_disc=5e-5, lambda_disc=0.15,
                     margin=0.3, alpha=0.6,
@@ -743,36 +743,36 @@ def main():
         elif enh == "B":
             metrics = run_enhancement(
                 enhancement="B",
-                parent_ckpt="narsil-net/checkpoints/enhancements/A_contrastive_best.pt",
-                output_path=os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/B_thermo_best.pt"),
+                parent_ckpt="compass-net/checkpoints/enhancements/A_contrastive_best.pt",
+                output_path=os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/B_thermo_best.pt"),
                 device=device, n_epochs=60, patience=15,
                 lr=5e-5, lr_disc=5e-4, lambda_disc=0.3,
                 margin=0.5, alpha=0.6,
                 n_thermo=3, pos_embed_dim=0,
                 batch_size=128, data_path=args.data,
                 cache_dir=args.cache_dir, seed=args.seed,
-                thermo_data_path="narsil-net/data/disc_thermo_features.pt",
+                thermo_data_path="compass-net/data/disc_thermo_features.pt",
             )
             results["B: Thermo"] = metrics
 
         elif enh == "C":
             metrics = run_enhancement(
                 enhancement="C",
-                parent_ckpt="narsil-net/checkpoints/enhancements/B_thermo_best.pt",
-                output_path=os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/C_position_best.pt"),
+                parent_ckpt="compass-net/checkpoints/enhancements/B_thermo_best.pt",
+                output_path=os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/C_position_best.pt"),
                 device=device, n_epochs=60, patience=15,
                 lr=5e-5, lr_disc=5e-4, lambda_disc=0.3,
                 margin=0.5, alpha=0.6,
                 n_thermo=3, pos_embed_dim=32,
                 batch_size=128, data_path=args.data,
                 cache_dir=args.cache_dir, seed=args.seed,
-                thermo_data_path="narsil-net/data/disc_thermo_features.pt",
+                thermo_data_path="compass-net/data/disc_thermo_features.pt",
             )
             results["C: Position"] = metrics
 
         elif enh == "D":
             # Generate synthetic pairs first if needed
-            syn_path = os.path.join(_ROOT_DIR, "narsil-net/data/synthetic_disc_pairs.pt")
+            syn_path = os.path.join(_ROOT_DIR, "compass-net/data/synthetic_disc_pairs.pt")
             if not os.path.exists(syn_path):
                 logger.info("Generating synthetic pairs...")
                 os.system(f'python "{os.path.join(_SCRIPT_DIR, "generate_synthetic_pairs.py")}" '
@@ -780,16 +780,16 @@ def main():
 
             metrics = run_enhancement(
                 enhancement="D",
-                parent_ckpt="narsil-net/checkpoints/enhancements/C_position_best.pt",
-                output_path=os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/D_augmented_best.pt"),
+                parent_ckpt="compass-net/checkpoints/enhancements/C_position_best.pt",
+                output_path=os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/D_augmented_best.pt"),
                 device=device, n_epochs=40, patience=10,
                 lr=3e-5, lr_disc=3e-5, lambda_disc=0.3,
                 margin=0.5, alpha=0.6,
                 n_thermo=3, pos_embed_dim=32,
                 batch_size=256, data_path=args.data,
                 cache_dir=args.cache_dir, seed=args.seed,
-                thermo_data_path="narsil-net/data/disc_thermo_features.pt",
-                synthetic_path="narsil-net/data/synthetic_disc_pairs.pt",
+                thermo_data_path="compass-net/data/disc_thermo_features.pt",
+                synthetic_path="compass-net/data/synthetic_disc_pairs.pt",
             )
             results["D: Augmented"] = metrics
 
@@ -816,7 +816,7 @@ def main():
     print("=" * 75)
 
     # Save results
-    results_path = os.path.join(_ROOT_DIR, "narsil-net/checkpoints/enhancements/enhancement_results.json")
+    results_path = os.path.join(_ROOT_DIR, "compass-net/checkpoints/enhancements/enhancement_results.json")
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
     logger.info("Results saved to %s", results_path)

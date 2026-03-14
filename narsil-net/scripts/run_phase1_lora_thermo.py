@@ -10,8 +10,8 @@ Key changes from row 3:
     - Batch size 64 (RNA-FM runs live, needs more VRAM)
     - Mixed precision (autocast) for RNA-FM forward pass
 
-Usage (from narsil/ root):
-    python narsil-net/scripts/run_phase1_lora_thermo.py --device cuda
+Usage (from compass/ root):
+    python compass-net/scripts/run_phase1_lora_thermo.py --device cuda
 """
 
 from __future__ import annotations
@@ -24,10 +24,10 @@ from scipy.stats import spearmanr, pearsonr
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_NARSIL_NET_DIR = os.path.dirname(_SCRIPT_DIR)
-_ROOT_DIR = os.path.dirname(_NARSIL_NET_DIR)
+_COMPASS_NET_DIR = os.path.dirname(_SCRIPT_DIR)
+_ROOT_DIR = os.path.dirname(_COMPASS_NET_DIR)
 sys.path.insert(0, _ROOT_DIR)
-sys.path.insert(0, _NARSIL_NET_DIR)
+sys.path.insert(0, _COMPASS_NET_DIR)
 
 from run_phase1 import _setup, load_kim2018_sequences
 
@@ -36,11 +36,11 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Narsil-ML Row 5: LoRA + thermo")
-    parser.add_argument("--data", type=str, default="narsil/data/kim2018/nbt4061_source_data.xlsx")
-    parser.add_argument("--thermo-cache", type=str, default="E:/narsil-net-data/cache/thermo_features.pt")
-    parser.add_argument("--pretrained", type=str, default="E:/narsil-net-data/weights/phase1_rlpa_best.pt")
-    parser.add_argument("--output", type=str, default="E:/narsil-net-data/weights/phase1_lora_thermo_best.pt")
+    parser = argparse.ArgumentParser(description="Compass-ML Row 5: LoRA + thermo")
+    parser.add_argument("--data", type=str, default="compass/data/kim2018/nbt4061_source_data.xlsx")
+    parser.add_argument("--thermo-cache", type=str, default="E:/compass-net-data/cache/thermo_features.pt")
+    parser.add_argument("--pretrained", type=str, default="E:/compass-net-data/weights/phase1_rlpa_best.pt")
+    parser.add_argument("--output", type=str, default="E:/compass-net-data/weights/phase1_lora_thermo_best.pt")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--lr-lora", type=float, default=2e-4)
@@ -51,9 +51,9 @@ def main():
 
     _setup()
 
-    from narsil_ml.narsil_ml import NarsilML
-    from narsil_ml.data.paired_loader import SingleTargetDataset, _reverse_complement
-    from narsil_ml.training.reproducibility import seed_everything
+    from compass_ml.compass_ml import CompassML
+    from compass_ml.data.paired_loader import SingleTargetDataset, _reverse_complement
+    from compass_ml.training.reproducibility import seed_everything
     from torch.utils.data import DataLoader
 
     seed_everything(args.seed)
@@ -87,7 +87,7 @@ def main():
             return len(self.targets)
 
         def __getitem__(self, idx):
-            from narsil_ml.data.paired_loader import _one_hot
+            from compass_ml.data.paired_loader import _one_hot
             target = self.targets[idx]
             protospacer = target[4:24] if len(target) >= 24 else target
             crrna = _reverse_complement(protospacer).replace("T", "U")
@@ -118,7 +118,7 @@ def main():
                              collate_fn=collate_thermo)
 
     # --- Build model ---
-    model = NarsilML(
+    model = CompassML(
         use_rnafm=True,
         use_rnafm_lora=True,
         use_rloop_attention=True,
@@ -351,7 +351,7 @@ def main():
 
     # --- Summary ---
     print("\n" + "=" * 60)
-    print("Narsil-ML Row 5: LoRA + Thermo Results")
+    print("Compass-ML Row 5: LoRA + Thermo Results")
     print("=" * 60)
     print(f"Config:     CNN + RNA-FM (LoRA) + RLPA + thermo dG")
     print(f"Params:     {total_params:,}")

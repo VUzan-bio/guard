@@ -1,5 +1,5 @@
 {
-  "model": "narsil_ml",
+  "model": "compass_ml",
   "temperature": 1.0734,
   "alpha": 0.0454,
   "use_rnafm": true,

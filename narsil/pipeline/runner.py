@@ -40,17 +40,17 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from narsil.candidates.filters import CandidateFilter, OrganismPreset
-from narsil.candidates.mismatch import MismatchGenerator
-from narsil.candidates.scanner import PAMScanner, ScanResult
-from narsil.candidates.synthetic_mismatch import (
+from compass.candidates.filters import CandidateFilter, OrganismPreset
+from compass.candidates.mismatch import MismatchGenerator
+from compass.candidates.scanner import PAMScanner, ScanResult
+from compass.candidates.synthetic_mismatch import (
     EnhancementConfig,
     EnhancementReport,
     enhance_from_scored_candidates,
 )
-from narsil.core.config import PipelineConfig
-from narsil.core.constants import IS6110_PAM, IS6110_SPACER
-from narsil.core.types import (
+from compass.core.config import PipelineConfig
+from compass.core.constants import IS6110_PAM, IS6110_SPACER
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     DiscriminationScore,
@@ -68,15 +68,15 @@ from narsil.core.types import (
     Strand,
     Target,
 )
-from narsil.multiplex.optimizer import MultiplexOptimizer, OptimizationConfig
-from narsil.offtarget.screener import OffTargetScreener
-from narsil.primers.coselection import CoselectionValidator
-from narsil.scoring.base import Scorer
-from narsil.scoring.discrimination import HeuristicDiscriminationScorer, check_pam_disruption
-from narsil.scoring.heuristic import HeuristicScorer
-from narsil.scoring.learned_discrimination import LearnedDiscriminationScorer
-from narsil.scoring.sequence_ml import SequenceMLScorer
-from narsil.targets.resolver import TargetResolver
+from compass.multiplex.optimizer import MultiplexOptimizer, OptimizationConfig
+from compass.offtarget.screener import OffTargetScreener
+from compass.primers.coselection import CoselectionValidator
+from compass.scoring.base import Scorer
+from compass.scoring.discrimination import HeuristicDiscriminationScorer, check_pam_disruption
+from compass.scoring.heuristic import HeuristicScorer
+from compass.scoring.learned_discrimination import LearnedDiscriminationScorer
+from compass.scoring.sequence_ml import SequenceMLScorer
+from compass.targets.resolver import TargetResolver
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +93,12 @@ _ORGANISM_PRESETS = {
 }
 
 
-class NARSILPipeline:
+class COMPASSPipeline:
     """End-to-end crRNA design pipeline.
 
     Usage:
         config = PipelineConfig.from_yaml("configs/mdr_14plex.yaml")
-        pipeline = NARSILPipeline(config)
+        pipeline = COMPASSPipeline(config)
         results = pipeline.run(mutations)
         panel = pipeline.run_full(mutations)  # end-to-end with primers
     """
@@ -136,7 +136,7 @@ class NARSILPipeline:
         self.filter = CandidateFilter(organism=organism, check_structure=False)
 
         # Module 4: Off-target screener
-        from narsil.offtarget.screener import ScreeningDatabase
+        from compass.offtarget.screener import ScreeningDatabase
 
         ot_databases = []
         if config.reference.genome_index:
@@ -162,27 +162,27 @@ class NARSILPipeline:
         # Module 5: Heuristic scorer
         self.heuristic_scorer = HeuristicScorer()
 
-        # Module 5 ML: scorer selection (Narsil-ML or SeqCNN)
+        # Module 5 ML: scorer selection (Compass-ML or SeqCNN)
         if (
-            config.scoring.scorer == "narsil_ml"
-            and config.scoring.narsil_ml_weights
-            and Path(config.scoring.narsil_ml_weights).exists()
+            config.scoring.scorer == "compass_ml"
+            and config.scoring.compass_ml_weights
+            and Path(config.scoring.compass_ml_weights).exists()
         ):
-            from narsil.scoring.narsil_ml_scorer import NarsilMlScorer
-            self.ml_scorer = NarsilMlScorer(
-                weights_path=config.scoring.narsil_ml_weights,
+            from compass.scoring.compass_ml_scorer import CompassMlScorer
+            self.ml_scorer = CompassMlScorer(
+                weights_path=config.scoring.compass_ml_weights,
                 heuristic_fallback=self.heuristic_scorer,
                 rnafm_cache_dir=(
                     str(config.scoring.rnafm_cache_dir)
                     if config.scoring.rnafm_cache_dir else None
                 ),
-                use_rlpa=config.scoring.narsil_ml_use_rlpa,
-                use_rnafm=config.scoring.narsil_ml_use_rnafm,
+                use_rlpa=config.scoring.compass_ml_use_rlpa,
+                use_rnafm=config.scoring.compass_ml_use_rnafm,
                 collect_embeddings=True,
             )
-            logger.info("Using Narsil-ML scorer (RLPA=%s, RNA-FM=%s)",
-                        config.scoring.narsil_ml_use_rlpa,
-                        config.scoring.narsil_ml_use_rnafm)
+            logger.info("Using Compass-ML scorer (RLPA=%s, RNA-FM=%s)",
+                        config.scoring.compass_ml_use_rlpa,
+                        config.scoring.compass_ml_use_rnafm)
         else:
             self.ml_scorer = SequenceMLScorer(
                 model_path=config.scoring.ml_model_path,
@@ -235,7 +235,7 @@ class NARSILPipeline:
         self._stats: list[dict[str, Any]] = []
 
         logger.info(
-            "NARSILPipeline initialised: organism=%s, cas=%s, output=%s",
+            "COMPASSPipeline initialised: organism=%s, cas=%s, output=%s",
             config.organism,
             cas_variant,
             self._output,
@@ -344,7 +344,7 @@ class NARSILPipeline:
         pipeline_t0 = time.perf_counter_ns()
 
         logger.info(
-            "=" * 70 + "\n  NARSIL FULL PIPELINE: %d targets\n" + "=" * 70,
+            "=" * 70 + "\n  COMPASS FULL PIPELINE: %d targets\n" + "=" * 70,
             len(mutations),
         )
 
@@ -523,13 +523,13 @@ class NARSILPipeline:
         all_ensemble: list[float] = []
         if cnn_available:
             t0_ml = time.perf_counter_ns()
-            ml_name = "narsil_ml" if hasattr(self.ml_scorer, '_predict_single') else "seq_cnn"
+            ml_name = "compass_ml" if hasattr(self.ml_scorer, '_predict_single') else "seq_cnn"
             # Batch all candidates for efficient inference
             all_sc = []
             for scored_list in scored_by_target.values():
                 all_sc.extend(scored_list)
             if hasattr(self.ml_scorer, '_encode_context'):
-                # NarsilMlScorer: batch encode + predict
+                # CompassMlScorer: batch encode + predict
                 contexts = [self.ml_scorer._encode_context(sc.candidate) for sc in all_sc]
                 rnafm_embs = [self.ml_scorer._get_rnafm_embedding(sc.candidate) for sc in all_sc]
                 raw_preds = self.ml_scorer._predict_batch(contexts, rnafm_embs)
@@ -563,7 +563,7 @@ class NARSILPipeline:
                     # per target. Capped at 8K to stay within container RAM.
                     import re as _re
                     import random as _rng
-                    from narsil.candidates.scanner import _gc
+                    from compass.candidates.scanner import _gc
                     from types import SimpleNamespace
 
                     collected_spacers = {e["spacer_seq"] for e in self.ml_scorer._collected_embeddings}
@@ -912,8 +912,8 @@ class NARSILPipeline:
         n_asrpa = 0
 
         if genome_seq:
-            from narsil.primers.as_rpa import ASRPADesigner
-            from narsil.primers.standard_rpa import StandardRPADesigner
+            from compass.primers.as_rpa import ASRPADesigner
+            from compass.primers.standard_rpa import StandardRPADesigner
 
             primer_kwargs = dict(
                 primer_len_min=self.config.primers.primer_length_min,
@@ -990,7 +990,7 @@ class NARSILPipeline:
         logger.info("Module 8.5: Post-primer analysis (AS-RPA discrimination + primer dimer check)...")
         n_asrpa_disc = 0
         try:
-            from narsil.primers.asrpa_discrimination import compute_asrpa_discrimination
+            from compass.primers.asrpa_discrimination import compute_asrpa_discrimination
 
             for member in panel.members:
                 if member.selected_candidate.candidate.detection_strategy != DetectionStrategy.PROXIMITY:
@@ -1105,7 +1105,7 @@ class NARSILPipeline:
         t0_dimer = time.perf_counter_ns()
         n_dimer_flagged = 0
         try:
-            from narsil.multiplex.primer_dimer import analyse_panel_dimers
+            from compass.multiplex.primer_dimer import analyse_panel_dimers
 
             primer_entries = []
             for member in panel.members:
@@ -1181,7 +1181,7 @@ class NARSILPipeline:
                     )
                 else:
                     # Hard fallback: published IS6110 primers (Ai et al. 2019)
-                    from narsil.core.constants import (
+                    from compass.core.constants import (
                         IS6110_FWD_PRIMER,
                         IS6110_REV_PRIMER,
                         IS6110_AMPLICON_LENGTH,
@@ -1227,7 +1227,7 @@ class NARSILPipeline:
         })
 
         # --- Module 9.5: Top-K alternatives (Block 3) ---
-        from narsil.optimisation.top_k import collect_top_k
+        from compass.optimisation.top_k import collect_top_k
         top_k = parameter_profile.top_k if parameter_profile else 5
         top_k_results = collect_top_k(
             members=panel.members,
@@ -1238,7 +1238,7 @@ class NARSILPipeline:
         self._scored_by_target = scored_by_target
 
         # --- Module 9.6: Diagnostic metrics (Block 3) ---
-        from narsil.optimisation.metrics import compute_diagnostic_metrics
+        from compass.optimisation.metrics import compute_diagnostic_metrics
         eff_thresh = parameter_profile.efficiency_threshold if parameter_profile else 0.4
         disc_thresh = parameter_profile.discrimination_threshold if parameter_profile else 3.0
         self._diagnostic_metrics = compute_diagnostic_metrics(
@@ -1272,7 +1272,7 @@ class NARSILPipeline:
                 and self.ml_scorer.get_collected_embeddings()):
             t0 = time.perf_counter_ns()
             try:
-                from narsil.viz.umap_panel import compute_panel_umap
+                from compass.viz.umap_panel import compute_panel_umap
                 embeddings = self.ml_scorer.get_collected_embeddings()
                 panel_labels = [m.target.label for m in panel.members]
 
@@ -1492,7 +1492,7 @@ class NARSILPipeline:
         """Export final panel results in multiple formats."""
         # JSON report
         report = {
-            "pipeline": "NARSIL",
+            "pipeline": "COMPASS",
             "organism": self.config.organism,
             "plex": panel.plex,
             "panel_score": panel.panel_score,

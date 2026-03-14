@@ -27,7 +27,7 @@ from typing import Optional
 
 import numpy as np
 
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DiscriminationScore,
     MLScore,
@@ -35,7 +35,7 @@ from narsil.core.types import (
     OffTargetReport,
     ScoredCandidate,
 )
-from narsil.scoring.base import Scorer
+from compass.scoring.base import Scorer
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class JEPAScorer(Scorer):
         if self._fallback:
             base = self._fallback.score(candidate, offtarget)
         else:
-            from narsil.scoring.heuristic import HeuristicScorer
+            from compass.scoring.heuristic import HeuristicScorer
             base = HeuristicScorer().score(candidate, offtarget)
 
         if self.encoder is None or self.head is None:

@@ -5,7 +5,7 @@ from .calibration import (
 )
 from .benchmark import (
     evaluate_predictions,
-    predict_narsil_ml,
+    predict_compass_ml,
     run_ablation,
     format_ablation_table,
 )
@@ -15,7 +15,7 @@ __all__ = [
     "reliability_diagram",
     "check_calibration",
     "evaluate_predictions",
-    "predict_narsil_ml",
+    "predict_compass_ml",
     "run_ablation",
     "format_ablation_table",
 ]

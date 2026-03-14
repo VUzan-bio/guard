@@ -6,7 +6,7 @@ This module serves two purposes:
    is most uncertain, and recommend the next batch of candidates to validate.
 
 The active learning cycle:
-    Cycle N: NARSIL designs + ranks candidates → validate top-K and bottom-K →
+    Cycle N: COMPASS designs + ranks candidates → validate top-K and bottom-K →
     retrain JEPA on new data → Cycle N+1: improved predictions.
 
 Data is stored as JSON lines for simplicity and git-friendliness.
@@ -19,7 +19,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from narsil.core.types import ExperimentalResult, ScoredCandidate
+from compass.core.types import ExperimentalResult, ScoredCandidate
 
 logger = logging.getLogger(__name__)
 

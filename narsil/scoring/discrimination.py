@@ -38,7 +38,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from narsil.candidates.synthetic_mismatch import (
+from compass.candidates.synthetic_mismatch import (
     MISMATCH_DESTABILISATION,
     POSITION_SENSITIVITY_PROFILES,
     MismatchType,
@@ -46,7 +46,7 @@ from narsil.candidates.synthetic_mismatch import (
     _classify_mismatch,
     _predict_activity,
 )
-from narsil.core.types import (
+from compass.core.types import (
     CrRNACandidate,
     DetectionStrategy,
     DiscriminationScore,
@@ -55,7 +55,7 @@ from narsil.core.types import (
     ScoredCandidate,
     Target,
 )
-from narsil.scoring.base import Scorer
+from compass.scoring.base import Scorer
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ class HeuristicDiscriminationScorer(Scorer):
         """Score a candidate (without discrimination — use score_with_pair)."""
         if self._fallback:
             return self._fallback.score(candidate, offtarget)
-        from narsil.scoring.heuristic import HeuristicScorer
+        from compass.scoring.heuristic import HeuristicScorer
 
         return HeuristicScorer().score(candidate, offtarget)
 
@@ -389,7 +389,7 @@ def check_pam_disruption(
     # Cas12a PAM is upstream (5') of the spacer on the target strand.
     # Plus strand: PAM is at [genomic_start - 4, genomic_start)
     # Minus strand: PAM is at [genomic_end, genomic_end + 4)
-    from narsil.core.types import Strand
+    from compass.core.types import Strand
 
     if candidate.strand == Strand.PLUS:
         pam_start = candidate.genomic_start - 4
