@@ -370,13 +370,13 @@ const Badge = ({ children, variant = "default" }) => {
     purple: { background: "#F5F3FF", color: "#7C3AED", border: "1px solid #7C3AED" },
   };
   return (
-    <span style={{ ...(s[variant] || s.default), padding: "2px 8px", borderRadius: "3px", fontSize: "11px", fontWeight: 500, fontFamily: MONO, display: "inline-flex", alignItems: "center", gap: "4px", whiteSpace: "nowrap" }}>{children}</span>
+    <span style={{ ...(s[variant] || s.default), padding: "2px 8px", borderRadius: "3px", fontSize: "11px", fontWeight: 500, fontFamily: FONT, display: "inline-flex", alignItems: "center", gap: "4px", whiteSpace: "nowrap" }}>{children}</span>
   );
 };
 
 const DrugBadge = ({ drug }) => {
   const c = DRUG_COLORS[drug] || DEFAULT_DRUG;
-  return <span style={{ background: "transparent", color: c.text, border: `1px solid ${c.border || c.text}`, padding: "2px 8px", borderRadius: "3px", fontSize: "11px", fontWeight: 600, fontFamily: MONO, display: "inline-block" }}>{drug}</span>;
+  return <span style={{ background: "transparent", color: c.text, border: `1px solid ${c.border || c.text}`, padding: "2px 8px", borderRadius: "3px", fontSize: "11px", fontWeight: 600, fontFamily: FONT, display: "inline-block" }}>{drug}</span>;
 };
 
 const Seq = ({ s: str }) => (
@@ -967,7 +967,7 @@ const CollapsibleSection = ({ title, children, defaultOpen = false, badge }) => 
           <ChevronRight size={14} style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 200ms ease-out" }} />
           {title}
           {badge && (
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badge.bg || T.primaryLight, color: badge.color || T.primary, fontFamily: MONO }}>{badge.text}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badge.bg || T.primaryLight, color: badge.color || T.primary, fontFamily: FONT }}>{badge.text}</span>
           )}
         </div>
         <span style={{ fontSize: 10, color: T.textTer, fontWeight: 400 }}>{open ? "collapse" : "expand"}</span>
@@ -1768,7 +1768,7 @@ const MethodsPage = () => {
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>{title}</span>
-              {badge && <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badge.bg || T.primaryLight, color: badge.color || T.primary, fontFamily: MONO }}>{badge.text}</span>}
+              {badge && <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badge.bg || T.primaryLight, color: badge.color || T.primary, fontFamily: FONT }}>{badge.text}</span>}
             </div>
             {subtitle && <div style={{ fontSize: "12px", color: T.textSec, marginTop: "2px", lineHeight: 1.4 }}>{subtitle}</div>}
           </div>
@@ -7247,7 +7247,7 @@ const ScoringPage = ({ connected }) => {
           </div>
           <Icon size={18} color={T.primary} />
           <span style={{ fontSize: "15px", fontWeight: 600, color: T.text, fontFamily: HEADING, flex: 1 }}>{title}</span>
-          {badge && <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badgeVariant === "success" ? "#dcfce7" : T.primaryLight, color: badgeVariant === "success" ? "#059669" : T.primary, fontFamily: MONO }}>{badge}</span>}
+          {badge && <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badgeVariant === "success" ? "#dcfce7" : T.primaryLight, color: badgeVariant === "success" ? "#059669" : T.primary, fontFamily: FONT }}>{badge}</span>}
           <span style={{ fontSize: "10px", color: T.textTer, flexShrink: 0 }}>{isOpen ? "collapse" : "expand"}</span>
         </button>
         {isOpen && <div style={{ padding: mobile ? "16px" : "20px 24px", borderTop: `1px solid ${T.border}` }}>{children}</div>}
