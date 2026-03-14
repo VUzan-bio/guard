@@ -2275,8 +2275,8 @@ const ReadinessChart = ({ results }) => {
   });
   const [hovIdx, setHovIdx] = useState(null);
 
-  // UMAP-style gradient colors per drug class
-  const DRUG_LINE = { RIF: "#1E3A5F", INH: "#4338CA", EMB: "#059669", PZA: "#059669", FQ: "#DC2626", AG: "#3730A3", OTHER: "#6B7280", CTRL: "#6B7280" };
+  // Pastel palette — matches UMAP embedding aesthetic
+  const DRUG_LINE = { RIF: "#5B8BD4", INH: "#9B8EC4", EMB: "#66C2A5", PZA: "#8DA0CB", FQ: "#E78AC3", AG: "#A6D854", OTHER: "#B3B3B3", CTRL: "#B3B3B3" };
 
   // Full-width responsive SVG — use viewBox for scaling
   const W = 900, H = 290, padL = 100, padR = 80, padT = 20, padB = 34;
@@ -2375,7 +2375,7 @@ const ReadinessChart = ({ results }) => {
         {hovIdx != null && (() => {
           const row = chartData[hovIdx];
           const lineColor = DRUG_LINE[row.drug] || "#6B7280";
-          const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
+          const readinessColor = row.readiness >= 0.7 ? "#66C2A5" : row.readiness >= 0.4 ? "#FFB347" : "#F4A1A1";
           const firstY = padT + plotH * (1 - row[axes[0]]);
           return (
             <g>
@@ -2393,7 +2393,7 @@ const ReadinessChart = ({ results }) => {
         <text x={axisX[axes.length - 1] + 12} y={padT - 8} textAnchor="start" fontSize={9} fontWeight={600} fill="#9CA3AF">Readiness</text>
         {hovIdx == null && chartData.map((row, ri) => {
           const y = padT + plotH * (1 - row[axes[axes.length - 1]]);
-          const readinessColor = row.readiness >= 0.7 ? T.success : row.readiness >= 0.4 ? T.warning : T.danger;
+          const readinessColor = row.readiness >= 0.7 ? "#66C2A5" : row.readiness >= 0.4 ? "#FFB347" : "#F4A1A1";
           return (
             <text key={ri} x={axisX[axes.length - 1] + 14} y={y + 3} fontSize={9} fontWeight={600} fill={readinessColor} fontFamily="Source Sans 3, sans-serif"
               style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
@@ -2719,9 +2719,9 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         </div>
 
         {/* Three evidence columns */}
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? "20px" : "28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? "16px" : "12px" }}>
           {/* Column 1: Can we detect resistance? */}
-          <div>
+          <div style={{ background: T.bgSub, borderRadius: "6px", padding: "16px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "14px" }}>
               <Shield size={11} color={T.textTer} strokeWidth={2} />
               Can we detect resistance?
@@ -2752,7 +2752,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
           </div>
 
           {/* Column 2: How confident are we? */}
-          <div style={{ borderLeft: mobile ? "none" : `1px solid ${T.borderLight}`, paddingLeft: mobile ? 0 : "28px" }}>
+          <div style={{ background: T.bgSub, borderRadius: "6px", padding: "16px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "14px" }}>
               <Activity size={11} color={T.textTer} strokeWidth={2} />
               How confident are we?
@@ -2811,7 +2811,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
           </div>
 
           {/* Column 3: What's missing? */}
-          <div style={{ borderLeft: mobile ? "none" : `1px solid ${T.borderLight}`, paddingLeft: mobile ? 0 : "28px" }}>
+          <div style={{ background: T.bgSub, borderRadius: "6px", padding: "16px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "14px" }}>
               <AlertTriangle size={11} color={T.textTer} strokeWidth={2} />
               What's missing?
@@ -2899,13 +2899,6 @@ const OverviewTab = ({ results, scorer, jobId }) => {
           )}
         </div>
       </div>
-
-      {/* Experimental Priorities */}
-      {results.some(r => r.readinessScore != null) && (
-        <FigureSection title="Experimental Priorities">
-          <ExperimentalPriorityCard results={results} />
-        </FigureSection>
-      )}
 
       {/* Risk Assessment Matrix */}
       {results.some(r => r.riskProfile != null) && (
@@ -5123,7 +5116,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
       </div>
 
       {/* ═══════════ SECTION 0: 3D Interactive Chip Render ═══════════ */}
-      <CollapsibleSection title="Device Architecture · 3D" defaultOpen={true} badge={{ text: "interactive", bg: "#FFFBEB", color: "#2563EB" }}>
+      <CollapsibleSection title="Device Architecture · 3D" defaultOpen={true} badge={{ text: "interactive", bg: T.primaryLight, color: T.primary }}>
         <ChipRender3D
           electrodeLayout={electrodeLayout}
           targetDrug={targetDrug}
@@ -5354,10 +5347,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
             const eTicks = Array.from({ length: eTickCount + 1 }, (_, i) => +(eS + eRange * (i / eTickCount)).toFixed(2));
             const echemE0 = ECHEM.E0;
             return (
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
 
             {/* ═══ PANEL A: Voltammogram — negative (cathodic) MB peaks ═══ */}
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: "4px", padding: "16px", background: "#FAFAFA" }}>
+            <div style={{ borderRadius: "4px", padding: "16px", background: "#FAFAFA" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>
                   A {"\u00b7"} {echemTechnique} Voltammogram
@@ -5370,9 +5363,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   }}>i_fwd / i_rev</button>
                 )}
               </div>
-              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
-                {echemCandidateData.label} {"\u00b7"} {"\u0394"}I% = <span style={{ fontWeight: 600, color: EC.purple }}>{echemMeta.deltaI}%</span>
-                {" \u00b7 "}|I{"\u2080"}| = {echemArch === "C" ? (Math.abs(echemMeta.peakBase) * 1000).toFixed(1) : Math.abs(echemMeta.peakBase).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} {"\u2192"} |I_after| = {echemArch === "C" ? (Math.abs(echemMeta.peakAfter) * 1000).toFixed(1) : Math.abs(echemMeta.peakAfter).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}
+              <div style={{ fontSize: "11px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
+                <strong style={{ color: T.text }}>{echemCandidateData.label}</strong>
+                {" \u00b7 "}{"\u0394"}I% = <span style={{ fontWeight: 600, color: EC.purple }}>{echemMeta.deltaI}%</span>
+                {" \u00b7 "}{echemArch === "C" ? (Math.abs(echemMeta.peakBase) * 1000).toFixed(1) : Math.abs(echemMeta.peakBase).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} {"\u2192"} {echemArch === "C" ? (Math.abs(echemMeta.peakAfter) * 1000).toFixed(1) : Math.abs(echemMeta.peakAfter).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}
                 {echemCandidateData.discrimination <= 2.0 && echemCandidateData.discrimination < 900 && (
                   <div style={{ marginTop: "4px", padding: "3px 8px", background: "#FEF3C7", borderRadius: "3px", fontSize: "9px", color: "#92400E", lineHeight: 1.5, fontFamily: MONO }}>
                     {"\u26A0"} D = {echemCandidateData.discrimination.toFixed(1)}{"\u00d7"} {"\u2014"} WT allele {"\u0394"}I% {"\u2248"} MUT {"\u0394"}I% (S_eff_WT = {(echemCandidateData.efficiency / echemCandidateData.discrimination).toFixed(3)}). Clinical discrimination relies entirely on AS-RPA primer selectivity, not crRNA alone.
@@ -5542,19 +5536,10 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   ` Note: D = ${echemCandidateData.discrimination.toFixed(1)}\u00d7 indicates poor crRNA-level discrimination \u2014 allelic specificity depends on AS-RPA primer selectivity.`
                 }
               </div>
-              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO }}>
-                {archCfg.peak_shape === "sech2"
-                  ? (echemTechnique === "SWV" ? "i_net = i_fwd \u2212 i_rev ; i \u221d \u0393 \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0\u00b1E_sw)]"
-                    : echemTechnique === "DPV" ? "i_p = (n\u00b2F\u00b2\u0393A\u0394E) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)]"
-                    : "i_p = (n\u00b2F\u00b2\u0393Av) / (4RT) \u00b7 sech\u00b2[(nF/2RT)(E\u2212E\u00b0)] ; \u0394Ep \u2248 0 mV")
-                  : archCfg.peak_shape === "asymmetric"
-                  ? "pAP oxidation (irreversible): i \u221d exp(\u03b1nF(E\u2212E\u00b0)/RT) / [1+exp(\u03b1nF(E\u2212E\u00b0)/RT)]\u00b2"
-                  : "Ag stripping (anodic): asymmetric Gaussian dissolution peak ; i \u221d exp(-\u00bd((E\u2212E_p)/\u03c3)\u00b2)"}
-              </div>
             </div>
 
             {/* ═══ PANEL B: ΔI% Time Course with lag phase + threshold zones ═══ */}
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: "4px", padding: "16px", background: "#FAFAFA" }}>
+            <div style={{ borderRadius: "4px", padding: "16px", background: "#FAFAFA" }}>
               <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING, marginBottom: "4px" }}>
                 B {"\u00b7"} {"\u0394"}I% Time Course
               </div>
@@ -5657,23 +5642,28 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   : `WT crosses threshold near MUT \u2014 allelic discrimination relies on AS-RPA primer specificity rather than crRNA kinetics.`
                 }
               </div>
-              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO }}>
-                {"\u0394"}I% = (1 {"\u2212"} {"\u0393"}(t)/{"\u0393\u2080"}) {"\u00d7"} 100 ; {"\u0393"}(t) = {"\u0393\u2080"} exp({"\u2212"}k_trans {"\u00b7"} S_eff {"\u00b7"} {"\u222b"}f_RNP dt) ; lag {"\u2248"} 5{"\u2013"}10 min (in situ RNP formation)
-              </div>
             </div>
 
             {/* ═══ PANEL C: MUT vs WT Discrimination Overlay ═══ */}
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: "4px", padding: "16px", background: "#FAFAFA", gridColumn: mobile ? "1" : "1 / -1" }}>
+            <div style={{ borderRadius: "4px", padding: "16px", background: "#FAFAFA" }}>
               <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING, marginBottom: "4px" }}>
                 C {"\u00b7"} MUT vs WT Allelic Discrimination
               </div>
-              <div style={{ fontSize: "10px", color: T.textSec, marginBottom: "8px", fontFamily: FONT }}>
-                MUT: <span style={{ fontWeight: 600, color: EC.purple }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakMut) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakMut).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diMut}%)</span>
-                {" \u00b7 "}WT: <span style={{ fontWeight: 600, color: EC.pink }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakWt) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakWt).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"} ({"\u0394"}I={echemDiscOverlay.diWt}%)</span>
-                {" \u00b7 "}Disc: <span style={{ fontWeight: 600, color: echemDiscOverlay.measuredDisc < 1 ? "#ef4444" : echemDiscOverlay.measuredDisc < 2 ? "#f59e0b" : EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</span>
-                {" (NARSIL: "}{echemDiscOverlay.narsilDisc >= 900 ? "\u221e" : `${echemDiscOverlay.narsilDisc}\u00d7`}{")"}
-                {echemDiscOverlay.narsilDisc < 1 && <span style={{ color: "#ef4444", fontWeight: 600 }}>{" \u26a0 D < 1: WT activates more than MUT"}</span>}
-                {echemDiscOverlay.measuredDisc < 2 && echemDiscOverlay.measuredDisc !== Infinity && echemDiscOverlay.narsilDisc >= 1 && <span style={{ color: "#f59e0b", fontWeight: 600 }}>{" \u26a0 poor discrimination"}</span>}
+              <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "11px", color: T.textSec, marginBottom: "10px", fontFamily: FONT }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ width: 10, height: 3, borderRadius: 2, background: EC.purple, display: "inline-block" }} />
+                  <span>MUT: <strong style={{ color: EC.purple }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakMut) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakMut).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}</strong> ({"\u0394"}I={echemDiscOverlay.diMut}%)</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ width: 10, height: 3, borderRadius: 2, background: EC.pink, display: "inline-block" }} />
+                  <span>WT: <strong style={{ color: EC.pink }}>{echemArch === "C" ? (Math.abs(echemDiscOverlay.peakWt) * 1000).toFixed(1) : Math.abs(echemDiscOverlay.peakWt).toFixed(3)} {echemArch === "C" ? "nA" : "\u03bcA"}</strong> ({"\u0394"}I={echemDiscOverlay.diWt}%)</span>
+                </div>
+                <div>
+                  Disc: <strong style={{ color: echemDiscOverlay.measuredDisc < 1 ? "#ef4444" : echemDiscOverlay.measuredDisc < 2 ? "#f59e0b" : EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</strong>
+                  <span style={{ color: T.textTer }}> (NARSIL: {echemDiscOverlay.narsilDisc >= 900 ? "\u221e" : `${echemDiscOverlay.narsilDisc}\u00d7`})</span>
+                </div>
+                {echemDiscOverlay.narsilDisc < 1 && <div style={{ color: "#ef4444", fontWeight: 600 }}>{"\u26a0"} D {"<"} 1: WT activates more than MUT</div>}
+                {echemDiscOverlay.measuredDisc < 2 && echemDiscOverlay.measuredDisc !== Infinity && echemDiscOverlay.narsilDisc >= 1 && <div style={{ color: "#f59e0b", fontWeight: 600 }}>{"\u26a0"} poor discrimination</div>}
               </div>
               <div style={{ width: "100%", height: 280 }}>
                 {(() => {
@@ -5810,9 +5800,6 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                   : `Inverted discrimination (D < 1): WT allele activates Cas12a more efficiently than MUT. This crRNA design requires redesign or relies exclusively on AS-RPA primer selectivity for correct genotyping.`
                 }
               </div>
-              <div style={{ fontSize: "9px", color: T.textTer, marginTop: "4px", fontFamily: MONO }}>
-                Discrimination ratio = {"\u0394"}I%_MUT / {"\u0394"}I%_WT {"\u2014"} independent of k_trans and {"\u0393\u2080"}, depends only on mismatch biophysics predicted by NARSIL.
-              </div>
             </div>
           </div>
             );
@@ -5822,7 +5809,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
 
       {/* ═══════════ SECTION 8: AS-RPA Thermodynamic Discrimination ═══════════ */}
       {results.some(r => r.asrpaDiscrimination) && (
-      <CollapsibleSection title="AS-RPA Thermodynamic Discrimination" defaultOpen={false} badge={{ text: `${proximityCount} proximity`, bg: "#FFFBEB", color: "#2563EB" }}>
+      <CollapsibleSection title="AS-RPA Thermodynamic Discrimination" defaultOpen={false} badge={{ text: `${proximityCount} proximity`, bg: T.primaryLight, color: T.primary }}>
         <div style={{ padding: "0", marginBottom: "24px" }}>
           <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "12px", lineHeight: 1.6 }}>
             Proximity candidates use allele-specific RPA primers for discrimination. The 3\u2032 terminal mismatch
