@@ -1145,7 +1145,7 @@ export default function ChipRender3D({ electrodeLayout, targetDrug, targetStrate
       {mode === 1 && (
         <>
           <div style={{ position: "absolute", top: 12, left: 16, fontSize: 14, fontWeight: 700, color: "#111827", fontFamily: HEADING, textShadow: "0 1px 3px rgba(255,255,255,0.9)" }}>
-            NARSIL 14-Plex MDR-TB Chip
+            COMPASS 14-Plex MDR-TB Chip
           </div>
           <div style={{ position: "absolute", top: 12, right: 16, display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
             {[

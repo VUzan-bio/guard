@@ -120,7 +120,7 @@ const RESULTS = MUTATIONS.map((m, i) => {
     score: heuristic, cnnScore: cnnRaw, cnnCalibrated: cnnCal, pamAdjusted: pamAdj,
     activityQc: +(0.5 + Math.random() * 0.4).toFixed(4), discriminationQc: +(0.2 + Math.random() * 0.7).toFixed(4),
     mismatchTypeScore: i % 3 === 1 ? 0 : i % 2 === 0 ? 1.0 : 0.5, flankingGcScore: +(0.3 + Math.random() * 0.5).toFixed(4),
-    mlScores: [{ model_name: "narsil_ml", predicted_efficiency: cnnRaw }],
+    mlScores: [{ model_name: "compass_ml", predicted_efficiency: cnnRaw }],
     disc: discRatio,
     discrimination: { model_name: "learned_lightgbm", ratio: discRatio, mut_activity: mutAct, wt_activity: wtAct },
     gc: +(0.35 + Math.random() * 0.3).toFixed(2),
@@ -139,7 +139,7 @@ RESULTS.push({
   label: "IS6110", strategy: "Direct", spacer: "AATGTCGCCGCGATCGAGCG", wtSpacer: "AATGTCGCCGCGATCGAGCG",
   pam: "TTTG", pamVariant: "TTTV", pamPenalty: 1.0, isCanonicalPam: true,
   score: 0.95, cnnScore: 0.88, cnnCalibrated: 0.91, pamAdjusted: 0.91,
-  mlScores: [{ model_name: "narsil_ml", predicted_efficiency: 0.88 }],
+  mlScores: [{ model_name: "compass_ml", predicted_efficiency: 0.88 }],
   disc: 999, discrimination: { model_name: "learned_lightgbm", ratio: 999, mut_activity: 0.95, wt_activity: 0.001 },
   gc: 0.65, ot: 0, hasPrimers: true, hasSM: false,
   fwd: seq(30), rev: seq(30), amplicon: 142, mutActivity: 0.95, wtActivity: 0.001,
@@ -304,7 +304,7 @@ const MODULE_NAME_MAP = {
   "Panel Assembly": 12, "Export": 13, "Complete": 13, "Serializing Results": 13,
 };
 
-/* Scoring feature weights — matches narsil/core/constants.py HEURISTIC_WEIGHTS exactly */
+/* Scoring feature weights — matches compass/core/constants.py HEURISTIC_WEIGHTS exactly */
 const SCORING_FEATURES = [
   { name: "Seed Position", key: "seed_position", weight: 0.35, desc: "Positions 1–8 (PAM-proximal) perfect match penalty. Mismatches in seed dramatically reduce cleavage.", source: "Kim et al. 2017" },
   { name: "GC Content", key: "gc", weight: 0.20, desc: "Optimal 40–60%. Extreme GC causes self-complementarity (high) or weak binding (low).", source: "Empirical" },
@@ -335,7 +335,7 @@ const BIBLIOGRAPHY = [
   { id: "kim2018", authors: "Kim HK, Min S, Song M, et al.", year: 2018, title: "Deep learning improves prediction of CRISPR-Cpf1 guide RNA activity", journal: "Nature Biotechnology", doi: "10.1038/nbt.4061", pmid: "29431741", category: "Guide Activity Prediction" },
   { id: "huang2024", authors: "Huang B, Mu K, Li G, et al.", year: 2024, title: "Deep learning enhancing guide RNA design for CRISPR/Cas12a-based diagnostics", journal: "iMeta", doi: "10.1002/imt2.214", category: "Guide Activity Prediction" },
   { id: "chen2022rnafm", authors: "Chen J, Hu Z, Sun S, et al.", year: 2022, title: "Interpretable RNA Foundation Model from Unannotated Data for Highly Accurate RNA Structure and Function Predictions", journal: "arXiv:2204.00300", doi: null, url: "https://arxiv.org/abs/2204.00300", category: "Guide Activity Prediction" },
-  { id: "blondel2020", authors: "Blondel M, Teboul O, Berthet Q, Djolonga J", year: 2020, title: "Fast Differentiable Sorting and Ranking [Soft Spearman correlation loss used in Narsil-ML training]", journal: "ICML 2020", doi: null, url: "https://arxiv.org/abs/2002.08871", category: "Guide Activity Prediction" },
+  { id: "blondel2020", authors: "Blondel M, Teboul O, Berthet Q, Djolonga J", year: 2020, title: "Fast Differentiable Sorting and Ranking [Soft Spearman correlation loss used in Compass-ML training]", journal: "ICML 2020", doi: null, url: "https://arxiv.org/abs/2002.08871", category: "Guide Activity Prediction" },
   { id: "yao2025", authors: "Yao Z, Li W, He K, et al.", year: 2025, title: "Facilitating crRNA design by integrating DNA interaction features of CRISPR-Cas12a system", journal: "Advanced Science", doi: "10.1002/advs.202501269", category: "Guide Activity Prediction" },
   // Clinical Standards
   { id: "who2024tpp", authors: "World Health Organization", year: 2024, title: "Target product profiles for tuberculosis diagnosis and detection of drug resistance", journal: "WHO", doi: null, url: "https://www.who.int/publications/i/item/9789240097698", isbn: "978-92-4-009769-8", category: "Clinical Standards" },
@@ -882,7 +882,7 @@ const Sidebar = ({ page, setPage, connected, mobileOpen, setMobileOpen, collapse
       <div style={{ padding: isCollapsed ? "16px 0" : "16px 20px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: isCollapsed ? "center" : "space-between", gap: "8px" }}>
         {!isCollapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img src="/narsil-logo.png" alt="NARSIL" style={{ height: "20px", objectFit: "contain" }} />
+            <img src="/compass-logo.png" alt="COMPASS" style={{ height: "20px", objectFit: "contain" }} />
             {!connected && (
               <span style={{ fontSize: "10px", color: T.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: "3px" }}>
                 <WifiOff size={10} /> offline
@@ -1010,13 +1010,13 @@ const DEFAULT_MUTS = [
 
 const HomePage = ({ goTo, connected }) => {
   const mobile = useIsMobile();
-  const [runName, setRunName] = useState("NARSIL_panel_" + new Date().toISOString().slice(0, 10).replace(/-/g, ""));
+  const [runName, setRunName] = useState("COMPASS_panel_" + new Date().toISOString().slice(0, 10).replace(/-/g, ""));
   const [mode, setMode] = useState("standard");
   const [selectedModules, setSelectedModules] = useState(new Set(MODULES.map(m => m.id)));
   const [configOpen, setConfigOpen] = useState(false);
   const [panelSectionOpen, setPanelSectionOpen] = useState(true);
   const [scorerSectionOpen, setScorerSectionOpen] = useState(true);
-  const [scorer, setScorer] = useState(null); // "heuristic" | "narsil_ml" | null
+  const [scorer, setScorer] = useState(null); // "heuristic" | "compass_ml" | null
   const [enzymeId, setEnzymeId] = useState("enAsCas12a"); // "AsCas12a" | "enAsCas12a"
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState(null);
@@ -1151,8 +1151,8 @@ const HomePage = ({ goTo, connected }) => {
         if (data?.module_stats?.length) setPipeStats(data.module_stats);
       });
     } else {
-      const m5Detail = scorer === "narsil_ml"
-        ? "241 candidates scored — Narsil-ML activity (0.125–0.608) · Narsil-ML discrimination (0.288–0.959) · PAM-adjusted (0.045–0.608)"
+      const m5Detail = scorer === "compass_ml"
+        ? "241 candidates scored — Compass-ML activity (0.125–0.608) · Compass-ML discrimination (0.288–0.959) · PAM-adjusted (0.045–0.608)"
         : "241 candidates scored — Heuristic QC (0.125–0.608) · SeqCNN calibrated T=1.1 (0.288–0.959) · PAM-adjusted (0.045–0.608)";
       setPipeStats([
         { module_id: "M1",   detail: "14 WHO catalogue mutations → genomic coordinates on H37Rv (NC_000962.3)", candidates_out: 14,  duration_ms: 1 },
@@ -1183,13 +1183,13 @@ const HomePage = ({ goTo, connected }) => {
 
   /* Scorer-aware modules — M5 adapts to selected scoring model */
   const effectiveModules = useMemo(() => MODULES.map(m =>
-    m.id === "M5" && scorer === "narsil_ml"
+    m.id === "M5" && scorer === "compass_ml"
       ? {
           ...m,
-          name: "Narsil-ML Scoring",
-          execDesc: "Narsil-ML (CNN + RNA-FM + RLPA) inference for efficiency and discrimination scoring",
+          name: "Compass-ML Scoring",
+          execDesc: "Compass-ML (CNN + RNA-FM + RLPA) inference for efficiency and discrimination scoring",
           substeps: [
-            "Loading Narsil-ML checkpoint (235K params, CNN + RNA-FM + RLPA)",
+            "Loading Compass-ML checkpoint (235K params, CNN + RNA-FM + RLPA)",
             "Computing RNA-FM embeddings (640-dim, frozen)",
             "Running multi-scale CNN branch (kernels 3/5/7)",
             "Applying R-loop propagation attention (RLPA, 34×34)",
@@ -1218,7 +1218,7 @@ const HomePage = ({ goTo, connected }) => {
             <div style={{ display: "flex", gap: "12px", alignItems: "center", fontSize: "13px" }}>
               <span style={{ fontWeight: 600, color: T.text }}>Pipeline Configuration</span>
               <span style={{ color: T.textSec, fontSize: "11px" }}>
-                {panel === "mdr14" ? "MDR-TB 14-plex" : panel === "mdr14_rnasep" ? "MDR-TB 14-plex + RNaseP" : panel === "core5" ? "Core 5-plex" : "Custom"} · {scorer === "narsil_ml" ? "Narsil-ML" : scorer === "heuristic" ? "Heuristic" : ""} · {selected.size} targets
+                {panel === "mdr14" ? "MDR-TB 14-plex" : panel === "mdr14_rnasep" ? "MDR-TB 14-plex + RNaseP" : panel === "core5" ? "Core 5-plex" : "Custom"} · {scorer === "compass_ml" ? "Compass-ML" : scorer === "heuristic" ? "Heuristic" : ""} · {selected.size} targets
               </span>
             </div>
             <ChevronDown size={14} color={T.textSec} style={{ transform: "rotate(0deg)", transition: "0.2s" }} />
@@ -1315,7 +1315,7 @@ const HomePage = ({ goTo, connected }) => {
           }}>
             <Brain size={14} color={T.textSec} />
             <span style={{ fontSize: "13px", fontWeight: 600, color: T.text, flex: 1, textAlign: "left" }}>Scoring Model</span>
-            <span style={{ fontSize: "11px", color: T.textTer, marginRight: "4px" }}>{scorer === "narsil_ml" ? "Narsil-ML" : scorer === "heuristic" ? "Heuristic" : "select model"}</span>
+            <span style={{ fontSize: "11px", color: T.textTer, marginRight: "4px" }}>{scorer === "compass_ml" ? "Compass-ML" : scorer === "heuristic" ? "Heuristic" : "select model"}</span>
             <ChevronDown size={14} color={T.textSec} style={{ transform: scorerSectionOpen ? "rotate(180deg)" : "none", transition: "0.2s" }} />
           </button>
           {scorerSectionOpen && (
@@ -1323,7 +1323,7 @@ const HomePage = ({ goTo, connected }) => {
               <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
                 {[
                   { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features.", tag: "Baseline" },
-                  { id: "narsil_ml", label: "Narsil-ML", desc: "Dual-branch CNN & RNA-FM with R-loop propagation attention.", tag: "Recommended" },
+                  { id: "compass_ml", label: "Compass-ML", desc: "Dual-branch CNN & RNA-FM with R-loop propagation attention.", tag: "Recommended" },
                 ].map(s => (
                   <button key={s.id} onClick={() => setScorer(s.id)} style={{
                     padding: "16px 20px", borderRadius: "4px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
@@ -1332,7 +1332,7 @@ const HomePage = ({ goTo, connected }) => {
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                       <span style={{ fontSize: "14px", fontWeight: 600, color: scorer === s.id ? T.primaryDark : T.text, fontFamily: HEADING }}>{s.label}</span>
-                      <span style={{ fontSize: "10px", fontWeight: 600, fontFamily: MONO, padding: "2px 8px", borderRadius: "3px", background: s.id === "narsil_ml" ? T.primaryLight : T.bgSub, color: s.id === "narsil_ml" ? T.primary : T.textTer }}>{s.tag}</span>
+                      <span style={{ fontSize: "10px", fontWeight: 600, fontFamily: MONO, padding: "2px 8px", borderRadius: "3px", background: s.id === "compass_ml" ? T.primaryLight : T.bgSub, color: s.id === "compass_ml" ? T.primary : T.textTer }}>{s.tag}</span>
                     </div>
                     <div style={{ fontSize: "13px", color: scorer === s.id ? T.primaryDark : T.textSec, lineHeight: 1.5 }}>{s.desc}</div>
                   </button>
@@ -1521,7 +1521,7 @@ const HomePage = ({ goTo, connected }) => {
                   ["Spacer Lengths", "18–23 nt"], ["GC Range", "40–85% (TB-adjusted)"],
                   ["Min Discrimination", "2.0×"], ["SM Enhancement", "Enabled"],
                   ["RPA Amplicon", "80–120 bp (blood cfDNA)"],
-                  ["Scoring Model", scorer === "narsil_ml" ? "Narsil-ML" : "Heuristic"],
+                  ["Scoring Model", scorer === "compass_ml" ? "Compass-ML" : "Heuristic"],
                   ["PAM Penalty", enzymeId === "enAsCas12a" ? "Kleinstiver 2019" : "N/A (canonical only)"],
                 ].map(([k, v]) => (
                   <div key={k}>
@@ -1794,7 +1794,7 @@ const MethodsPage = () => {
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: T.text, fontFamily: HEADING, margin: 0, letterSpacing: "-0.01em" }}>Methods</h1>
         <p style={{ fontSize: "13px", color: T.textSec, marginTop: "4px", lineHeight: 1.5 }}>
-          How NARSIL designs, scores, and validates CRISPR-Cas12a diagnostic panels for drug-resistant tuberculosis.
+          How COMPASS designs, scores, and validates CRISPR-Cas12a diagnostic panels for drug-resistant tuberculosis.
         </p>
       </div>
 
@@ -1803,7 +1803,7 @@ const MethodsPage = () => {
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(4, 1fr)", gap: "0", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden" }}>
           {[
             { n: "01", icon: Map, title: "Define targets", desc: "Resolve WHO catalogue mutations to H37Rv genomic coordinates, codon context, and drug class annotations.", color: T.primary },
-            { n: "02", icon: Brain, title: "Score candidates", desc: "Scan PAM sites, generate crRNAs, and predict activity with Narsil-ML trained on 25K+ measurements.", color: T.primary },
+            { n: "02", icon: Brain, title: "Score candidates", desc: "Scan PAM sites, generate crRNAs, and predict activity with Compass-ML trained on 25K+ measurements.", color: T.primary },
             { n: "03", icon: Zap, title: "Optimise panel", desc: "Simulated annealing over candidate assignments with co-designed AS-RPA primers and multiplex constraints.", color: T.primaryDark },
             { n: "04", icon: Shield, title: "Assess clinically", desc: "Evaluate against WHO TPP thresholds for per-drug sensitivity, specificity, and three operating modes.", color: T.success },
           ].map((c, i) => (
@@ -1821,8 +1821,8 @@ const MethodsPage = () => {
         </div>
       </Section>
 
-      {/* ═══════════ 2. NARSIL-ML ═══════════ */}
-      <Section id="narsilml" title="Narsil-ML" subtitle="Dual-branch neural network predicting Cas12a guide efficiency and mismatch discrimination" badge={{ text: "235K params", bg: T.primaryLight, color: T.primary }}>
+      {/* ═══════════ 2. COMPASS-ML ═══════════ */}
+      <Section id="narsilml" title="Compass-ML" subtitle="Dual-branch neural network predicting Cas12a guide efficiency and mismatch discrimination" badge={{ text: "235K params", bg: T.primaryLight, color: T.primary }}>
 
         {/* Metric strip */}
         <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden", marginBottom: "20px" }}>
@@ -1880,7 +1880,7 @@ const MethodsPage = () => {
       </Section>
 
       {/* ═══════════ 3. ARCHITECTURE DETAIL ═══════════ */}
-      <Section id="architecture" title="Architecture Detail" subtitle="Full layer-by-layer breakdown of the Narsil-ML network">
+      <Section id="architecture" title="Architecture Detail" subtitle="Full layer-by-layer breakdown of the Compass-ML network">
         {[
           { label: "Branch 1", title: "Multi-Scale CNN", input: "34-nt one-hot encoded target (4 PAM + 20 protospacer + 10 flanking).", process: "Three parallel conv paths (k=3,5,7), 32 channels each, BN + dropout(0.3). Projected to 64-dim via 1\u00d71 conv.", output: "64-dim per position: dinucleotide preferences, seed complementarity, PAM patterns." },
           { label: "Branch 2", title: "RNA-FM Projection", input: "Guide RNA (20\u201323 nt). Processed by frozen RNA-FM (23M sequences, masked LM).", process: "640-dim per-nucleotide embeddings \u2192 trainable linear \u2192 64-dim. Zero-padded to 34 positions.", output: "64-dim structural embedding: folding, stability, 5\u2032 accessibility." },
@@ -1929,7 +1929,7 @@ const MethodsPage = () => {
       {/* ═══════════ 5. DISCRIMINATION THRESHOLDS ═══════════ */}
       <Section id="discrimination" title="Discrimination Thresholds" subtitle="Mismatch discrimination determines clinical deployment tier">
         <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 16px" }}>
-          For Direct candidates: Cas12a cleavage ratio (MUT/WT) predicted by Narsil-ML's neural head (r=0.44) or XGBoost fallback (r=0.46, 15 features). For Proximity candidates: AS-RPA primer selectivity.
+          For Direct candidates: Cas12a cleavage ratio (MUT/WT) predicted by Compass-ML's neural head (r=0.44) or XGBoost fallback (r=0.46, 15 features). For Proximity candidates: AS-RPA primer selectivity.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "0", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden", marginBottom: "16px" }}>
@@ -2005,7 +2005,7 @@ const MethodsPage = () => {
             { title: "Shared amplicons", text: "Targets in same gene region may share amplicons. Cannot resolve specific amino acid changes without distinct crRNA reporters." },
             { title: "Amplicon folding", text: "No \u0394G_fold calculation. GC-rich M.tb amplicons risk stable hairpins blocking recombinase invasion." },
             { title: "Specificity estimates", text: "Proxy formula (1\u22121/disc) assumes separated distributions. Real specificity depends on signal variance." },
-            { title: "Reporter independence", text: "Narsil-ML predicts Cas12a trans-cleavage, not reporter chemistry. Absolute signal is platform-dependent." },
+            { title: "Reporter independence", text: "Compass-ML predicts Cas12a trans-cleavage, not reporter chemistry. Absolute signal is platform-dependent." },
           ].map((item, i) => (
             <div key={i} style={{ padding: "14px 16px", border: `1px solid ${T.borderLight}`, borderRadius: "4px" }}>
               <div style={{ fontSize: "12px", fontWeight: 600, color: T.text, marginBottom: "4px" }}>{item.title}</div>
@@ -2016,7 +2016,7 @@ const MethodsPage = () => {
       </Section>
 
       {/* ═══════════ 9. REFERENCES ═══════════ */}
-      <Section id="references" title={`References (${BIBLIOGRAPHY.length})`} subtitle="Primary literature supporting NARSIL pipeline design and validation">
+      <Section id="references" title={`References (${BIBLIOGRAPHY.length})`} subtitle="Primary literature supporting COMPASS pipeline design and validation">
         {(() => {
           const categories = [...new Set(BIBLIOGRAPHY.map(b => b.category))];
           return categories.map((cat, catIdx) => (
@@ -2563,7 +2563,7 @@ const UMAPPanel = ({ jobId }) => {
         <div>
           <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>Candidate Embedding Space</div>
           <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
-            UMAP of {umapData.n_total.toLocaleString()} scored candidates (Narsil-ML 128-dim RLPA embeddings).
+            UMAP of {umapData.n_total.toLocaleString()} scored candidates (Compass-ML 128-dim RLPA embeddings).
             {" "}{umapData.n_selected} panel members highlighted. Proximity in this space reflects learned sequence similarity.
           </div>
         </div>
@@ -2655,9 +2655,9 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   const mobile = useIsMobile();
 
   // Detect scorer from prop (primary) or ml_scores (fallback)
-  const usesNarsilMl = scorer === "narsil_ml" || results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "narsil_ml"));
-  const mlModelLabel = usesNarsilMl ? "Narsil-ML" : "Heuristic";
-  const mlModelDetail = usesNarsilMl ? "235K params · CNN + RNA-FM + RLPA" : "Biophysical features";
+  const usesCompassMl = scorer === "compass_ml" || results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "compass_ml"));
+  const mlModelLabel = usesCompassMl ? "Compass-ML" : "Heuristic";
+  const mlModelDetail = usesCompassMl ? "235K params · CNN + RNA-FM + RLPA" : "Biophysical features";
 
   const getResultScore = (r) => r.cnnCalibrated ?? r.score;
   const drugs = [...new Set(results.map((r) => r.drug))];
@@ -2677,7 +2677,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   const avgPamAdj = pamAdjResults.length ? +(pamAdjResults.reduce((a, r) => a + r.pamAdjusted, 0) / pamAdjResults.length).toFixed(3) : null;
   const avgScore = avgActivity; // alias for scatter plot
 
-  // Model agreement — Spearman ρ between heuristic and Narsil-ML (PAM-adjusted)
+  // Model agreement — Spearman ρ between heuristic and Compass-ML (PAM-adjusted)
   const modelAgreement = (() => {
     const pairs = results.filter(r => r.cnnCalibrated != null).map(r => ({ h: r.score, g: r.cnnCalibrated * (r.pamPenalty ?? 1.0) }));
     if (pairs.length < 3) return null;
@@ -2700,7 +2700,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   const sensitivity = totalTargets ? Math.round(withPrimers / totalTargets * 100) : 0;
   const missingPrimers = results.filter(r => !r.hasPrimers);
   const belowThreshold = results.filter(r => r.readinessScore != null && r.readinessScore < 0.4);
-  const discModel = directResults.some(r => r.discMethod === "neural") ? "Narsil-ML disc head" : directResults.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "XGBoost · 15 features" : "position × destab";
+  const discModel = directResults.some(r => r.discMethod === "neural") ? "Compass-ML disc head" : directResults.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "XGBoost · 15 features" : "position × destab";
 
   return (
     <div>
@@ -2773,7 +2773,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: T.textSec }}>
                   <Zap size={12} color={T.textTer} strokeWidth={1.8} />
-                  Avg. activity{usesNarsilMl ? " (Narsil-ML)" : ""}
+                  Avg. activity{usesCompassMl ? " (Compass-ML)" : ""}
                 </span>
                 <span style={{ fontSize: "20px", fontWeight: 600, color: T.text, fontFamily: FONT }}>{avgActivity}</span>
               </div>
@@ -2793,7 +2793,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
                 </span>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: T.textSec, fontFamily: FONT }}>{minScore} – {maxScore}</span>
               </div>
-              {usesNarsilMl && modelAgreement != null && (
+              {usesCompassMl && modelAgreement != null && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: T.textSec }}>
                     <Brain size={12} color={T.textTer} strokeWidth={1.8} />
@@ -2919,7 +2919,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
 
       {/* Score vs Discrimination Scatter — readiness-sized dots */}
       {!mobile && (() => {
-        const getScore = (r) => usesNarsilMl ? (r.cnnCalibrated ?? r.score) : r.score;
+        const getScore = (r) => usesCompassMl ? (r.cnnCalibrated ?? r.score) : r.score;
         const hasReadiness = results.some(r => r.readinessScore != null);
         const scatterData = results.filter(r => r.disc > 0 && r.disc < 900).map(r => ({
           score: getScore(r), disc: Math.min(r.disc, 25), label: r.label, drug: r.drug, strategy: r.strategy, hasPrimers: r.hasPrimers, readiness: r.readinessScore || 0.5,
@@ -3026,8 +3026,8 @@ const OverviewTab = ({ results, scorer, jobId }) => {
         );
       })()}
 
-      {/* Heuristic vs Narsil-ML Scatter */}
-      {!mobile && usesNarsilMl && avgCNN != null && (() => {
+      {/* Heuristic vs Compass-ML Scatter */}
+      {!mobile && usesCompassMl && avgCNN != null && (() => {
         const scatterData = results.filter(r => r.cnnCalibrated != null).map(r => ({
           heuristic: r.score, narsilMl: r.cnnCalibrated, pamAdj: r.pamAdjusted ?? r.cnnCalibrated,
           label: r.label, drug: r.drug,
@@ -3044,7 +3044,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               <div>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>Scoring Model Comparison</div>
                 <div style={{ fontSize: "11px", color: T.textSec, marginTop: "3px", lineHeight: 1.5 }}>
-                  Biophysical QC (x) vs Narsil-ML activity (y) per candidate. Points near the diagonal indicate model agreement.
+                  Biophysical QC (x) vs Compass-ML activity (y) per candidate. Points near the diagonal indicate model agreement.
                   Candidates above the line have higher activity than their QC score suggests; below indicates biophysical concerns.
                 </div>
               </div>
@@ -3062,7 +3062,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
                 <XAxis type="number" dataKey="heuristic" name="Biophysical QC" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: FONT, fill: CHART_TEXT_SEC }} label={{ value: "Biophysical QC (heuristic)", position: "insideBottom", offset: -12, fontSize: 11, fill: CHART_TEXT }} />
-                <YAxis type="number" dataKey="narsilMl" name="Activity" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: FONT, fill: CHART_TEXT_SEC }} label={{ value: "Activity (Narsil-ML)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: CHART_TEXT }} />
+                <YAxis type="number" dataKey="narsilMl" name="Activity" domain={[0, 1]} tick={{ fontSize: 10, fontFamily: FONT, fill: CHART_TEXT_SEC }} label={{ value: "Activity (Compass-ML)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: CHART_TEXT }} />
                 <Tooltip content={({ payload }) => {
                   if (!payload?.length) return null;
                   const d = payload[0]?.payload;
@@ -3107,7 +3107,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
               return (
                 <div style={{ marginTop: "14px", padding: "12px 16px", background: T.primaryLight, border: `1px solid ${T.primary}33`, borderRadius: "4px", fontSize: "11px", color: T.textSec, lineHeight: 1.7 }}>
                   <strong style={{ color: T.primary }}>Interpretation:</strong> {agreePct}% of candidates are classified the same way by both models (above/below 0.5 threshold). {onLine}/{scatterData.length} score within ±0.05 of each other.
-                  {aboveLine.length > 0 ? ` Narsil-ML scores ${aboveLine.length} candidate${aboveLine.length > 1 ? "s" : ""} higher (${aboveLine.slice(0, 2).map(d => d.label).join(", ")}${aboveLine.length > 2 ? "\u2026" : ""}).` : ""}
+                  {aboveLine.length > 0 ? ` Compass-ML scores ${aboveLine.length} candidate${aboveLine.length > 1 ? "s" : ""} higher (${aboveLine.slice(0, 2).map(d => d.label).join(", ")}${aboveLine.length > 2 ? "\u2026" : ""}).` : ""}
                   {belowLine.length > 0 ? ` Heuristic scores ${belowLine.length} candidate${belowLine.length > 1 ? "s" : ""} higher (${belowLine.slice(0, 2).map(d => d.label).join(", ")}${belowLine.length > 2 ? "\u2026" : ""}).` : ""}
                   {modelAgreement != null ? ` Rank correlation \u03c1 = ${modelAgreement} \u2014 ${modelAgreement >= 0.7 ? "strong agreement, QC corroborates activity predictions" : modelAgreement >= 0.4 ? "moderate agreement, QC catches biophysical edge cases activity model misses" : "weak agreement, models measure different things \u2014 QC serves as independent sanity check"}.` : ""}
                 </div>
@@ -3373,7 +3373,7 @@ const generateInterpretation = (r) => {
   const discModelName = r.discrimination?.model_name || "";
   const isNeuralDisc = r.discMethod === "neural";
   const isLearnedDisc = discModelName.includes("learned") || r.discMethod === "feature";
-  const discSource = isNeuralDisc ? "neural discrimination head (Narsil-ML multi-task, trained on 6,136 EasyDesign pairs)" : isLearnedDisc ? "learned model (XGBoost, 15 thermodynamic features)" : "heuristic model (position \u00D7 destabilisation)";
+  const discSource = isNeuralDisc ? "neural discrimination head (Compass-ML multi-task, trained on 6,136 EasyDesign pairs)" : isLearnedDisc ? "learned model (XGBoost, 15 thermodynamic features)" : "heuristic model (position \u00D7 destabilisation)";
   if (r.pamDisrupted) {
     // Skip normal discrimination analysis — already covered above
   } else if (r.strategy === "Proximity") {
@@ -3700,8 +3700,8 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
     else { setSortKey(key); setSortDir(-1); }
   };
 
-  const hasNarsilMl = scorer === "narsil_ml" || results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "narsil_ml"));
-  const hasML = hasNarsilMl || results.some(r => r.cnnCalibrated != null);
+  const hasCompassMl = scorer === "compass_ml" || results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "compass_ml"));
+  const hasML = hasCompassMl || results.some(r => r.cnnCalibrated != null);
 
   const hasReadiness = filtered.some(r => r.readinessScore != null);
   const hasPamAdj = filtered.some(r => r.pamAdjusted != null && r.pamAdjusted !== r.cnnCalibrated);
@@ -3730,7 +3730,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
           <span style={{ fontSize: "13px", fontWeight: 600, color: T.primaryDark, fontFamily: HEADING }}>Candidate Scoring</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.primaryDark, lineHeight: 1.6 }}>
-          <div><span style={{ color: T.primary }}>Activity</span> — Narsil-ML predicted Cas12a on-target efficiency (0–1). <span style={{ color: T.primary }}>PAM-adj</span> = Activity × PAM penalty (actual signal strength).</div>
+          <div><span style={{ color: T.primary }}>Activity</span> — Compass-ML predicted Cas12a on-target efficiency (0–1). <span style={{ color: T.primary }}>PAM-adj</span> = Activity × PAM penalty (actual signal strength).</div>
           <div><span style={{ color: T.primary }}>Disc</span> — MUT/WT fold-difference. ≥3× diagnostic-grade. {"<"}2× insufficient.</div>
           <div><span style={{ color: T.primary }}>QC</span> — biophysical heuristic (GC, homopolymer, off-target, self-comp). Sanity check, not a ranking score.</div>
           <div><span style={{ color: T.primary }}>Readiness</span> — composite score (0–100) combining efficiency, discrimination, primer coverage, safety, and GC content. ≥40 is assay-ready.</div>
@@ -3882,7 +3882,7 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
                         <span style={{ fontFamily: MONO, fontSize: "11px", letterSpacing: "1px", color: T.textTer }}>{r.spacer?.slice(0, 24)}</span>
                       )}
                     </td>
-                    {/* Activity — Narsil-ML calibrated, colored */}
+                    {/* Activity — Compass-ML calibrated, colored */}
                     <td style={{ padding: "10px 12px", fontFamily: FONT, fontWeight: 600, fontSize: "11px", color: activityVal > 0.7 ? T.primary : activityVal > 0.5 ? T.warning : T.danger }}>{activityVal.toFixed(3)}</td>
                     {/* PAM-adj — activity × PAM penalty, dimmer */}
                     {hasPamAdj && <td style={{ padding: "10px 12px", fontFamily: FONT, fontSize: "11px", color: T.textSec }}>{pamAdjVal.toFixed(3)}{r.pamPenalty != null && r.pamPenalty < 1.0 ? <span style={{ fontSize: "9px", color: T.textTer, marginLeft: "2px" }}>({r.pamPenalty}×)</span> : ""}</td>}
@@ -4244,7 +4244,7 @@ const DiscriminationTab = ({ results }) => {
               <div style={{ fontSize: "10px", color: T.textTer, marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: directCands.some(r => r.discMethod === "neural") ? "#3b82f6" : directCands.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "#22c55e" : T.warning }} />
                 {directCands.some(r => r.discMethod === "neural")
-                  ? "Predicted by Narsil-ML neural discrimination head (multi-task, 235K params, trained on 6,136 EasyDesign pairs)"
+                  ? "Predicted by Compass-ML neural discrimination head (multi-task, 235K params, trained on 6,136 EasyDesign pairs)"
                   : directCands.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature")
                   ? "Predicted by learned model (XGBoost on 15 thermodynamic features, trained on 6,136 EasyDesign pairs)"
                   : "Predicted by heuristic model (position sensitivity \u00D7 mismatch destabilisation)"
@@ -4483,7 +4483,7 @@ const PrimersTab = ({ results }) => {
           <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: 0 }}>
             Symmetric flanking primers for <strong>DIRECT detection</strong> candidates. The crRNA spacer overlaps the mutation site,
             so allele discrimination comes from Cas12a mismatch intolerance — not from primers. Primers simply amplify the region
-            containing the crRNA binding site. Discrimination ratios are {results.some(r => r.discMethod === "neural") ? "predicted by Narsil-ML neural discrimination head (multi-task, trained on 6,136 EasyDesign pairs)" : results.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "predicted by a learned model (XGBoost, 15 thermodynamic features)" : "estimated by position × destabilisation heuristic"}.
+            containing the crRNA binding site. Discrimination ratios are {results.some(r => r.discMethod === "neural") ? "predicted by Compass-ML neural discrimination head (multi-task, trained on 6,136 EasyDesign pairs)" : results.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "predicted by a learned model (XGBoost, 15 thermodynamic features)" : "estimated by position × destabilisation heuristic"}.
           </p>
         </div>
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "20px" }}>
@@ -5207,7 +5207,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
         <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: mobile ? "16px" : "24px", marginBottom: "24px" }}>
           {/* Header description — architecture-dependent */}
           <p style={{ fontSize: "12px", color: T.textSec, marginBottom: "20px", lineHeight: 1.6 }}>
-            <strong>SWV, DPV, and CV curves computed from NARSIL pipeline predictions and analytical electrochemistry for {
+            <strong>SWV, DPV, and CV curves computed from COMPASS pipeline predictions and analytical electrochemistry for {
               echemArch === "A" ? "enzymatic pAP generation (diffusion-controlled, Bezinge 2023)"
               : echemArch === "B" ? "silver anodic stripping voltammetry (Suea-Ngam 2021)"
               : "surface-confined MB (Laviron 1979)"
@@ -5216,7 +5216,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               : echemArch === "A"
               ? "Peak shapes follow Nicholson-Shain theory for irreversible diffusion-controlled oxidation."
               : "Peak shapes follow anodic stripping voltammetry dissolution kinetics."
-            } Relative peak heights between candidates and between MUT/WT alleles are determined by Narsil-ML efficiency and discrimination scores (trained on 25K+ real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
+            } Relative peak heights between candidates and between MUT/WT alleles are determined by Compass-ML efficiency and discrimination scores (trained on 25K+ real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
           </p>
 
           {/* ── Row 1: Candidate + Technique ── */}
@@ -5329,7 +5329,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                     style={{ width: "100%", marginTop: "4px", accentColor: T.primary }} />
                 </div>
                 <div style={{ fontSize: "10px", color: T.textTer, width: "100%" }}>
-                  These only affect absolute current, NOT {"\u0394"}I% predictions. {"\u0394"}I% depends only on NARSIL data + k_trans + time.
+                  These only affect absolute current, NOT {"\u0394"}I% predictions. {"\u0394"}I% depends only on COMPASS data + k_trans + time.
                 </div>
               </div>
             )}
@@ -5659,7 +5659,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
                 </div>
                 <div>
                   Disc: <strong style={{ color: echemDiscOverlay.measuredDisc < 1 ? "#ef4444" : echemDiscOverlay.measuredDisc < 2 ? "#f59e0b" : EC.purple }}>{echemDiscOverlay.measuredDisc === Infinity ? "\u221e" : `${echemDiscOverlay.measuredDisc}\u00d7`}</strong>
-                  <span style={{ color: T.textTer }}> (NARSIL: {echemDiscOverlay.narsilDisc >= 900 ? "\u221e" : `${echemDiscOverlay.narsilDisc}\u00d7`})</span>
+                  <span style={{ color: T.textTer }}> (COMPASS: {echemDiscOverlay.narsilDisc >= 900 ? "\u221e" : `${echemDiscOverlay.narsilDisc}\u00d7`})</span>
                 </div>
                 {echemDiscOverlay.narsilDisc < 1 && <div style={{ color: "#ef4444", fontWeight: 600 }}>{"\u26a0"} D {"<"} 1: WT activates more than MUT</div>}
                 {echemDiscOverlay.measuredDisc < 2 && echemDiscOverlay.measuredDisc !== Infinity && echemDiscOverlay.narsilDisc >= 1 && <div style={{ color: "#f59e0b", fontWeight: 600 }}>{"\u26a0"} poor discrimination</div>}
@@ -5897,12 +5897,12 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
 
   // Detect which scorer produced the results
   const scorerInfo = useMemo(() => {
-    if (scorer === "narsil_ml") return { name: "Narsil-ML", level: 3 };
+    if (scorer === "compass_ml") return { name: "Compass-ML", level: 3 };
     if (!results?.length) return { name: "Heuristic", level: 1 };
     const first = results.find(r => r.mlScores?.length > 0);
     if (first) {
       const model = first.mlScores[0].model_name || first.mlScores[0].modelName;
-      if (model === "narsil_ml") return { name: "Narsil-ML", level: 3 };
+      if (model === "compass_ml") return { name: "Compass-ML", level: 3 };
     }
     return { name: "Heuristic", level: 1 };
   }, [results, scorer]);
@@ -6412,7 +6412,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
               <div style={{ marginBottom: "14px" }}>
                 <div style={{ fontSize: "13px", fontWeight: 600, color: T.text, marginBottom: "4px" }}>Prediction model</div>
                 {results.some(r => r.discMethod === "neural")
-                  ? "Discrimination ratios are predicted by Narsil-ML's neural discrimination head — a multi-task extension (235K params) trained end-to-end on efficiency and discrimination simultaneously. The disc head takes paired encoder representations [mut, wt, mut\u2212wt, mut\u00D7wt] from the shared CNN+RNA-FM+RLPA backbone and outputs a predicted MUT/WT ratio via Softplus. Trained on 6,136 paired trans-cleavage measurements from EasyDesign (Huang et al. 2024, LbCas12a). 3-fold CV: r = 0.440."
+                  ? "Discrimination ratios are predicted by Compass-ML's neural discrimination head — a multi-task extension (235K params) trained end-to-end on efficiency and discrimination simultaneously. The disc head takes paired encoder representations [mut, wt, mut\u2212wt, mut\u00D7wt] from the shared CNN+RNA-FM+RLPA backbone and outputs a predicted MUT/WT ratio via Softplus. Trained on 6,136 paired trans-cleavage measurements from EasyDesign (Huang et al. 2024, LbCas12a). 3-fold CV: r = 0.440."
                   : results.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature")
                   ? "Discrimination ratios are predicted by a gradient-boosted model (XGBoost) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 15 thermodynamic features including R-loop cumulative \u0394G, mismatch \u0394\u0394G penalties, and position sensitivity. 3-fold CV: RMSE = 0.540, r = 0.459 (vs heuristic RMSE = 0.641, r = 0.298)."
                   : "Discrimination ratios are predicted by a heuristic model using position sensitivity \u00D7 mismatch destabilisation scores. A trained model (XGBoost on 15 thermodynamic features) is available but was not loaded for this run."
@@ -6842,7 +6842,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
         const url = URL.createObjectURL(data);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `narsil_results.${fmt}`;
+        a.download = `compass_results.${fmt}`;
         a.click();
         URL.revokeObjectURL(url);
         toast(`Exported as ${fmt.toUpperCase()}`);
@@ -6921,7 +6921,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
           </div>
           <div style={{ fontSize: "18px", fontWeight: 600, color: T.text, fontFamily: HEADING, marginBottom: "8px" }}>No pipeline results yet</div>
           <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.6, maxWidth: 420, margin: "0 auto 24px" }}>
-            Run the NARSIL pipeline from the Home page to design crRNA candidates. Results will appear here once the pipeline completes.
+            Run the COMPASS pipeline from the Home page to design crRNA candidates. Results will appear here once the pipeline completes.
           </p>
           <Btn icon={Play} onClick={() => goTo("home")}>Launch Pipeline</Btn>
         </div>
@@ -7266,7 +7266,7 @@ const ScoringPage = ({ connected }) => {
       {/* ── Heuristic Model ── */}
       <ScoringBlock id="heuristic" icon={Brain} title="Heuristic Model (Default)" badge="Active" badgeVariant="success">
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px", marginTop: 0 }}>
-          Position-weighted composite scoring across 5 biophysical features. This is the default scoring model used by the NARSIL pipeline.
+          Position-weighted composite scoring across 5 biophysical features. This is the default scoring model used by the COMPASS pipeline.
         </p>
 
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden" }}>
@@ -7285,8 +7285,8 @@ const ScoringPage = ({ connected }) => {
         </div>
       </ScoringBlock>
 
-      {/* ── Narsil-ML ── */}
-      <ScoringBlock id="narsilml" icon={Cpu} title="Narsil-ML" badge="Recommended" badgeVariant="success">
+      {/* ── Compass-ML ── */}
+      <ScoringBlock id="narsilml" icon={Cpu} title="Compass-ML" badge="Recommended" badgeVariant="success">
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px", marginTop: 0 }}>
           Dual-branch neural network combining a target-DNA CNN with RNA Foundation Model (RNA-FM) embeddings for crRNA secondary structure.
           R-Loop Propagation Attention (RLPA) encodes the biophysics of Cas12a's directional R-loop formation into the architecture.
@@ -7346,7 +7346,7 @@ const ScoringPage = ({ connected }) => {
           {[
             { name: "Heuristic baseline", rmse: "0.641", corr: "0.298", delta: null },
             { name: "XGBoost (feature-based)", rmse: "0.540", corr: "0.459", delta: "\u221215% RMSE" },
-            { name: "Narsil-ML neural head", rmse: "\u2014", corr: "0.440", delta: "integrated" },
+            { name: "Compass-ML neural head", rmse: "\u2014", corr: "0.440", delta: "integrated" },
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
@@ -7437,7 +7437,7 @@ const ResearchPage = ({ connected }) => {
   const [selectedJob, setSelectedJob] = useState("");
   const [comparison, setComparison] = useState(null);
   const [modelA, setModelA] = useState("heuristic");
-  const [modelB, setModelB] = useState("narsil_ml");
+  const [modelB, setModelB] = useState("compass_ml");
   const [comparing, setComparing] = useState(false);
   const [thermoTarget, setThermoTarget] = useState("");
   const [thermoStandaloneSeq, setThermoStandaloneSeq] = useState("TCGGTCAACCCCGACAGC");
@@ -7551,14 +7551,14 @@ const ResearchPage = ({ connected }) => {
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "16px" }}>
           <select value={modelA} onChange={(e) => setModelA(e.target.value)} style={selectStyle}>
             <option value="heuristic">Heuristic</option>
-            <option value="narsil_ml">Narsil-ML</option>
-            <option value="narsil_ml_diagnostic">Narsil-ML Diagnostic</option>
+            <option value="compass_ml">Compass-ML</option>
+            <option value="compass_ml_diagnostic">Compass-ML Diagnostic</option>
           </select>
           <span style={{ fontSize: "12px", color: RS.muted, fontWeight: 600 }}>vs</span>
           <select value={modelB} onChange={(e) => setModelB(e.target.value)} style={selectStyle}>
-            <option value="narsil_ml">Narsil-ML</option>
+            <option value="compass_ml">Compass-ML</option>
             <option value="heuristic">Heuristic</option>
-            <option value="narsil_ml_diagnostic">Narsil-ML Diagnostic</option>
+            <option value="compass_ml_diagnostic">Compass-ML Diagnostic</option>
           </select>
           <button onClick={handleCompare} disabled={comparing || !selectedJob} style={{ ...btnStyle, opacity: comparing || !selectedJob ? 0.5 : 1 }}>
             {comparing ? "Comparing..." : "Compare"}
@@ -8155,7 +8155,7 @@ const ResearchPage = ({ connected }) => {
             {
               icon: <RefreshCw size={18} />,
               title: "Active Learning Loop",
-              desc: "Feed experimental measurements back into Narsil-ML. Fluorescence or electrochemical data recalibrates activity predictions, closing the gap between in silico and platform-specific signal.",
+              desc: "Feed experimental measurements back into Compass-ML. Fluorescence or electrochemical data recalibrates activity predictions, closing the gap between in silico and platform-specific signal.",
               milestone: "Phase 1 — Experimental validation",
               ready: true,
             },
@@ -8205,8 +8205,8 @@ const ResearchPage = ({ connected }) => {
       {/* ═══ Section 6: Nuclease Comparison ═══ */}
       <CollapsibleSection title="Nuclease Variant Comparison" defaultOpen={false}>
         <p style={{ fontSize: "12px", color: RS.muted, marginBottom: "16px", lineHeight: 1.7, maxWidth: "800px" }}>
-          Compare Cas12a variants on the current 14-target MDR-TB panel. PAM coverage is computed by running NARSIL's M2 PAM scanner against the
-          H37Rv genome with each variant's published PAM set. Scoring and discrimination columns show whether Narsil-ML has been trained on data
+          Compare Cas12a variants on the current 14-target MDR-TB panel. PAM coverage is computed by running COMPASS's M2 PAM scanner against the
+          H37Rv genome with each variant's published PAM set. Scoring and discrimination columns show whether Compass-ML has been trained on data
           for that variant — "Retraining required" indicates the scoring model needs variant-specific experimental data before predictions are valid.
         </p>
 
@@ -8501,9 +8501,9 @@ const ResearchPage = ({ connected }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
-   NARSIL PLATFORM — Root component
+   COMPASS PLATFORM — Root component
    ═══════════════════════════════════════════════════════════════════ */
-const NARSILPlatform = () => {
+const COMPASSPlatform = () => {
   const mobile = useIsMobile();
   const [page, setPage] = useState("home");
   const [connected, setConnected] = useState(false);
@@ -8544,7 +8544,7 @@ const NARSILPlatform = () => {
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex" }}>
             <Menu size={22} color={T.text} />
           </button>
-          <img src="/narsil-logo.png" alt="NARSIL" style={{ height: "18px", objectFit: "contain" }} />
+          <img src="/compass-logo.png" alt="COMPASS" style={{ height: "18px", objectFit: "contain" }} />
           {!connected && (
             <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: T.danger, fontWeight: 600 }}>
               <WifiOff size={10} /> API disconnected
@@ -8596,10 +8596,10 @@ const NARSILPlatform = () => {
   );
 };
 
-const NARSILApp = () => (
+const COMPASSApp = () => (
   <ToastProvider>
-    <NARSILPlatform />
+    <COMPASSPlatform />
   </ToastProvider>
 );
 
-export default NARSILApp;
+export default COMPASSApp;

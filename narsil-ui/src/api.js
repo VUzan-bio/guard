@@ -1,12 +1,12 @@
 /**
- * NARSIL Platform API client.
+ * COMPASS Platform API client.
  *
  * All functions return { data, error } for consistent error handling.
  * The frontend falls back to mock data if the API is unreachable.
  */
 
 // API key from environment — Vite exposes VITE_ prefixed vars
-const API_KEY = import.meta.env.VITE_NARSIL_API_KEY || "";
+const API_KEY = import.meta.env.VITE_COMPASS_API_KEY || "";
 
 async function request(url, options = {}) {
   try {
@@ -149,7 +149,7 @@ export async function runPareto(jobId, discValues = null, scoreValues = null) {
 }
 
 // Research
-export async function compareScorers(jobId, modelA = "heuristic", modelB = "narsil_ml") {
+export async function compareScorers(jobId, modelA = "heuristic", modelB = "compass_ml") {
   return request("/api/research/compare", {
     method: "POST",
     body: JSON.stringify({ job_id: jobId, model_a: modelA, model_b: modelB }),
