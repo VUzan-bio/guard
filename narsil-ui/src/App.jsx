@@ -3732,9 +3732,10 @@ const CandidatesTab = ({ results, jobId, connected, scorer }) => {
           <span style={{ fontSize: "13px", fontWeight: 600, color: T.primaryDark, fontFamily: HEADING }}>Candidate Scoring</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "13px", color: T.primaryDark, lineHeight: 1.6 }}>
-          <div><strong>Activity</strong> — Narsil-ML predicted Cas12a on-target efficiency (0–1). <strong>PAM-adj</strong> = Activity × PAM penalty (actual signal strength).</div>
-          <div><strong>Disc</strong> — MUT/WT fold-difference. <span style={{ color: T.success }}>≥3×</span> diagnostic-grade. <span style={{ color: T.danger }}>&lt;2×</span> insufficient.</div>
-          <div><strong>QC</strong> — biophysical heuristic (GC, homopolymer, off-target, self-comp). Sanity check, not a ranking score.</div>
+          <div><span style={{ color: T.primary }}>Activity</span> — Narsil-ML predicted Cas12a on-target efficiency (0–1). <span style={{ color: T.primary }}>PAM-adj</span> = Activity × PAM penalty (actual signal strength).</div>
+          <div><span style={{ color: T.primary }}>Disc</span> — MUT/WT fold-difference. ≥3× diagnostic-grade. {"<"}2× insufficient.</div>
+          <div><span style={{ color: T.primary }}>QC</span> — biophysical heuristic (GC, homopolymer, off-target, self-comp). Sanity check, not a ranking score.</div>
+          <div><span style={{ color: T.primary }}>Readiness</span> — composite score (0–100) combining efficiency, discrimination, primer coverage, safety, and GC content. ≥40 is assay-ready.</div>
           <div style={{ color: T.textSec }}>Click any row to expand full details, scored sequence, primers, and alternatives.</div>
         </div>
       </div>
@@ -4189,12 +4190,12 @@ const DiscriminationTab = ({ results }) => {
         </div>
         <div style={{ fontSize: "13px", color: T.primaryDark, lineHeight: 1.7 }}>
           <p style={{ margin: "0 0 8px" }}>
-            Each crRNA is designed to perfectly match the <strong>resistance mutation</strong> (MUT). When it encounters <strong>normal/wildtype DNA</strong> (WT),
-            mismatches at the mutation site reduce Cas12a cleavage. The <strong>discrimination ratio</strong> is how many times stronger the signal
+            Each crRNA is designed to perfectly match the resistance mutation (MUT). When it encounters normal/wildtype DNA (WT),
+            mismatches at the mutation site reduce Cas12a cleavage. The discrimination ratio is how many times stronger the signal
             is on resistant DNA versus normal DNA — for example, "5×" means the guide produces 5 times more signal on a resistant sample.
           </p>
           <p style={{ margin: 0 }}>
-            A ratio ≥ 3× is considered <strong>diagnostic-grade</strong> — reliable enough for clinical use with electrochemical (SWV) or lateral-flow readout.
+            A ratio ≥ 3× is considered diagnostic-grade — reliable enough for clinical use with electrochemical (SWV) or lateral-flow readout.
             ≥ 2× is the minimum for any detection method. Below 2× the guide cannot reliably distinguish resistant from susceptible bacteria
             and requires synthetic mismatch enhancement.
           </p>
@@ -6190,7 +6191,7 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
           ))}
         </div>
         {presetObj && (
-          <div style={{ marginTop: "8px", fontSize: "11px", color: T.textSec, display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div style={{ marginTop: "16px", fontSize: "11px", color: T.textSec, display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
             <span>Thresholds: efficiency ≥ {presetObj.efficiency_threshold}, discrimination ≥ {presetObj.discrimination_threshold}×</span>
             <span style={{
               display: "inline-flex", alignItems: "center", gap: "5px",
