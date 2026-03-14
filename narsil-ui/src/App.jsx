@@ -4,8 +4,8 @@ import {
   Activity, BarChart3, BookOpen, Check, ChevronDown, ChevronRight, Clock, Copy,
   Database, Download, ExternalLink, Eye, FileText, Filter, FlaskConical,
   Folder, GitBranch, Grid3x3, Layers, List, Loader2,
-  Lock, Menu, Package, PanelLeft, PanelLeftClose, Play, Plus, RefreshCw, Search, Settings, Target,
-  TrendingUp, X, Zap, Shield, Crosshair, Brain, Cpu, Wifi, WifiOff,
+  Lock, Menu, Package, PanelLeft, PanelLeftClose, Pencil, Play, Plus, RefreshCw, Search, Settings, Target,
+  Trash2, TrendingUp, X, Zap, Shield, Crosshair, Brain, Cpu, Wifi, WifiOff,
   AlertTriangle, CheckCircle, Info, Map, Droplet,
 } from "lucide-react";
 import {
@@ -1014,6 +1014,8 @@ const HomePage = ({ goTo, connected }) => {
   const [mode, setMode] = useState("standard");
   const [selectedModules, setSelectedModules] = useState(new Set(MODULES.map(m => m.id)));
   const [configOpen, setConfigOpen] = useState(false);
+  const [panelSectionOpen, setPanelSectionOpen] = useState(true);
+  const [scorerSectionOpen, setScorerSectionOpen] = useState(true);
   const [scorer, setScorer] = useState(null); // "heuristic" | "narsil_ml" | null
   const [enzymeId, setEnzymeId] = useState("enAsCas12a"); // "AsCas12a" | "enAsCas12a"
   const [launching, setLaunching] = useState(false);
@@ -1202,7 +1204,6 @@ const HomePage = ({ goTo, connected }) => {
       {/* Page title */}
       <div style={{ marginBottom: "24px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: T.text, margin: 0, fontFamily: HEADING, letterSpacing: "-0.01em" }}>Pipeline Configuration</h1>
-        <p style={{ fontSize: "13px", color: T.textSec, marginTop: "4px", margin: "4px 0 0" }}>Design multiplexed CRISPR-Cas12a diagnostic panels for drug-resistant TB</p>
       </div>
 
       {/* ── Run Workflow ── */}
@@ -1252,67 +1253,93 @@ const HomePage = ({ goTo, connected }) => {
         <div style={{ height: 1, background: T.borderLight, margin: "0 0 24px" }} />
 
         {/* Diagnostic Panel */}
-        <div style={{ marginBottom: "28px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "12px" }}>Diagnostic Panel</div>
-
-          {/* Preset cards — 2×2 */}
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px", marginBottom: "16px" }}>
-            {[
-              { id: "mdr14", name: "MDR-TB 14-plex", targets: ALL_INDICES.length + " targets",
-                desc: "Full WHO-catalogued first- and second-line resistance panel.",
-                meta: ["6 drug classes", "Tier 1–2", "High + Moderate"] },
-              { id: "mdr14_rnasep", name: "MDR-TB 14-plex + RNaseP", targets: (ALL_INDICES.length + 1) + " targets",
-                desc: "Full MDR panel plus human RNaseP (RPPH1) extraction control.",
-                meta: ["6 drug classes", "+ extraction ctrl", "CDC standard"] },
-              { id: "core5", name: "Core 5-plex", targets: "5 targets",
-                desc: "High-confidence tier-1 mutations only. Point-of-care screening.",
-                meta: ["4 drug classes", "Tier 1", "High confidence"] },
-              { id: "custom", name: "Custom Panel", targets: panel === "custom" ? selected.size + " targets" : "",
-                desc: "Select individual mutations for targeted re-design or validation.",
-                meta: [] },
-            ].map(p => (
-              <div key={p.id} onClick={() => selectPanel(p.id)} style={{
-                padding: "16px 20px", borderRadius: "4px", cursor: "pointer",
-                border: panel === p.id ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
-                background: panel === p.id ? T.primaryLight : T.bg,
-                display: "flex", flexDirection: "column", transition: "border-color 0.12s, background 0.12s",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>{p.name}</span>
-                  {p.targets && <span style={{ fontSize: "13px", fontWeight: 500, fontFamily: MONO, color: panel === p.id ? T.primary : T.textTer }}>{p.targets}</span>}
-                </div>
-                <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.5, flex: 1, marginBottom: p.meta.length ? "8px" : "0" }}>{p.desc}</div>
-                {p.meta.length > 0 && (
-                  <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: T.textTer, borderTop: `1px solid ${panel === p.id ? T.primary + "30" : T.borderLight}`, paddingTop: "8px" }}>
-                    {p.meta.map((label, j) => <span key={j}>{label}</span>)}
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ background: T.bgSub, border: `1px solid ${T.borderLight}`, borderRadius: "4px", overflow: "hidden" }}>
+          <button onClick={() => setPanelSectionOpen(!panelSectionOpen)} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px",
+            background: "none", border: "none", cursor: "pointer", fontFamily: FONT,
+          }}>
+            <Layers size={14} color={T.textSec} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: T.text, flex: 1, textAlign: "left" }}>Diagnostic Panel</span>
+            <span style={{ fontSize: "11px", color: T.textTer, marginRight: "4px" }}>{panel ? (panel === "mdr14" ? "MDR-TB 14-plex" : panel === "mdr14_rnasep" ? "MDR-TB + RNaseP" : panel === "core5" ? "Core 5-plex" : "Custom") : "select panel"}</span>
+            <ChevronDown size={14} color={T.textSec} style={{ transform: panelSectionOpen ? "rotate(180deg)" : "none", transition: "0.2s" }} />
+          </button>
+          {panelSectionOpen && (
+            <div style={{ padding: "16px 20px", borderTop: `1px solid ${T.borderLight}` }}>
+              {/* Preset cards — 2×2 */}
+              <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+                {[
+                  { id: "mdr14", name: "MDR-TB 14-plex", targets: ALL_INDICES.length + " targets",
+                    desc: "Full WHO-catalogued first- and second-line resistance panel.",
+                    meta: ["6 drug classes", "Tier 1–2", "High + Moderate"] },
+                  { id: "mdr14_rnasep", name: "MDR-TB 14-plex + RNaseP", targets: (ALL_INDICES.length + 1) + " targets",
+                    desc: "Full MDR panel plus human RNaseP (RPPH1) extraction control.",
+                    meta: ["6 drug classes", "+ extraction ctrl", "CDC standard"] },
+                  { id: "core5", name: "Core 5-plex", targets: "5 targets",
+                    desc: "High-confidence tier-1 mutations only. Point-of-care screening.",
+                    meta: ["4 drug classes", "Tier 1", "High confidence"] },
+                  { id: "custom", name: "Custom Panel", targets: panel === "custom" ? selected.size + " targets" : "",
+                    desc: "Select individual mutations for targeted re-design or validation.",
+                    meta: [] },
+                ].map(p => (
+                  <div key={p.id} onClick={() => selectPanel(p.id)} style={{
+                    padding: "16px 20px", borderRadius: "4px", cursor: "pointer",
+                    border: panel === p.id ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                    background: panel === p.id ? T.primaryLight : T.bg,
+                    display: "flex", flexDirection: "column", transition: "border-color 0.12s, background 0.12s",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>{p.name}</span>
+                      {p.targets && <span style={{ fontSize: "13px", fontWeight: 500, fontFamily: MONO, color: panel === p.id ? T.primary : T.textTer }}>{p.targets}</span>}
+                    </div>
+                    <div style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.5, flex: 1, marginBottom: p.meta.length ? "8px" : "0" }}>{p.desc}</div>
+                    {p.meta.length > 0 && (
+                      <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: T.textTer, borderTop: `1px solid ${panel === p.id ? T.primary + "30" : T.borderLight}`, paddingTop: "8px" }}>
+                        {p.meta.map((label, j) => <span key={j}>{label}</span>)}
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            </div>
+          )}
           </div>
-
         </div>
 
         {/* Scoring Model */}
-        <div style={{ marginBottom: "28px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "12px" }}>Scoring Model</div>
-          <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
-            {[
-              { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features.", tag: "Baseline" },
-              { id: "narsil_ml", label: "Narsil-ML", desc: "Dual-branch CNN & RNA-FM with R-loop propagation attention.", tag: "Recommended" },
-            ].map(s => (
-              <button key={s.id} onClick={() => setScorer(s.id)} style={{
-                padding: "16px 20px", borderRadius: "4px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
-                border: scorer === s.id ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
-                background: scorer === s.id ? T.primaryLight : T.bg, transition: "all 0.15s",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 600, color: scorer === s.id ? T.primaryDark : T.text, fontFamily: HEADING }}>{s.label}</span>
-                  <span style={{ fontSize: "10px", fontWeight: 600, fontFamily: MONO, padding: "2px 8px", borderRadius: "3px", background: s.id === "narsil_ml" ? T.primaryLight : T.bgSub, color: s.id === "narsil_ml" ? T.primary : T.textTer }}>{s.tag}</span>
-                </div>
-                <div style={{ fontSize: "13px", color: scorer === s.id ? T.primaryDark : T.textSec, lineHeight: 1.5 }}>{s.desc}</div>
-              </button>
-            ))}
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ background: T.bgSub, border: `1px solid ${T.borderLight}`, borderRadius: "4px", overflow: "hidden" }}>
+          <button onClick={() => setScorerSectionOpen(!scorerSectionOpen)} style={{
+            width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px",
+            background: "none", border: "none", cursor: "pointer", fontFamily: FONT,
+          }}>
+            <Brain size={14} color={T.textSec} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: T.text, flex: 1, textAlign: "left" }}>Scoring Model</span>
+            <span style={{ fontSize: "11px", color: T.textTer, marginRight: "4px" }}>{scorer === "narsil_ml" ? "Narsil-ML" : scorer === "heuristic" ? "Heuristic" : "select model"}</span>
+            <ChevronDown size={14} color={T.textSec} style={{ transform: scorerSectionOpen ? "rotate(180deg)" : "none", transition: "0.2s" }} />
+          </button>
+          {scorerSectionOpen && (
+            <div style={{ padding: "16px 20px", borderTop: `1px solid ${T.borderLight}` }}>
+              <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+                {[
+                  { id: "heuristic", label: "Heuristic", desc: "Position-weighted composite across 5 biophysical features.", tag: "Baseline" },
+                  { id: "narsil_ml", label: "Narsil-ML", desc: "Dual-branch CNN & RNA-FM with R-loop propagation attention.", tag: "Recommended" },
+                ].map(s => (
+                  <button key={s.id} onClick={() => setScorer(s.id)} style={{
+                    padding: "16px 20px", borderRadius: "4px", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+                    border: scorer === s.id ? `2px solid ${T.primary}` : `1px solid ${T.border}`,
+                    background: scorer === s.id ? T.primaryLight : T.bg, transition: "all 0.15s",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: scorer === s.id ? T.primaryDark : T.text, fontFamily: HEADING }}>{s.label}</span>
+                      <span style={{ fontSize: "10px", fontWeight: 600, fontFamily: MONO, padding: "2px 8px", borderRadius: "3px", background: s.id === "narsil_ml" ? T.primaryLight : T.bgSub, color: s.id === "narsil_ml" ? T.primary : T.textTer }}>{s.tag}</span>
+                    </div>
+                    <div style={{ fontSize: "13px", color: scorer === s.id ? T.primaryDark : T.textSec, lineHeight: 1.5 }}>{s.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           </div>
         </div>
 
@@ -1713,14 +1740,24 @@ const HomePage = ({ goTo, connected }) => {
    ═══════════════════════════════════════════════════════════════════ */
 const MethodsPage = () => {
   const mobile = useIsMobile();
-  const [openSections, setOpenSections] = useState({ pipeline: true, narsilml: true, clinical: false, discrimination: false, nuclease: false, defaults: false, limitations: false, references: false });
-  const toggle = (k) => setOpenSections(prev => ({ ...prev, [k]: !prev[k] }));
+  const [openSections, setOpenSections] = useState({ pipeline: false, narsilml: false, architecture: false, clinical: false, discrimination: false, nuclease: false, defaults: false, limitations: false, references: false });
+  const sectionRefs = useRef({});
+
+  const toggle = (k) => setOpenSections(prev => {
+    const willOpen = !prev[k];
+    if (willOpen) {
+      setTimeout(() => {
+        sectionRefs.current[k]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+    return { ...prev, [k]: willOpen };
+  });
 
   /* ── Reusable section card — grey header bar, collapsible body ── */
   const Section = ({ id, title, subtitle, badge, children }) => {
     const isOpen = openSections[id];
     return (
-      <div style={{ marginBottom: "12px", border: `1px solid ${T.border}`, borderRadius: "6px", overflow: "hidden", background: T.bg }}>
+      <div ref={el => { sectionRefs.current[id] = el; }} style={{ marginBottom: "12px", border: `1px solid ${T.border}`, borderRadius: "6px", overflow: "hidden", background: T.bg }}>
         <button onClick={() => toggle(id)} style={{
           display: "flex", alignItems: "center", width: "100%", padding: "14px 20px",
           background: T.bgSub, border: "none", cursor: "pointer", fontFamily: FONT,
@@ -1766,7 +1803,7 @@ const MethodsPage = () => {
       <Section id="pipeline" title="Pipeline" subtitle="End-to-end from WHO mutation catalogue to validated diagnostic panel" badge={{ text: "4 stages", bg: T.primaryLight, color: T.primary }}>
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(4, 1fr)", gap: "0", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden" }}>
           {[
-            { n: "01", icon: Target, title: "Define targets", desc: "Resolve WHO catalogue mutations to H37Rv genomic coordinates, codon context, and drug class annotations.", color: T.primary },
+            { n: "01", icon: Map, title: "Define targets", desc: "Resolve WHO catalogue mutations to H37Rv genomic coordinates, codon context, and drug class annotations.", color: T.primary },
             { n: "02", icon: Brain, title: "Score candidates", desc: "Scan PAM sites, generate crRNAs, and predict activity with Narsil-ML trained on 25K+ measurements.", color: T.primary },
             { n: "03", icon: Zap, title: "Optimise panel", desc: "Simulated annealing over candidate assignments with co-designed AS-RPA primers and multiplex constraints.", color: T.primaryDark },
             { n: "04", icon: Shield, title: "Assess clinically", desc: "Evaluate against WHO TPP thresholds for per-drug sensitivity, specificity, and three operating modes.", color: T.success },
@@ -6968,6 +7005,10 @@ const PanelsPage = ({ connected }) => {
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newMuts, setNewMuts] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editMuts, setEditMuts] = useState("");
 
   useEffect(() => {
     if (connected) {
@@ -6987,6 +7028,23 @@ const PanelsPage = ({ connected }) => {
     setNewName("");
     setNewDesc("");
     setNewMuts("");
+  };
+
+  const startEdit = (p) => {
+    setEditingId(p.id || p.name);
+    setEditName(p.name);
+    setEditDesc(p.description || "");
+    setEditMuts((p.mutations || []).join(", "));
+  };
+
+  const saveEdit = (panelId) => {
+    const muts = editMuts.split(",").map((s) => s.trim()).filter(Boolean);
+    setPanels((prev) => prev.map((p) => (p.id || p.name) === panelId ? { ...p, name: editName, description: editDesc, mutations: muts } : p));
+    setEditingId(null);
+  };
+
+  const deletePanel = (panelId) => {
+    setPanels((prev) => prev.filter((p) => (p.id || p.name) !== panelId));
   };
 
   return (
@@ -7028,21 +7086,56 @@ const PanelsPage = ({ connected }) => {
       )}
 
       <div style={{ display: "grid", gap: "12px" }}>
-        {panels.map((p) => (
-          <div key={p.id || p.name} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>{p.name}</div>
-              <Badge variant="primary">{(p.mutations || []).length} mutations</Badge>
+        {panels.map((p) => {
+          const pid = p.id || p.name;
+          const isEditing = editingId === pid;
+          return (
+            <div key={pid} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "20px" }}>
+              {isEditing ? (
+                <div>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "4px" }}>Panel Name</label>
+                    <input value={editName} onChange={(e) => setEditName(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: `1px solid ${T.border}`, fontFamily: FONT, fontSize: "13px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "4px" }}>Description</label>
+                    <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: `1px solid ${T.border}`, fontFamily: FONT, fontSize: "13px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: "16px" }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "4px" }}>Mutations (comma-separated)</label>
+                    <textarea value={editMuts} onChange={(e) => setEditMuts(e.target.value)} rows={3} style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: `1px solid ${T.border}`, fontFamily: MONO, fontSize: "12px", outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <Btn onClick={() => saveEdit(pid)} disabled={!editName.trim()} size="sm">Save</Btn>
+                    <Btn variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Btn>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>{p.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Badge variant="primary">{(p.mutations || []).length} mutations</Badge>
+                      <button onClick={() => startEdit(p)} title="Edit panel" style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", borderRadius: "4px" }}>
+                        <Pencil size={14} color={T.textTer} />
+                      </button>
+                      <button onClick={() => deletePanel(pid)} title="Delete panel" style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", borderRadius: "4px" }}>
+                        <Trash2 size={14} color={T.textTer} />
+                      </button>
+                    </div>
+                  </div>
+                  {p.description && <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "8px" }}>{p.description}</div>}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                    {(p.mutations || []).slice(0, 10).map((m) => (
+                      <span key={m} style={{ fontFamily: MONO, fontSize: "10px", padding: "3px 8px", borderRadius: "4px", background: T.bgSub, border: `1px solid ${T.borderLight}`, color: T.text }}>{m}</span>
+                    ))}
+                    {(p.mutations || []).length > 10 && <span style={{ fontSize: "10px", color: T.textTer, padding: "3px" }}>+{p.mutations.length - 10} more</span>}
+                  </div>
+                </>
+              )}
             </div>
-            {p.description && <div style={{ fontSize: "12px", color: T.textSec, marginBottom: "8px" }}>{p.description}</div>}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {(p.mutations || []).slice(0, 10).map((m) => (
-                <span key={m} style={{ fontFamily: MONO, fontSize: "10px", padding: "3px 8px", borderRadius: "4px", background: T.bgSub, border: `1px solid ${T.borderLight}`, color: T.text }}>{m}</span>
-              ))}
-              {(p.mutations || []).length > 10 && <span style={{ fontSize: "10px", color: T.textTer, padding: "3px" }}>+{p.mutations.length - 10} more</span>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -7134,12 +7227,46 @@ const ScoringPage = ({ connected }) => {
   const mobile = useIsMobile();
   const [models, setModels] = useState([]);
   const [showApiRef, setShowApiRef] = useState(false);
+  const [openBlocks, setOpenBlocks] = useState({ heuristic: true, narsilml: false, discrimination: false, bjepa: false });
+  const scoringRefs = useRef({});
+
+  const toggleBlock = (k) => setOpenBlocks(prev => {
+    const willOpen = !prev[k];
+    if (willOpen) {
+      setTimeout(() => {
+        scoringRefs.current[k]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+    return { ...prev, [k]: willOpen };
+  });
 
   useEffect(() => {
     if (connected) {
       listScoringModels().then(({ data }) => { if (data) setModels(data); });
     }
   }, [connected]);
+
+  /* Reusable collapsible block header */
+  const ScoringBlock = ({ id, icon: Icon, title, badge, badgeVariant, dashed, dimmed, children }) => {
+    const isOpen = openBlocks[id];
+    return (
+      <div ref={el => { scoringRefs.current[id] = el; }} style={{ background: T.bg, border: `1px ${dashed ? "dashed" : "solid"} ${T.border}`, borderRadius: "4px", marginBottom: "12px", overflow: "hidden", opacity: dimmed ? 0.85 : 1 }}>
+        <button onClick={() => toggleBlock(id)} style={{
+          width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px",
+          background: T.bgSub, border: "none", cursor: "pointer", fontFamily: FONT, textAlign: "left",
+        }}>
+          <div style={{ width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {isOpen ? <ChevronDown size={14} color={T.textSec} /> : <ChevronRight size={14} color={T.textSec} />}
+          </div>
+          <Icon size={18} color={T.primary} />
+          <span style={{ fontSize: "15px", fontWeight: 600, color: T.text, fontFamily: HEADING, flex: 1 }}>{title}</span>
+          {badge && <span style={{ fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "3px", background: badgeVariant === "success" ? "#dcfce7" : T.primaryLight, color: badgeVariant === "success" ? "#059669" : T.primary, fontFamily: MONO }}>{badge}</span>}
+          <span style={{ fontSize: "10px", color: T.textTer, flexShrink: 0 }}>{isOpen ? "collapse" : "expand"}</span>
+        </button>
+        {isOpen && <div style={{ padding: mobile ? "16px" : "20px 24px", borderTop: `1px solid ${T.border}` }}>{children}</div>}
+      </div>
+    );
+  };
 
   return (
     <div style={{ padding: mobile ? "24px 16px" : "32px 40px" }}>
@@ -7149,14 +7276,9 @@ const ScoringPage = ({ connected }) => {
         <p style={{ fontSize: "13px", color: T.textSec, marginTop: "4px" }}>Heuristic and ML-based candidate scoring</p>
       </div>
 
-      {/* Current model */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "28px", marginBottom: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-          <Brain size={20} color={T.primary} />
-          <span style={{ fontSize: "16px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>Heuristic Model (Default)</span>
-          <Badge variant="success">Active</Badge>
-        </div>
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px" }}>
+      {/* ── Heuristic Model ── */}
+      <ScoringBlock id="heuristic" icon={Brain} title="Heuristic Model (Default)" badge="Active" badgeVariant="success">
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px", marginTop: 0 }}>
           Position-weighted composite scoring across 5 biophysical features. This is the default scoring model used by the NARSIL pipeline.
         </p>
 
@@ -7172,18 +7294,13 @@ const ScoringPage = ({ connected }) => {
           ))}
         </div>
         <div style={{ marginTop: "16px", fontSize: "12px", color: T.textSec, lineHeight: 1.6 }}>
-          <strong>Formula:</strong> composite = Σ(feature_score × weight) where each feature_score ∈ [0, 1]
+          <strong>Formula:</strong> composite = {"\u03a3"}(feature_score {"\u00d7"} weight) where each feature_score {"\u2208"} [0, 1]
         </div>
-      </div>
+      </ScoringBlock>
 
       {/* ── Narsil-ML ── */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "28px", marginBottom: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
-          <Cpu size={20} color={T.primary} />
-          <span style={{ fontSize: "16px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>Narsil-ML</span>
-          <Badge variant="success">Recommended</Badge>
-        </div>
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px" }}>
+      <ScoringBlock id="narsilml" icon={Cpu} title="Narsil-ML" badge="Recommended" badgeVariant="success">
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px", marginTop: 0 }}>
           Dual-branch neural network combining a target-DNA CNN with RNA Foundation Model (RNA-FM) embeddings for crRNA secondary structure.
           R-Loop Propagation Attention (RLPA) encodes the biophysics of Cas12a's directional R-loop formation into the architecture.
           Trained on 25,000+ cis- and trans-cleavage measurements from Kim et al. (2018) and Huang et al. (2024). Activity score serves as primary ranking; heuristic provides independent biophysical QC.
@@ -7213,14 +7330,14 @@ const ScoringPage = ({ connected }) => {
         <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Architecture</div>
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden" }}>
           {[
-            ["Architecture", "CNN + RNA-FM → RLPA Attention → Fusion → Dense"],
+            ["Architecture", "CNN + RNA-FM \u2192 RLPA Attention \u2192 Fusion \u2192 Dense"],
             ["CNN input", "One-hot 34nt (PAM + spacer + context)"],
             ["RNA-FM input", "Pre-cached 640-dim embeddings (20 positions)"],
             ["Training data", "25K+ guides (Kim 2018 + Huang 2024)"],
             ["Parameters", "235K"],
-            ["Val ρ (cis)", "0.49 (Spearman, Kim 2018 cross-library)"],
-            ["Val ρ (trans)", "0.55 (Spearman, Huang 2024 EasyDesign)"],
-            ["Attention", "RLPA — causal mask encoding PAM→distal R-loop propagation"],
+            ["Val \u03c1 (cis)", "0.49 (Spearman, Kim 2018 cross-library)"],
+            ["Val \u03c1 (trans)", "0.55 (Spearman, Huang 2024 EasyDesign)"],
+            ["Attention", "RLPA \u2014 causal mask encoding PAM\u2192distal R-loop propagation"],
             ["Loss", "Huber + differentiable Spearman"],
           ].map(([k, v], i, arr) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none", fontSize: "12px" }}>
@@ -7229,51 +7346,20 @@ const ScoringPage = ({ connected }) => {
             </div>
           ))}
         </div>
-      </div>
+      </ScoringBlock>
 
-      {/* ── B-JEPA (teaser) ── */}
-      <div style={{ background: T.bg, border: `1px dashed ${T.border}`, borderRadius: "4px", padding: "28px", marginBottom: "24px", opacity: 0.85 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
-          <Brain size={20} color={T.primary} />
-          <span style={{ fontSize: "16px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>B-DNA JEPA</span>
-          <span style={{ background: T.primaryLight, color: T.primary, padding: "3px 10px", borderRadius: "3px", fontSize: "11px", fontWeight: 600 }}>In development</span>
-        </div>
-        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px" }}>
-          Self-supervised foundation model (JEPA architecture) pretrained on 6,326 bacterial genomes (301K fragments × 512bp).
-          Fine-tuned for Cas12a activity prediction with the goal of improving cross-library generalisation beyond the supervised CNN.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px" }}>
-          {[
-            { label: "Pretraining", value: "6.3K genomes" },
-            { label: "Parameters", value: "50.2M" },
-            { label: "Current ρ", value: "training v4.2" },
-            { label: "Target ρ", value: "> 0.60" },
-          ].map(s => (
-            <div key={s.label} style={{ background: T.bgSub, borderRadius: "4px", padding: "12px", textAlign: "center" }}>
-              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "4px" }}>{s.label}</div>
-              <div style={{ fontSize: "16px", fontWeight: 600, color: T.text, fontFamily: FONT }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Discrimination model ── */}
-      <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "28px", marginBottom: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
-          <TrendingUp size={20} color={T.primary} />
-          <span style={{ fontSize: "16px", fontWeight: 600, color: T.text, fontFamily: HEADING }}>Discrimination Prediction</span>
-          <span style={{ background: "#dcfce7", color: "#059669", padding: "3px 10px", borderRadius: "3px", fontSize: "11px", fontWeight: 600 }}>Trained</span>
-        </div>
+      {/* ── Discrimination Prediction (moved above B-JEPA) ── */}
+      <ScoringBlock id="discrimination" icon={TrendingUp} title="Discrimination Prediction" badge="Trained" badgeVariant="success">
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px" }}>
           Gradient-boosted model (XGBoost) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a).
-          Predicts the discrimination ratio (\u0394log-k between perfect-match and single-mismatch targets) from 15 thermodynamic features encoding mismatch position, chemistry, R-loop energetics, and sequence context.
+          Predicts the discrimination ratio ({"\u0394"}log-k between perfect-match and single-mismatch targets) from 15 thermodynamic features encoding mismatch position, chemistry, R-loop energetics, and sequence context.
         </p>
         <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Performance (3-fold stratified CV, guide-level split)</div>
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden", marginBottom: "16px" }}>
           {[
             { name: "Heuristic baseline", rmse: "0.641", corr: "0.298", delta: null },
             { name: "XGBoost (feature-based)", rmse: "0.540", corr: "0.459", delta: "\u221215% RMSE" },
-            { name: "Narsil-ML neural head", rmse: "—", corr: "0.440", delta: "integrated" },
+            { name: "Narsil-ML neural head", rmse: "\u2014", corr: "0.440", delta: "integrated" },
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
@@ -7303,9 +7389,33 @@ const ScoringPage = ({ connected }) => {
           ))}
         </div>
         <div style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.6 }}>
-          Training data: EasyDesign (Huang et al. 2024). Features: R-loop \u0394G profiles (Sugimoto 1995 NN params), mismatch \u0394\u0394G penalties (Sugimoto 2000), position sensitivity (Strohkendl 2018). Guide-level CV split prevents data leakage.
+          Training data: EasyDesign (Huang et al. 2024). Features: R-loop {"\u0394"}G profiles (Sugimoto 1995 NN params), mismatch {"\u0394\u0394"}G penalties (Sugimoto 2000), position sensitivity (Strohkendl 2018). Guide-level CV split prevents data leakage.
         </div>
-      </div>
+      </ScoringBlock>
+
+      {/* ── B-JEPA (teaser) ── */}
+      <ScoringBlock id="bjepa" icon={Brain} title="B-JEPA" badge="In development" dashed dimmed>
+        <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, margin: "0 0 16px" }}>
+          Self-supervised foundation model using Joint-Embedding Predictive Architecture with latent grounding — pretrained on 6,326 complete bacterial reference genomes (10M fragments {"\u00d7"} 2048bp).
+          Dynamic JEPA{"\u2192"}MLM loss scheduling: JEPA shapes high-dimensional representation space (RankMe {">"}450), then masked language modeling drives token-level genomic feature learning.
+          Per-dimension variance floor prevents representational collapse. Targets downstream Cas12a guide efficiency prediction and MDR-TB drug resistance classification.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: "10px", marginBottom: "16px" }}>
+          {[
+            { label: "Pretraining", value: "6,326 bacterial genomes (NCBI RefSeq)" },
+            { label: "Fragments", value: "10M (2048bp window, 512bp stride)" },
+            { label: "Architecture", value: "12L \u00d7 576D \u00d7 9H encoder, 6L \u00d7 384D predictor" },
+            { label: "Parameters", value: "64.3M" },
+            { label: "Training", value: "v7.0" },
+            { label: "Target \u03c1", value: "> 0.60" },
+          ].map(s => (
+            <div key={s.label} style={{ background: T.bgSub, borderRadius: "4px", padding: "12px", textAlign: "center" }}>
+              <div style={{ fontSize: "10px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "4px" }}>{s.label}</div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: T.text, fontFamily: FONT }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </ScoringBlock>
 
       {/* API models — hidden by default, developer-only */}
       {models.length > 0 && (
@@ -8368,12 +8478,12 @@ const ResearchPage = ({ connected }) => {
           <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
             <AlertTriangle size={16} color={RS.barrier} style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
-              <div style={{ fontSize: "12px", fontWeight: 600, color: RS.text, marginBottom: "4px" }}>Mg\u00b2\u207a Concentration Inverts Seed Specificity</div>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: RS.text, marginBottom: "4px" }}>Mg{"\u00b2\u207a"} Concentration Inverts Seed Specificity</div>
               <p style={{ fontSize: "11px", color: RS.muted, lineHeight: 1.7, margin: 0 }}>
-                Nguyen et al. (2024, <em>NAR</em> 52:9343) showed that at low Mg\u00b2\u207a (\u22641 mM), seed mismatches become <em>more</em> tolerated
+                Nguyen et al. (2024, <em>NAR</em> 52:9343) showed that at low Mg{"\u00b2\u207a"} ({"\u2264"}1 mM), seed mismatches become <em>more</em> tolerated
                 while PAM-distal mismatches become <em>less</em> tolerated — partially inverting the canonical specificity pattern.
-                The standard 10 mM MgCl\u2082 used in most published assays may not reflect diagnostic buffer conditions.
-                Buffer Mg\u00b2\u207a optimisation is a critical experimental variable for achieving reliable SNV discrimination.
+                The standard 10 mM MgCl{"\u2082"} used in most published assays may not reflect diagnostic buffer conditions.
+                Buffer Mg{"\u00b2\u207a"} optimisation is a critical experimental variable for achieving reliable SNV discrimination.
               </p>
               <a
                 href="https://doi.org/10.1093/nar/gkae613"
