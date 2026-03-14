@@ -75,7 +75,7 @@ const makeSprite = (text, color, size, bold) => {
   canvas.width = 512 * dpr; canvas.height = 64 * dpr;
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
-  ctx.font = `${bold ? "bold " : ""}${Math.round(size || 18)}px monospace`;
+  ctx.font = `${bold ? "bold " : ""}${Math.round(size || 18)}px Inter, -apple-system, monospace`;
   ctx.fillStyle = color || "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";

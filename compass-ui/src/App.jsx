@@ -42,9 +42,9 @@ const T = {
   riskAmber: "#D97706", riskAmberBg: "#FFFBEB",
   riskRed: "#DC2626", riskRedBg: "#FEF2F2",
 };
-const FONT = "'Inter', sans-serif";
-const HEADING = "'Inter', sans-serif";
-const MONO = "'Inter', monospace";
+const FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const HEADING = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const MONO = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace";
 const NUC = { A: "#059669", T: "#DC2626", G: "#D97706", C: "#4338CA" }; // nucleotide colors (kept distinct from primary)
 const BP = 768; // responsive breakpoint
 
@@ -2312,7 +2312,7 @@ const ReadinessChart = ({ results }) => {
           <g key={a}>
             <line x1={axisX[i]} y1={padT} x2={axisX[i]} y2={padT + plotH} stroke="#E5E7EB" strokeWidth={1} />
             {/* Axis label */}
-            <text x={axisX[i]} y={padT + plotH + 24} textAnchor="middle" fontSize={11} fontWeight={600} fill="#6B7280" fontFamily="Inter, sans-serif">{AXIS_LABELS[a]}</text>
+            <text x={axisX[i]} y={padT + plotH + 24} textAnchor="middle" fontSize={11} fontWeight={600} fill="#6B7280" fontFamily={FONT}>{AXIS_LABELS[a]}</text>
             {/* Tick marks at 0%, 25%, 50%, 75%, 100% */}
             {[0, 0.25, 0.5, 0.75, 1].map(v => {
               const ty = padT + plotH * (1 - v);
@@ -2364,7 +2364,7 @@ const ReadinessChart = ({ results }) => {
           return (
             <g key={a}>
               <circle cx={axisX[i]} cy={y} r={5} fill={lineColor} stroke="#fff" strokeWidth={2} />
-              <text x={axisX[i] + (i === axes.length - 1 ? -10 : 10)} y={y - 8} textAnchor={i === axes.length - 1 ? "end" : "start"} fontSize={10} fontWeight={600} fill="#374151" fontFamily="Inter, sans-serif">{(row[a] * 100).toFixed(0)}%</text>
+              <text x={axisX[i] + (i === axes.length - 1 ? -10 : 10)} y={y - 8} textAnchor={i === axes.length - 1 ? "end" : "start"} fontSize={10} fontWeight={600} fill="#374151" fontFamily={FONT}>{(row[a] * 100).toFixed(0)}%</text>
             </g>
           );
         })}
@@ -2379,10 +2379,10 @@ const ReadinessChart = ({ results }) => {
             <g>
               {/* Left: target name */}
               <rect x={2} y={firstY - 10} width={padL - 12} height={18} rx={3} fill="#fff" stroke="#E5E7EB" strokeWidth={0.5} />
-              <text x={padL - 14} y={firstY + 3} textAnchor="end" fontSize={10} fontWeight={600} fill={lineColor} fontFamily="Inter, sans-serif">{row.name}</text>
+              <text x={padL - 14} y={firstY + 3} textAnchor="end" fontSize={10} fontWeight={600} fill={lineColor} fontFamily={FONT}>{row.name}</text>
               {/* Right: readiness score */}
               <rect x={axisX[axes.length - 1] + 8} y={padT + plotH * (1 - row[axes[axes.length - 1]]) - 10} width={55} height={18} rx={3} fill={readinessColor} opacity={0.15} />
-              <text x={axisX[axes.length - 1] + 36} y={padT + plotH * (1 - row[axes[axes.length - 1]]) + 4} textAnchor="middle" fontSize={12} fontWeight={600} fill={readinessColor} fontFamily="Inter, sans-serif">{(row.readiness * 100).toFixed(0)}</text>
+              <text x={axisX[axes.length - 1] + 36} y={padT + plotH * (1 - row[axes[axes.length - 1]]) + 4} textAnchor="middle" fontSize={12} fontWeight={600} fill={readinessColor} fontFamily={FONT}>{(row.readiness * 100).toFixed(0)}</text>
             </g>
           );
         })()}
@@ -2393,7 +2393,7 @@ const ReadinessChart = ({ results }) => {
           const y = padT + plotH * (1 - row[axes[axes.length - 1]]);
           const readinessColor = row.readiness >= 0.7 ? "#66C2A5" : row.readiness >= 0.4 ? "#FFB347" : "#F4A1A1";
           return (
-            <text key={ri} x={axisX[axes.length - 1] + 14} y={y + 3} fontSize={9} fontWeight={600} fill={readinessColor} fontFamily="Inter, sans-serif"
+            <text key={ri} x={axisX[axes.length - 1] + 14} y={y + 3} fontSize={9} fontWeight={600} fill={readinessColor} fontFamily={FONT}
               style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
               {(row.readiness * 100).toFixed(0)}
             </text>
@@ -2405,7 +2405,7 @@ const ReadinessChart = ({ results }) => {
           const y = padT + plotH * (1 - row[axes[0]]);
           const lineColor = DRUG_LINE[row.drug] || "#6B7280";
           return (
-            <text key={ri} x={padL - 8} y={y + 3} textAnchor="end" fontSize={8} fill={lineColor} fontFamily="Inter, sans-serif" opacity={0.7}
+            <text key={ri} x={padL - 8} y={y + 3} textAnchor="end" fontSize={8} fill={lineColor} fontFamily={FONT} opacity={0.7}
               style={{ cursor: "pointer" }} onMouseEnter={() => setHovIdx(ri)} onMouseLeave={() => setHovIdx(null)}>
               {row.name.length > 14 ? row.name.slice(0, 12) + "…" : row.name}
             </text>
@@ -4028,7 +4028,7 @@ const CrossReactivityMatrix = () => {
           {/* Column headers (rotated 45°) */}
           {labels.map((l, j) => (
             <text key={`ch-${j}`} x={labelW + j * (cellSize + gap) + cellSize / 2} y={labelW - 6}
-              fontSize="7" fill={T.textSec} fontFamily="monospace" textAnchor="end"
+              fontSize="7" fill={T.textSec} fontFamily={MONO} textAnchor="end"
               transform={`rotate(-45, ${labelW + j * (cellSize + gap) + cellSize / 2}, ${labelW - 6})`}>
               {l}
             </text>
@@ -4036,7 +4036,7 @@ const CrossReactivityMatrix = () => {
           {/* Row headers */}
           {labels.map((l, i) => (
             <text key={`rh-${i}`} x={labelW - 4} y={labelW + i * (cellSize + gap) + cellSize / 2 + 3}
-              fontSize="7" fill={T.textSec} fontFamily="monospace" textAnchor="end">
+              fontSize="7" fill={T.textSec} fontFamily={MONO} textAnchor="end">
               {l}
             </text>
           ))}
@@ -4061,7 +4061,7 @@ const CrossReactivityMatrix = () => {
                   stroke={hovCell && !hovCell.diag && hovCell.sourceIdx === i && hovCell.targetIdx === j ? T.text : "none"}
                   strokeWidth={1} />
                 {i === j && (
-                  <text x={x + cellSize / 2} y={y + cellSize / 2 + 3} fontSize="6" fill="#fff" textAnchor="middle" fontFamily="monospace">
+                  <text x={x + cellSize / 2} y={y + cellSize / 2 + 3} fontSize="6" fill="#fff" textAnchor="middle" fontFamily={MONO}>
                     {getOnTargetScore(i)}
                   </text>
                 )}
