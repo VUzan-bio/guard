@@ -1200,7 +1200,7 @@ const HomePage = ({ goTo, connected }) => {
   ), [scorer]);
 
   return (
-    <div style={{ padding: mobile ? "24px 16px" : "32px 40px", maxWidth: "1100px" }}>
+    <div style={{ padding: mobile ? "24px 16px" : "32px 40px" }}>
       {/* Page title */}
       <div style={{ marginBottom: "24px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600, color: T.text, margin: 0, fontFamily: HEADING, letterSpacing: "-0.01em" }}>Pipeline Configuration</h1>
@@ -1788,7 +1788,7 @@ const MethodsPage = () => {
   );
 
   return (
-    <div style={{ padding: mobile ? "24px 16px" : "32px 40px", maxWidth: "960px" }}>
+    <div style={{ padding: mobile ? "24px 16px" : "32px 40px" }}>
 
       {/* ═══ Page Header ═══ */}
       <div style={{ marginBottom: "28px" }}>
@@ -6861,7 +6861,7 @@ const ResultsPage = ({ connected, jobId, scorer: scorerProp, goTo }) => {
   const hasResults = results && results.length > 0;
 
   return (
-    <div style={{ padding: mobile ? "16px" : "32px 40px", maxWidth: "1100px" }}>
+    <div style={{ padding: mobile ? "16px" : "32px 40px" }}>
       {/* Header */}
       <div style={{ display: "flex", flexDirection: mobile ? "column" : "row", justifyContent: "space-between", alignItems: mobile ? "stretch" : "center", gap: "12px", marginBottom: "24px" }}>
         <div>
