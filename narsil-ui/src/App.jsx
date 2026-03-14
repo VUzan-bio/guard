@@ -1592,8 +1592,8 @@ const HomePage = ({ goTo, connected }) => {
               return (
                 <div style={{ padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", animation: "subtlePulse 2s ease-in-out infinite" }}>
-                      <ActiveIcon size={14} color={T.primary} strokeWidth={1.8} />
+                    <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Loader2 size={16} color={T.primary} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} />
                     </div>
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2px" }}>
                       <div key={pipeStep} style={{ display: "flex", alignItems: "baseline", gap: "8px", animation: "stepSwipeUp 0.25s ease-out" }}>
@@ -1649,7 +1649,9 @@ const HomePage = ({ goTo, connected }) => {
               <div style={{ padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <CheckCircle size={16} color={T.success} strokeWidth={2} />
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: T.success, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Check size={12} color="#fff" strokeWidth={3} />
+                    </div>
                     <span style={{ fontSize: "13px", fontWeight: 500, color: T.text, fontFamily: FONT }}>
                       Pipeline complete
                     </span>
@@ -1668,7 +1670,7 @@ const HomePage = ({ goTo, connected }) => {
                       cursor: "pointer",
                     }}
                   >
-                    View Results →
+                    View Results
                   </button>
                 </div>
 
@@ -1692,8 +1694,8 @@ const HomePage = ({ goTo, connected }) => {
                         <div key={m.id} style={{ display: "flex", gap: "0", marginBottom: isLast ? 0 : "4px" }}>
                           {/* Timeline rail */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "28px", flexShrink: 0 }}>
-                            <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: st ? T.text : T.bgSub, border: st ? "none" : `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Icon size={12} color={st ? "#fff" : T.textTer} strokeWidth={1.8} />
+                            <div style={{ width: "24px", height: "24px", borderRadius: st ? "50%" : "6px", background: st ? T.success : T.bgSub, border: st ? "none" : `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {st ? <Check size={12} color="#fff" strokeWidth={2.5} /> : <Icon size={12} color={T.textTer} strokeWidth={1.8} />}
                             </div>
                             {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "8px", background: T.border }} />}
                           </div>
@@ -1711,9 +1713,8 @@ const HomePage = ({ goTo, connected }) => {
                             {/* Substeps */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingLeft: "2px" }}>
                               {subs.map((sub, si) => (
-                                <div key={si} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "11px", color: T.textTer, lineHeight: 1.4 }}>
-                                  <span style={{ color: T.border, flexShrink: 0, marginTop: "1px" }}>{"\u2192"}</span>
-                                  <span>{sub}</span>
+                                <div key={si} style={{ fontSize: "11px", color: T.textTer, lineHeight: 1.5 }}>
+                                  {sub}
                                 </div>
                               ))}
                             </div>
