@@ -209,7 +209,7 @@ const MOCK_CROSS_REACTIVITY = (() => {
 })();
 
 const MODULES = [
-  { id: "M1", name: "Target Resolution", desc: "WHO mutations → genomic coordinates", icon: Target, execDesc: "Resolving WHO-catalogued resistance mutations to genomic coordinates on H37Rv", estSec: 5, substeps: [
+  { id: "M1", name: "Target Resolution", desc: "WHO mutations → genomic coordinates", icon: Database, execDesc: "Resolving WHO-catalogued resistance mutations to genomic coordinates on H37Rv", estSec: 5, substeps: [
     "Loading H37Rv reference genome (NC_000962.3, 4.4 Mb)",
     "Parsing 5,959 genes from GFF3 annotation",
     "Resolving mutation coordinates to genomic positions",
@@ -1592,8 +1592,8 @@ const HomePage = ({ goTo, connected }) => {
               return (
                 <div style={{ padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Loader2 size={16} color={T.primary} strokeWidth={2} style={{ animation: "spin 1s linear infinite" }} />
+                    <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", animation: "subtlePulse 2s ease-in-out infinite" }}>
+                      <ActiveIcon size={14} color={T.primary} strokeWidth={1.8} />
                     </div>
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2px" }}>
                       <div key={pipeStep} style={{ display: "flex", alignItems: "baseline", gap: "8px", animation: "stepSwipeUp 0.25s ease-out" }}>
@@ -1694,8 +1694,8 @@ const HomePage = ({ goTo, connected }) => {
                         <div key={m.id} style={{ display: "flex", gap: "0", marginBottom: isLast ? 0 : "4px" }}>
                           {/* Timeline rail */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "28px", flexShrink: 0 }}>
-                            <div style={{ width: "24px", height: "24px", borderRadius: st ? "50%" : "6px", background: st ? T.success : T.bgSub, border: st ? "none" : `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              {st ? <Check size={12} color="#fff" strokeWidth={2.5} /> : <Icon size={12} color={T.textTer} strokeWidth={1.8} />}
+                            <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: st ? T.text : T.bgSub, border: st ? "none" : `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Icon size={12} color={st ? "#fff" : T.textTer} strokeWidth={1.8} />
                             </div>
                             {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "8px", background: T.border }} />}
                           </div>
