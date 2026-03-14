@@ -1649,9 +1649,7 @@ const HomePage = ({ goTo, connected }) => {
               <div style={{ padding: "16px 20px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", background: T.success, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Check size={12} color="#fff" strokeWidth={3} />
-                    </div>
+                    <CheckCircle size={18} color={T.text} strokeWidth={2} />
                     <span style={{ fontSize: "13px", fontWeight: 500, color: T.text, fontFamily: FONT }}>
                       Pipeline complete
                     </span>
@@ -1694,8 +1692,8 @@ const HomePage = ({ goTo, connected }) => {
                         <div key={m.id} style={{ display: "flex", gap: "0", marginBottom: isLast ? 0 : "4px" }}>
                           {/* Timeline rail */}
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "28px", flexShrink: 0 }}>
-                            <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: st ? T.text : T.bgSub, border: st ? "none" : `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Icon size={12} color={st ? "#fff" : T.textTer} strokeWidth={1.8} />
+                            <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: T.bgSub, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Icon size={12} color={st ? T.text : T.textTer} strokeWidth={1.8} />
                             </div>
                             {!isLast && <div style={{ width: "1px", flex: 1, minHeight: "8px", background: T.border }} />}
                           </div>
