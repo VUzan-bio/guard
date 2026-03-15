@@ -183,11 +183,9 @@ class AppState:
             if scoring_kwargs:
                 from compass.core.config import ScoringConfig
                 # Auto-resolve Compass-ML weights path
-                if scoring_kwargs.get("scorer") == "compass_ml":
-                    scoring_kwargs.setdefault(
-                        "compass_ml_weights",
-                        Path("compass/weights/compass_ml_diagnostic.pt"),
-                    )
+                if scoring_kwargs.get("scorer", "compass_ml") == "compass_ml":
+                    # Don't set compass_ml_weights — let CompassMlScorer auto-detect
+                    # the best available checkpoint (phase1_v2 > diagnostic > best)
                     scoring_kwargs.setdefault(
                         "rnafm_cache_dir",
                         Path("compass/data/embeddings/rnafm"),

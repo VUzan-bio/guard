@@ -63,7 +63,7 @@ class ScoringConfig(BaseModel):
     ml_model_path: Optional[Path] = None
     ml_model_name: str = "heuristic"
     # Compass-ML integration (replaces SeqCNN when weights available)
-    scorer: str = "seq_cnn"  # "seq_cnn" or "compass_ml"
+    scorer: str = "compass_ml"  # "compass_ml" (default) or "seq_cnn" (legacy)
     compass_ml_weights: Optional[Path] = None
     rnafm_cache_dir: Optional[Path] = None
     compass_ml_use_rlpa: bool = True
