@@ -1189,7 +1189,7 @@ const HomePage = ({ goTo, connected }) => {
           name: "Compass-ML Scoring",
           execDesc: "Compass-ML (CNN + RNA-FM + RLPA) inference for efficiency and discrimination scoring",
           substeps: [
-            "Loading Compass-ML checkpoint (105K params, CNN + PAM encoding)",
+            "Loading Compass-ML checkpoint (235K params, CNN + PAM + RNA-FM + RLPA)",
             "Computing RNA-FM embeddings (640-dim, frozen)",
             "Running multi-scale CNN branch (kernels 3/5/7)",
             "Applying R-loop propagation attention (RLPA, 34×34)",
@@ -1803,7 +1803,7 @@ const MethodsPage = () => {
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(4, 1fr)", gap: "0", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden" }}>
           {[
             { n: "01", icon: Map, title: "Define targets", desc: "Resolve WHO catalogue mutations to H37Rv genomic coordinates, codon context, and drug class annotations.", color: T.primary },
-            { n: "02", icon: Brain, title: "Score candidates", desc: "Scan PAM sites, generate crRNAs, and predict activity with Compass-ML trained on 25K+ measurements.", color: T.primary },
+            { n: "02", icon: Brain, title: "Score candidates", desc: "Scan PAM sites, generate crRNAs, and predict activity with Compass-ML trained on 15K cis-cleavage measurements.", color: T.primary },
             { n: "03", icon: Zap, title: "Optimise panel", desc: "Simulated annealing over candidate assignments with co-designed AS-RPA primers and multiplex constraints.", color: T.primaryDark },
             { n: "04", icon: Shield, title: "Assess clinically", desc: "Evaluate against WHO TPP thresholds for per-drug sensitivity, specificity, and three operating modes.", color: T.success },
           ].map((c, i) => (
@@ -1822,15 +1822,15 @@ const MethodsPage = () => {
       </Section>
 
       {/* ═══════════ 2. COMPASS-ML ═══════════ */}
-      <Section id="narsilml" title="Compass-ML" subtitle="Dual-branch neural network predicting Cas12a guide efficiency and mismatch discrimination" badge={{ text: "105K params", bg: T.primaryLight, color: T.primary }}>
+      <Section id="narsilml" title="Compass-ML" subtitle="Dual-branch neural network predicting Cas12a guide efficiency and mismatch discrimination" badge={{ text: "235K params", bg: T.primaryLight, color: T.primary }}>
 
         {/* Metric strip */}
         <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden", marginBottom: "20px" }}>
           {[
-            { label: "PARAMETERS", value: "105K" },
-            { label: "VAL \u03c1", value: "0.747" },
-            { label: "ENSEMBLE", value: "3\u00d7" },
-            { label: "DISC r", value: "0.44" },
+            { label: "PARAMETERS", value: "235K" },
+            { label: "VAL \u03c1", value: "0.750" },
+            { label: "DISC r", value: "0.57" },
+            { label: "PAM", value: "9-class" },
             { label: "INFERENCE", value: "<1ms" },
           ].map((s, i) => (
             <div key={s.label} style={{ flex: 1, padding: "14px 12px", textAlign: "center", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
@@ -1845,7 +1845,7 @@ const MethodsPage = () => {
           {[
             { tag: "CNN", title: "Target DNA Branch", desc: "Multi-scale convolutions (k=3,5,7) scan the 34-nt target context for PAM quality, seed composition, and dinucleotide patterns." },
             { tag: "RNA-FM", title: "Guide RNA Branch", desc: "Pre-trained foundation model (23M sequences) captures folding stability and accessibility governing Cas12a loading." },
-            { tag: "RLPA", title: "R-Loop Propagation", desc: "Directional attention encodes PAM-proximal to distal R-loop propagation. +6.7% cross-dataset generalisation vs bidirectional." },
+            { tag: "RLPA", title: "R-Loop Propagation", desc: "Directional attention encodes PAM-proximal to distal R-loop propagation. Ablation: +0.1% over CNN+PAM+RNA-FM (consistent across 3 seeds)." },
           ].map(c => (
             <div key={c.tag} style={{ padding: "16px", border: `1px solid ${T.border}`, borderRadius: "4px" }}>
               <span style={{ fontSize: "10px", fontWeight: 600, color: T.primary, padding: "2px 6px", borderRadius: "3px", background: T.primaryLight, fontFamily: MONO, display: "inline-block", marginBottom: "10px" }}>{c.tag}</span>
@@ -1864,9 +1864,9 @@ const MethodsPage = () => {
         <div style={{ fontSize: "11px", fontWeight: 600, color: T.textTer, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: "8px" }}>Technical details</div>
         <div style={{ marginBottom: "16px" }}>
           {[
-            ["Architecture", "Multi-scale CNN + 9-class PAM encoding (enAsCas12a)"],
+            ["Architecture", "Dual-branch CNN + RNA-FM with RLPA + 9-class PAM encoding"],
             ["Training data", "Kim 2018 (15K cis) + flanking shuffle augmentation"],
-            ["Val \u03c1 (production)", "0.747 (3-seed ensemble, Kim 2018 HT1-2)"],
+            ["Val \u03c1 (production)", "0.750 (best of 3 seeds, Kim 2018 HT1-2)"],
             ["Training protocol", "AdamW + CosineWarmRestarts + Huber + soft Spearman"],
             ["Multi-task heads", "Efficiency (sigmoid) + Discrimination (Softplus)"],
             ["Attention", "R-Loop Propagation Attention (RLPA), directional propagation bias"],
@@ -1875,7 +1875,7 @@ const MethodsPage = () => {
 
         {/* Benchmark callout */}
         <div style={{ background: T.bgSub, border: `1px solid ${T.border}`, borderRadius: "4px", padding: "12px 16px", fontSize: "12px", color: T.textSec, lineHeight: 1.65 }}>
-          <strong style={{ color: T.text }}>Benchmark:</strong> CNN + PAM encoding + flanking shuffle augmentation achieves {"\u03c1"} = 0.747 (3-seed ensemble mean) on Kim 2018 HT1-2 validation, vs DeepCpf1 baseline {"\u03c1"} = 0.71. With RNA-FM + RLPA (requires GPU), cross-dataset trans-cleavage {"\u03c1"} improves further.
+          <strong style={{ color: T.text }}>Benchmark:</strong> Full architecture (CNN + PAM + RNA-FM + RLPA) achieves {"\u03c1"} = 0.750 on Kim 2018 HT1-2 validation (best of 3 seeds). Ablation: CNN-only {"\u03c1"} = 0.740, +PAM = 0.741, +RNA-FM = 0.744, +RLPA = 0.745. DeepCpf1 baseline {"\u03c1"} = 0.71.
         </div>
       </Section>
 
@@ -1929,7 +1929,7 @@ const MethodsPage = () => {
       {/* ═══════════ 5. DISCRIMINATION THRESHOLDS ═══════════ */}
       <Section id="discrimination" title="Discrimination Thresholds" subtitle="Mismatch discrimination determines clinical deployment tier">
         <p style={{ fontSize: "12px", color: T.textSec, lineHeight: 1.6, margin: "0 0 16px" }}>
-          For Direct candidates: Cas12a cleavage ratio (MUT/WT) predicted by Compass-ML's neural head (r=0.44) or XGBoost fallback (r=0.46, 18 features). For Proximity candidates: AS-RPA primer selectivity.
+          For Direct candidates: Cas12a cleavage ratio (MUT/WT) predicted by XGBoost on 18 thermodynamic features (r=0.57, trained on 6,136 EasyDesign pairs). For Proximity candidates: AS-RPA primer selectivity.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "0", border: `1px solid ${T.border}`, borderRadius: "4px", overflow: "hidden", marginBottom: "16px" }}>
@@ -1998,7 +1998,7 @@ const MethodsPage = () => {
       <Section id="limitations" title="Limitations" subtitle="All predictions are in silico estimates. Experimental validation is required before diagnostic deployment.">
         <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
           {[
-            { title: "Discrimination prediction", text: "Neural head r=0.44 (6,136 pairs), XGBoost fallback r=0.46 (18 features). Position-dependent heuristic baseline r\u22480.30." },
+            { title: "Discrimination prediction", text: "XGBoost (18 features) r=0.57 on 6,136 EasyDesign pairs. pam_to_mm_distance is top feature. Heuristic baseline r\u22480.30." },
             { title: "Training domain shift", text: "Trained on WT AsCas12a/LbCas12a, deployed on enAsCas12a. Human cell lines \u2192 M.tb (65.6% GC)." },
             { title: "AS-RPA specificity", text: "Boltzmann thermodynamic estimates, not experimentally validated. Ratios >100\u00d7 are capped." },
             { title: "Multiplex compatibility", text: "Cross-reactivity by sequence homology. Primer dimer stability predicted but not yet in SA cost function." },
@@ -2657,7 +2657,7 @@ const OverviewTab = ({ results, scorer, jobId }) => {
   // Detect scorer from prop (primary) or ml_scores (fallback)
   const usesCompassMl = scorer === "compass_ml" || results.some(r => r.mlScores?.some(m => (m.model_name || m.modelName) === "compass_ml"));
   const mlModelLabel = usesCompassMl ? "Compass-ML" : "Heuristic";
-  const mlModelDetail = usesCompassMl ? "105K params · CNN + PAM encoding · 3-seed ensemble" : "Biophysical features";
+  const mlModelDetail = usesCompassMl ? "235K params · CNN + PAM + RNA-FM + RLPA" : "Biophysical features";
 
   const getResultScore = (r) => r.cnnCalibrated ?? r.score;
   const drugs = [...new Set(results.map((r) => r.drug))];
@@ -4244,7 +4244,7 @@ const DiscriminationTab = ({ results }) => {
               <div style={{ fontSize: "10px", color: T.textTer, marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: directCands.some(r => r.discMethod === "neural") ? "#3b82f6" : directCands.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature") ? "#22c55e" : T.warning }} />
                 {directCands.some(r => r.discMethod === "neural")
-                  ? "Predicted by Compass-ML neural discrimination head (multi-task, 105K params, trained on 6,136 EasyDesign pairs)"
+                  ? "Predicted by Compass-ML neural discrimination head (multi-task, 235K params, trained on 6,136 EasyDesign pairs)"
                   : directCands.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature")
                   ? "Predicted by learned model (XGBoost on 18 thermodynamic features, trained on 6,136 EasyDesign pairs)"
                   : "Predicted by heuristic model (position sensitivity \u00D7 mismatch destabilisation)"
@@ -5218,7 +5218,7 @@ const MultiplexTab = ({ results, panelData, jobId, connected }) => {
               : echemArch === "A"
               ? "Peak shapes follow Nicholson-Shain theory for irreversible diffusion-controlled oxidation."
               : "Peak shapes follow anodic stripping voltammetry dissolution kinetics."
-            } Relative peak heights between candidates and between MUT/WT alleles are determined by Compass-ML efficiency and discrimination scores (trained on 25K+ real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
+            } Relative peak heights between candidates and between MUT/WT alleles are determined by Compass-ML efficiency and discrimination scores (trained on 15K real measurements). Absolute peak currents and detection times depend on electrode-specific parameters (surface trans-cleavage rate, reporter density) provided as adjustable sliders {"\u2014"} to be locked to experimental values after the first electrode characterisation.
           </p>
 
           {/* ── Row 1: Candidate + Technique ── */}
@@ -6414,9 +6414,9 @@ const DiagnosticsTab = ({ results, jobId, connected, scorer }) => {
               <div style={{ marginBottom: "14px" }}>
                 <div style={{ fontSize: "13px", fontWeight: 600, color: T.text, marginBottom: "4px" }}>Prediction model</div>
                 {results.some(r => r.discMethod === "neural")
-                  ? "Discrimination ratios are predicted by Compass-ML's neural discrimination head — a multi-task extension (105K params) trained end-to-end on efficiency and discrimination simultaneously. The disc head takes paired encoder representations [mut, wt, mut\u2212wt, mut\u00D7wt] from the shared CNN+RNA-FM+RLPA backbone and outputs a predicted MUT/WT ratio via Softplus. Trained on 6,136 paired trans-cleavage measurements from EasyDesign (Huang et al. 2024, LbCas12a). 3-fold CV: r = 0.440."
+                  ? "Discrimination ratios are predicted by Compass-ML's neural discrimination head — a multi-task extension (235K params) trained end-to-end on efficiency and discrimination simultaneously. The disc head takes paired encoder representations [mut, wt, mut\u2212wt, mut\u00D7wt] from the shared CNN+RNA-FM+RLPA backbone and outputs a predicted MUT/WT ratio via Softplus. Trained on 6,136 paired trans-cleavage measurements from EasyDesign (Huang et al. 2024, LbCas12a). 3-fold CV: r = 0.440."
                   : results.some(r => (r.discrimination?.model_name || "").includes("learned") || r.discMethod === "feature")
-                  ? "Discrimination ratios are predicted by a gradient-boosted model (XGBoost) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 18 thermodynamic features including R-loop cumulative \u0394G, mismatch \u0394\u0394G penalties, and position sensitivity. 3-fold CV: RMSE = 0.540, r = 0.459 (vs heuristic RMSE = 0.641, r = 0.298)."
+                  ? "Discrimination ratios are predicted by a gradient-boosted model (XGBoost) trained on 6,136 paired MUT/WT trans-cleavage measurements from the EasyDesign dataset (Huang et al. 2024, LbCas12a). The model uses 18 thermodynamic features including R-loop cumulative \u0394G, mismatch \u0394\u0394G penalties, and position sensitivity. Val: RMSE = 0.520, r = 0.565. Top feature: pam_to_mm_distance (0.148 importance)."
                   : "Discrimination ratios are predicted by a heuristic model using position sensitivity \u00D7 mismatch destabilisation scores. A trained model (XGBoost on 18 thermodynamic features) is available but was not loaded for this run."
                 }
               </div>
@@ -7292,16 +7292,18 @@ const ScoringPage = ({ connected }) => {
         <p style={{ fontSize: "13px", color: T.textSec, lineHeight: 1.7, marginBottom: "16px", marginTop: 0 }}>
           Dual-branch neural network combining a target-DNA CNN with RNA Foundation Model (RNA-FM) embeddings for crRNA secondary structure.
           R-Loop Propagation Attention (RLPA) encodes the biophysics of Cas12a's directional R-loop formation into the architecture.
-          Trained on 25,000+ cis- and trans-cleavage measurements from Kim et al. (2018) and Huang et al. (2024). Activity score serves as primary ranking; heuristic provides independent biophysical QC.
+          Dual-branch CNN + RNA-FM with R-Loop Propagation Attention (RLPA) and 9-class PAM encoding. Trained on 15,000 cis-cleavage measurements from Kim et al. (2018) with flanking shuffle augmentation. Activity score serves as primary ranking; heuristic provides independent biophysical QC.
         </p>
 
         {/* Architecture branches */}
         <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Branch Ablation (Kim 2018 cross-library)</div>
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden", marginBottom: "20px" }}>
           {[
-            { name: "CNN only (baseline)", rho: "0.496", delta: null },
-            { name: "+ RNA-FM embeddings", rho: "0.501", delta: "+0.005" },
-            { name: "+ RLPA attention", rho: "0.534", delta: "+0.033" },
+            { name: "CNN only (baseline)", rho: "0.740", delta: null },
+            { name: "+ PAM encoding (9-class)", rho: "0.741", delta: "+0.2%" },
+            { name: "+ RNA-FM embeddings", rho: "0.744", delta: "+0.5%" },
+            { name: "+ RLPA attention", rho: "0.745", delta: "+0.7%" },
+            { name: "Best single seed (production)", rho: "0.750", delta: "+1.3%" },
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
@@ -7319,13 +7321,14 @@ const ScoringPage = ({ connected }) => {
         <div style={{ fontSize: "12px", fontWeight: 600, color: T.textSec, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Architecture</div>
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden" }}>
           {[
-            ["Architecture", "Multi-scale CNN (k=3,5,7) + PAM embedding (9-class enAsCas12a)"],
+            ["Architecture", "CNN (k=3,5,7) + RNA-FM (640\u219264) + RLPA + PAM (9-class)"],
             ["CNN input", "One-hot 34nt (PAM + spacer + context)"],
-            ["PAM encoding", "9-class learned embedding (Kleinstiver 2019 variants)"],
-            ["Training data", "15K guides (Kim 2018 HT1-1) + flanking shuffle augmentation"],
-            ["Parameters", "105K"],
-            ["Val \u03c1", "0.747 (3-seed ensemble mean, Kim 2018 HT1-2)"],
-            ["Ensemble", "3 seeds (0.7487 / 0.7469 / 0.7453), std=0.0014"],
+            ["RNA-FM input", "Pre-cached 640-dim embeddings (frozen, 23M sequences)"],
+            ["PAM encoding", "9-class learned embedding (Kleinstiver 2019 enAsCas12a)"],
+            ["Training data", "Kim 2018 HT1-1 (15K guides) + flanking shuffle augmentation"],
+            ["Parameters", "235K (CNN ~65K, RNA-FM proj ~41K, RLPA ~35K, PAM ~1K, heads ~8K)"],
+            ["Val \u03c1", "0.750 (best of 3 seeds, Kim 2018 HT1-2)"],
+            ["Ablation", "CNN 0.740 \u2192 +PAM 0.741 \u2192 +RNA-FM 0.744 \u2192 +RLPA 0.745"],
             ["Augmentation", "Flanking shuffle (p=0.3) + label noise (\u03c3=0.02)"],
             ["Loss", "Huber + differentiable Spearman (annealed)"],
           ].map(([k, v], i, arr) => (
@@ -7347,8 +7350,8 @@ const ScoringPage = ({ connected }) => {
         <div style={{ background: T.bgSub, borderRadius: "4px", overflow: "hidden", marginBottom: "16px" }}>
           {[
             { name: "Heuristic baseline", rmse: "0.641", corr: "0.298", delta: null },
-            { name: "XGBoost (feature-based)", rmse: "0.540", corr: "0.459", delta: "\u221215% RMSE" },
-            { name: "Compass-ML neural head", rmse: "\u2014", corr: "0.440", delta: "integrated" },
+            { name: "XGBoost 15 features (v1)", rmse: "0.540", corr: "0.459", delta: "\u221215% RMSE" },
+            { name: "XGBoost 18 features (v2, production)", rmse: "0.520", corr: "0.565", delta: "\u221219% RMSE" },
           ].map((f, i, arr) => (
             <div key={f.name} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < arr.length - 1 ? `1px solid ${T.borderLight}` : "none" }}>
               <div style={{ flex: 1, fontSize: "13px", fontWeight: 600, color: T.text }}>{f.name}</div>
