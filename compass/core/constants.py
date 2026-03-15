@@ -43,7 +43,7 @@ GC_MAX = 0.60
 # optimum shifts from 0.50 to 0.55 (Kim et al. 2018 shows Cas12a
 # tolerates higher GC well).
 GC_OPTIMAL_DEFAULT = 0.50
-GC_OPTIMAL_MTB = 0.55
+GC_OPTIMAL_MTB = 0.65  # computed from H37Rv TTTV-adjacent spacer median (was 0.55 hardcoded guess)
 HOMOPOLYMER_MAX = 4
 MFE_THRESHOLD = -2.0
 
