@@ -45,12 +45,36 @@ logger = logging.getLogger(__name__)
 
 _CONTEXT_LENGTH = 34
 _COMPASS_NET_DIR = Path(__file__).resolve().parent.parent.parent / "compass-net"
-_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_diagnostic.pt"
+_WEIGHTS_DIR = Path(__file__).resolve().parent.parent / "weights"
+# Prefer phase1_v2 (rho=0.7434, CNN+PAM) > diagnostic > best
+_DEFAULT_WEIGHTS = next(
+    (p for p in [
+        _WEIGHTS_DIR / "compass_ml_phase1_v2.pt",
+        _WEIGHTS_DIR / "compass_ml_diagnostic.pt",
+        _WEIGHTS_DIR / "compass_ml_best.pt",
+    ] if p.exists()),
+    _WEIGHTS_DIR / "compass_ml_diagnostic.pt",
+)
 _DEFAULT_CALIBRATION = Path(__file__).resolve().parent.parent / "weights" / "compass_ml_calibration.json"
 
 # Complement tables
 _DNA_COMPLEMENT = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N"}
 _DNA_TO_RNA_RC = {"A": "U", "T": "A", "C": "G", "G": "C", "N": "N"}
+
+# PAM classification for enAsCas12a (9 variants, Kleinstiver et al. 2019)
+_PAM_TO_CLASS = {}
+for _p in ["TTTA", "TTTC", "TTTG"]: _PAM_TO_CLASS[_p] = 0  # TTTV
+_PAM_TO_CLASS["TTTT"] = 1
+for _p in ["TTCA", "TTCC", "TTCG"]: _PAM_TO_CLASS[_p] = 2
+for _p in ["TATA", "TATC", "TATG"]: _PAM_TO_CLASS[_p] = 3
+for _p in ["CTTA", "CTTC", "CTTG"]: _PAM_TO_CLASS[_p] = 4
+for _p in ["TCTA", "TCTC", "TCTG"]: _PAM_TO_CLASS[_p] = 5
+for _p in ["TGTA", "TGTC", "TGTG"]: _PAM_TO_CLASS[_p] = 6
+for _p in ["ATTA", "ATTC", "ATTG"]: _PAM_TO_CLASS[_p] = 7
+for _p in ["GTTA", "GTTC", "GTTG"]: _PAM_TO_CLASS[_p] = 8
+
+def _classify_pam(pam: str) -> int:
+    return _PAM_TO_CLASS.get(pam.upper(), 0)
 
 
 class CompassMlScorer(Scorer):
@@ -453,12 +477,37 @@ class CompassMlScorer(Scorer):
             self._n_thermo = n_thermo
             self._pos_embed_dim = pos_embed_dim
 
+            # Auto-detect PAM encoding from checkpoint (Gap 7)
+            n_pam_classes = 0
+            pam_embed_dim = 8
+            for k in state_dict:
+                if "cnn.pam_emb.weight" in k:
+                    n_pam_classes = state_dict[k].shape[0]
+                    pam_embed_dim = state_dict[k].shape[1]
+                    break
+
+            # Auto-detect CNN branch dimensions from checkpoint
+            cnn_branches = 40  # default
+            cnn_out_dim = 64   # default
+            for k in state_dict:
+                if "cnn.b3.0.weight" in k or "cnn.branch3.0.weight" in k:
+                    cnn_branches = state_dict[k].shape[0]
+                    break
+            for k in state_dict:
+                if "cnn.reduce.0.weight" in k:
+                    cnn_out_dim = state_dict[k].shape[0]
+                    break
+
             self.model = CompassML(
+                cnn_branches=cnn_branches,
+                cnn_out_dim=cnn_out_dim,
                 use_rnafm=use_rnafm,
                 use_rloop_attention=use_rlpa,
                 multitask=multitask,
                 n_thermo=n_thermo,
                 pos_embed_dim=pos_embed_dim,
+                n_pam_classes=n_pam_classes,
+                pam_embed_dim=pam_embed_dim,
             )
 
             # Handle partial loading: filter out unexpected keys (e.g.
@@ -658,10 +707,24 @@ class CompassMlScorer(Scorer):
                 np.stack(emb_list), dtype=torch.float32,
             ).to(self._device)
 
+        # PAM class tensor (Gap 7) — extracted from first 4 nt of each context
+        pam_batch = None
+        if hasattr(self.model, 'cnn') and getattr(self.model.cnn, 'n_pam_classes', 0) > 0:
+            pam_indices = []
+            for ctx in contexts:
+                # Decode one-hot PAM (first 4 positions) → string → class index
+                pam_str = ""
+                for pos in range(4):
+                    idx = int(ctx[:, pos].argmax())
+                    pam_str += "ACGT"[idx]
+                pam_indices.append(_classify_pam(pam_str))
+            pam_batch = torch.tensor(pam_indices, dtype=torch.long).to(self._device)
+
         with torch.no_grad():
             output = self.model(
                 target_onehot=batch,
                 crrna_rnafm_emb=rnafm_batch,
+                pam_class=pam_batch,
             )
 
         # Capture embeddings if requested (128-dim pooled RLPA vectors)

@@ -154,6 +154,7 @@ class CompassML(nn.Module):
         target_onehot: torch.Tensor,
         crrna_rnafm_emb: torch.Tensor | None = None,
         crrna_sequences: list[str] | None = None,
+        pam_class: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Shared encoder: fuse branches -> optional attention -> per-position features.
 
@@ -163,11 +164,13 @@ class CompassML(nn.Module):
                              for the crRNA spacer. None if use_rnafm=False.
             crrna_sequences: list of RNA strings for live LoRA mode.
                              Used when use_rnafm_lora=True.
+            pam_class:       (batch,) int tensor, PAM variant index 0-8.
+                             None if n_pam_classes=0.
 
         Returns:
             (batch, 34, fused_dim) per-position fused features.
         """
-        cnn_feat = self.cnn(target_onehot)  # (batch, 34, cnn_out_dim)
+        cnn_feat = self.cnn(target_onehot, pam_class=pam_class)  # (batch, 34, cnn_out_dim)
         branches = [cnn_feat]
 
         if self.use_rnafm_lora and crrna_sequences is not None:
@@ -208,6 +211,8 @@ class CompassML(nn.Module):
         # Discrimination head enhancements
         thermo_feats: torch.Tensor | None = None,
         mm_position: torch.Tensor | None = None,
+        # Gap 7: PAM class for explicit PAM encoding
+        pam_class: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         """Forward pass.
 
@@ -226,7 +231,7 @@ class CompassML(nn.Module):
                 "attn_weights":   (batch, 34, 34) attention map (if RLPA enabled).
         """
         # Encode mutant target (perfect match to crRNA)
-        mut_feat = self.encode(target_onehot, crrna_rnafm_emb, crrna_sequences)
+        mut_feat = self.encode(target_onehot, crrna_rnafm_emb, crrna_sequences, pam_class)
         mut_pooled = self._pool_and_append_scalars(mut_feat, scalar_features)
 
         output: dict[str, torch.Tensor] = {
@@ -240,8 +245,8 @@ class CompassML(nn.Module):
 
         # Multi-task: discrimination from paired targets
         if self.multitask and wt_target_onehot is not None:
-            # Encode wildtype target with the SAME crRNA
-            wt_feat = self.encode(wt_target_onehot, crrna_rnafm_emb, crrna_sequences)
+            # Encode wildtype target with the SAME crRNA (same PAM class)
+            wt_feat = self.encode(wt_target_onehot, crrna_rnafm_emb, crrna_sequences, pam_class)
             wt_pooled = self._pool_and_append_scalars(wt_feat, scalar_features)
             output["discrimination"] = self.disc_head(
                 mut_pooled, wt_pooled, thermo_feats, mm_position,
